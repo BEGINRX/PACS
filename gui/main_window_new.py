@@ -35,15 +35,20 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
 
         self.flag = 0
-        self.current_data = {}
         self.data_info = {'data_path':'', 'epoch_number':'', 'sampling_rate':'',
                           'channel_number':'', 'epoch_start':'', 'epoch_end':'', 'event_class':'',
                           'time_point':'', 'events':'', 'event_number':'', 'data_size':'',}
-        # raw_seeg: data get from the device
+        # sEEG dict should have this structure:
+        # 1. key(subject) - the name of the subject
+        # 2. data - the raw data import from the file
+        # 3. dict:process - the processed sEEG data is named after the key of process
+        # 4. MNI coordinates - to plot the depth electrodes on fsaverage brain
+        # 5. MRI - get the MRI from this subject
         self.seeg = {}
-        self.data_action = []
+        # current_data tells us which seeg data we want to use by set key
+        self.current_data = {}
         self.action_num = 0
-        self.data_mode = 'raw'
+        self.data_mode = None
         self.event_set = None
         self.event = None
 
@@ -64,18 +69,17 @@ class MainWindow(QMainWindow):
         self.create_menubar()
         self.create_layout()
         self.set_qt_style()
-        # self.setWindowFlags(Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint |
-        #                     Qt.WindowMaximizeButtonHint)
-        self.show()
+
 
     def frame(self):
         '''set the app window to the center of the displayer of the computer'''
-
+        # self.setWindowFlags(Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint | Qt.WindowMaximizeButtonHint)
         fg= self.frameGeometry()
         self.rect = QDesktopWidget().availableGeometry(screen=0)
         cp = self.rect.center()
         fg.moveCenter(cp)
         self.setGeometry(self.rect)  # 可避免遮挡任务栏
+        self.showMaximized()
 
 
     def create_central_widget(self):
@@ -250,11 +254,6 @@ class MainWindow(QMainWindow):
         self.plot_psd_action = QAction('Plot PSD across channels', self,
                                       statusTip='Plot data',
                                       triggered=self.plot_psd_func)
-
-        # actions for Data menu bar
-        #
-        # action group
-        self.data_action_group = QActionGroup(self)
 
         # actions for Help menu bar
         #
@@ -553,9 +552,6 @@ class MainWindow(QMainWindow):
         self.plot_menu.addAction(self.plot_raw_action)
         self.plot_menu.setEnabled(False)
 
-        # Data menu bar
-        self.data_menu = self.menuBar().addMenu('Data')
-        self.data_menu.setEnabled(False)
 
 
         # Help menu bar
@@ -740,8 +736,6 @@ class MainWindow(QMainWindow):
         ''')
 
 
-
-
 #*****************************************slot*****************************************
 
 ############################################# File ######################################################
@@ -792,7 +786,6 @@ class MainWindow(QMainWindow):
                 elif self.data_mode == 'epoch':
                     self.seeg[self.key]['event'], _ = mne.events_from_annotations(seeg_data._raw)
                 self.event = self.seeg[self.key]['event']
-                # print(self.seeg)
                 self.set_current_data(key=self.key)
                 del seeg_data
                 gc.collect()
@@ -801,7 +794,6 @@ class MainWindow(QMainWindow):
                 self.tool_menu.setEnabled(True)
                 self.analysis_menu.setEnabled(True)
                 self.plot_menu.setEnabled(True)
-                self.data_menu.setEnabled(True)
                 self.re_ref_button.setEnabled(True)
                 self.resample_button.setEnabled(True)
                 self.filter_button.setEnabled(True)
