@@ -75,12 +75,10 @@ class MainWindow(QMainWindow):
         self.move(qr.topLeft())
 
 
-
-
-
     def create_central_widget(self):
         '''create a central groupbox widget to house other two sub groupboxes'''
         self.center_widget = QWidget()
+        self.center_widget.setProperty('name', 'center')
         self.setCentralWidget(self.center_widget)
 
 
@@ -268,7 +266,7 @@ class MainWindow(QMainWindow):
         self.resample_button.setToolTip('Resample the sEEG data')
         self.resample_button.setProperty('name', 'func')
         self.resample_button.setEnabled(False)
-        self.resample_button.setFixedWidth(150)
+        self.resample_button.setFixedSize(150, 38)
         self.resample_button.clicked.connect(self.execute_resample_data)
 
         self.filter_button = QPushButton(self)
@@ -276,15 +274,15 @@ class MainWindow(QMainWindow):
         self.filter_button.setToolTip('Basic fir filter')
         self.filter_button.setProperty('name', 'func')
         self.filter_button.setEnabled(False)
-        self.filter_button.setFixedWidth(150)
-        self.filter_button.clicked.connect(self.filter_data_fir)
+        self.filter_button.setFixedSize(150, 38)
+        self.filter_button.clicked.connect(self.filter_data_iir)
 
         self.channel_button = QPushButton(self)
         self.channel_button.setText('Channel')
         self.channel_button.setToolTip('Select the channels')
         self.channel_button.setProperty('name', 'func')
         self.channel_button.setEnabled(False)
-        self.channel_button.setFixedWidth(150)
+        self.channel_button.setFixedSize(150, 38)
         self.channel_button.clicked.connect(self.select_channel)
 
         self.plot_button = QPushButton(self)
@@ -292,7 +290,7 @@ class MainWindow(QMainWindow):
         self.plot_button.setToolTip('Plot raw data')
         self.plot_button.setProperty('name', 'func')
         self.plot_button.setEnabled(False)
-        self.plot_button.setFixedWidth(150)
+        self.plot_button.setFixedSize(150, 38)
         self.plot_button.clicked.connect(self.plot_raw_data)
 
         self.event_button = QPushButton(self)
@@ -300,7 +298,7 @@ class MainWindow(QMainWindow):
         self.event_button.setToolTip('Select the events')
         self.event_button.setProperty('name', 'func')
         self.event_button.setEnabled(False)
-        self.event_button.setFixedWidth(150)
+        self.event_button.setFixedSize(150, 38)
         self.event_button.clicked.connect(self.select_event)
 
         self.save_button = QPushButton(self)
@@ -308,7 +306,7 @@ class MainWindow(QMainWindow):
         self.save_button.setToolTip('Save raw data in .fif format')
         self.save_button.setProperty('name', 'func')
         self.save_button.setEnabled(False)
-        self.save_button.setFixedWidth(150)
+        self.save_button.setFixedSize(150, 38)
         self.save_button.clicked.connect(self.save_fif_data)
 
 
@@ -320,9 +318,9 @@ class MainWindow(QMainWindow):
 
     def create_widget(self):
 
-        self.func_button_wid = QWidget()
+        # self.func_button_wid = QWidget()
         # self.func_button_wid.setFixedHeight(40)
-
+        pass
 
 
     def create_labels(self):
@@ -336,7 +334,7 @@ class MainWindow(QMainWindow):
         self.data_info_label.setFixedHeight(38)
 
         # basic info of the subject
-        self.file_name_label = QLabel('Filename', self)
+        self.file_name_label = QLabel(' Filename', self)
         self.file_name_label.setAlignment(Qt.AlignLeft)
         self.file_name_label.setFixedSize(180, 38)
 
@@ -347,13 +345,13 @@ class MainWindow(QMainWindow):
         self.epoch_num_label = QLabel('Epochs', self)
         self.epoch_num_label.setProperty('name', 'group0')
         self.epoch_num_label.setAlignment(Qt.AlignCenter)
-        self.epoch_num_label.setFixedSize(100, 38)
+        self.epoch_num_label.setFixedSize(105, 38)
         # self.epoch_num_label.setFixedSize(90, 38)
 
         self.epoch_num_cont_label = QLabel('', self)
         self.epoch_num_cont_label.setProperty('name', 'group1')
         self.epoch_num_cont_label.setAlignment(Qt.AlignCenter)
-        self.epoch_num_cont_label.setFixedSize(100, 38)
+        self.epoch_num_cont_label.setFixedSize(105, 38)
         # self.epoch_num_cont_label.setFixedSize(90, 38)
 
         self.samp_rate_label = QLabel('Sampling rate(Hz)', self)
@@ -455,10 +453,12 @@ class MainWindow(QMainWindow):
         self.electro_loac_label = QLabel('Electrodes Location')
         self.electro_loac_label.setProperty('name', 'electro')
         self.electro_loac_label.setAlignment(Qt.AlignCenter)
+        self.electro_loac_label.setFixedHeight(38)
 
         self.activate_label = QLabel('Activation')
         self.activate_label.setProperty('name', 'electro')
         self.activate_label.setAlignment(Qt.AlignCenter)
+        self.activate_label.setFixedHeight(38)
 
 
         self.electro_loac_pic_label = QLabel('')
@@ -481,14 +481,21 @@ class MainWindow(QMainWindow):
     def create_group_box(self):
         '''create group boxes for main window'''
         # subject seeg data infomation
-        self.seeg_info_box = QGroupBox('')
+        self.seeg_info_box = QGroupBox()
+        self.seeg_info_box.setProperty('name', 'sub')
+        self.button_func_box = QGroupBox()
+        self.button_func_box.setProperty('name', 'sub')
+        self.button_func_box.setContentsMargins(0,0,0,0)
         # sEEG electrodes Visualization and Activation
-        self.brain_electrodes_box = QGroupBox('')
+        self.brain_electrodes_box = QGroupBox()
+        self.brain_electrodes_box.setProperty('name', 'sub')
         # right group box
-        self.right_box = QGroupBox('')
+        self.right_box = QGroupBox()
+        self.right_box.setProperty('name', 'sub')
         # protocol
         self.protocol_box = QGroupBox('')
-        self.protocol_box.setFixedWidth(300)
+        self.protocol_box.setProperty('name', 'sub')
+        self.protocol_box.setFixedWidth(350)
 
 
     def create_menubar(self):
@@ -551,47 +558,47 @@ class MainWindow(QMainWindow):
         #
         # layout for sEEG data infomation
         layout_0 = QVBoxLayout()
-        layout_0.setSpacing(0)
+        layout_0.setSpacing(1)
         layout_0.addWidget(self.epoch_num_label)
         layout_0.addWidget(self.epoch_num_cont_label)
 
         layout_1 = QVBoxLayout()
-        layout_1.setSpacing(0)
+        layout_1.setSpacing(1)
         layout_1.addWidget(self.samp_rate_label)
         layout_1.addWidget(self.samp_rate_cont_label)
 
         layout_2 = QVBoxLayout()
-        layout_2.setSpacing(0)
+        layout_2.setSpacing(1)
         layout_2.addWidget(self.chan_label)
         layout_2.addWidget(self.chan_cont_label)
 
         layout_3 = QVBoxLayout()
-        layout_3.setSpacing(0)
+        layout_3.setSpacing(1)
         layout_3.addWidget(self.start_label)
         layout_3.addWidget(self.start_cont_label)
 
         layout_4 = QVBoxLayout()
-        layout_4.setSpacing(0)
+        layout_4.setSpacing(1)
         layout_4.addWidget(self.end_label)
         layout_4.addWidget(self.end_cont_label)
 
         layout_5 = QVBoxLayout()
-        layout_5.setSpacing(0)
+        layout_5.setSpacing(1)
         layout_5.addWidget(self.event_class_label)
         layout_5.addWidget(self.event_class_cont_label)
 
         layout_6 = QVBoxLayout()
-        layout_6.setSpacing(0)
+        layout_6.setSpacing(1)
         layout_6.addWidget(self.event_num_label)
         layout_6.addWidget(self.event_num_cont_label)
 
         layout_7 = QVBoxLayout()
-        layout_7.setSpacing(0)
+        layout_7.setSpacing(1)
         layout_7.addWidget(self.time_point_label)
         layout_7.addWidget(self.time_point_cont_label)
 
         layout_8 = QVBoxLayout()
-        layout_8.setSpacing(0)
+        layout_8.setSpacing(1)
         layout_8.addWidget(self.data_size_label)
         layout_8.addWidget(self.data_size_cont_label)
 
@@ -613,37 +620,46 @@ class MainWindow(QMainWindow):
         file_name_layout.addWidget(self.file_name_cont_label)
 
         data_button_layout = QHBoxLayout()
-        data_button_layout.addWidget(self.resample_button, stretch=1)
-        data_button_layout.addWidget(self.filter_button, stretch=1)
-        data_button_layout.addWidget(self.channel_button, stretch=1)
-        data_button_layout.addWidget(self.plot_button, stretch=1)
-        data_button_layout.addWidget(self.event_button, stretch=1)
-        data_button_layout.addWidget(self.save_button, stretch=1)
-        self.func_button_wid.setLayout(data_button_layout)
+        data_button_layout.setContentsMargins(0, 0, 0, 0)
+        data_button_layout.addWidget(self.resample_button, stretch=0)
+        data_button_layout.addWidget(self.filter_button, stretch=0)
+        data_button_layout.addWidget(self.channel_button, stretch=0)
+        data_button_layout.addWidget(self.plot_button, stretch=0)
+        data_button_layout.addWidget(self.event_button, stretch=0)
+        data_button_layout.addWidget(self.save_button, stretch=0)
 
         data_info_layout = QVBoxLayout()
-        data_info_layout.setSpacing(1)
+        data_info_layout.setSpacing(4)
+        data_info_layout.setContentsMargins(0, 0, 0, 4)
         data_info_layout.addWidget(self.data_info_label)
         data_info_layout.addLayout(file_name_layout)
         data_info_layout.addLayout(info_layout)
-        data_info_layout.addWidget(self.func_button_wid)
+        data_info_layout.addLayout(data_button_layout)
 
         self.seeg_info_box.setLayout(data_info_layout)
 
         # layout for electrodes locations and activation in the fsaverage brain
         pic_layout_0 = QVBoxLayout()
+        pic_layout_0.setSpacing(1)
+        pic_layout_0.setContentsMargins(0, 0, 0, 0)
         pic_layout_0.addWidget(self.electro_loac_label)
         pic_layout_0.addWidget(self.electro_loac_pic_label)
 
         pic_layout_1 = QVBoxLayout()
+        pic_layout_1.setSpacing(1)
+        pic_layout_1.setContentsMargins(0, 0, 0, 0)
         pic_layout_1.addWidget(self.activate_label)
         pic_layout_1.addWidget(self.activate_pic_label)
 
         pic_layout_2 = QHBoxLayout()
+        pic_layout_2.setSpacing(2)
+        pic_layout_2.setContentsMargins(0, 0, 0, 0)
         pic_layout_2.addLayout(pic_layout_0)
         pic_layout_2.addLayout(pic_layout_1)
 
-        electro_layout = QVBoxLayout()
+        electro_layout = QVBoxLayout(self)
+        electro_layout.setSpacing(0)
+        electro_layout.setContentsMargins(0, 0, 0, 0)
         electro_layout.addWidget(self.electro_title_label)
         electro_layout.addLayout(pic_layout_2)
 
@@ -651,20 +667,29 @@ class MainWindow(QMainWindow):
 
         # layout for protocol
         protocol_layout = QVBoxLayout()
+        protocol_layout.setContentsMargins(0, 0, 0, 0)
         protocol_layout.addWidget(self.protocol_label)
 
         # layout for main window
         right_layout = QVBoxLayout()
-        right_layout.addWidget(self.seeg_info_box)
-        right_layout.addWidget(self.brain_electrodes_box)
+        right_layout.setSpacing(6)
+        # right_layout.setAlignment(Qt.AlignTop)
+        self.seeg_info_box.setAlignment(Qt.AlignTop)
+        # right_layout.addWidget(self.seeg_info_box)
+        # right_layout.addWidget(self.brain_electrodes_box)
+        right_layout.addWidget(self.seeg_info_box, stretch=5)
+        right_layout.addWidget(self.brain_electrodes_box, stretch=25)
 
         left_layout = QVBoxLayout()
         left_layout.setSpacing(0)
+        left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.addWidget(self.protocol_label)
         left_layout.addWidget(self.tmp_label)
         self.protocol_box.setLayout(left_layout)
 
         main_layout = QHBoxLayout()
+        main_layout.setSpacing(6)
+        main_layout.setContentsMargins(5, 2, 5, 2)
         main_layout.addWidget(self.protocol_box)
         main_layout.addLayout(right_layout)
         self.center_widget.setLayout(main_layout)
@@ -675,36 +700,35 @@ class MainWindow(QMainWindow):
 
         # 备用字体：Arial、Consolas、Tahoma、Segoe UI、Sitka Text
         self.setStyleSheet('''         
-                QLabel[name='title']{font: bold 17pt Times New Roman; color:rgb(96,133,80)} 
-                QLabel[name='group0']{background-color:rgb(216,216,216);
+                QLabel[name='title']{font: bold 17pt Times New Roman; 
+                    color:rgb(0,120,215)} 
+                QLabel[name='group0']{background-color:rgb(244,244,244);
+                    font:bold 13pt Sitka Text}
+                QLabel[name='group1']{background-color:rgb(244,244,244);
+                    font:bold 13pt Sitka Text; color:rgb(97,38,33)}
+                QLabel[name='electro']{background-color:rgb(244,244,244); font: bold 15pt Sitka Text}
+                QLabel[name='electro_pic']{background-color:white;}
+                QPushButton[name='func']{background-color:rgb(244,244,244);
                     font:bold 12pt Sitka Text}
-                QLabel[name='group1']{background-color:rgb(216,216,216);
-                    font:12pt Sitka Text; color:rgb(97,38,33)}
-                QPushButton[name='func']{background-color:rgb(216,216,216);
-                    font:bold 12pt Sitka Text}
-                QGroupBox{background-color:rgb(165,165,165)}
+                QGroupBox[name='sub']{background-color:rgb(207, 207, 207); border: 1px solid black}
+                QWidget[name='center']{background-color:rgb(207, 207, 207)}
+                QAction{font: 13pt}
         ''')
+        # ; border: none
         self.file_name_label.setStyleSheet('''
-                QLabel{background-color:rgb(216,216,216); 
+                QLabel{background-color:rgb(244,244,244); 
                     font: bold 17pt Sitka Text; color:rgb(0,0,0); }
         ''')
         self.file_name_cont_label.setStyleSheet('''
-                QLabel{background-color:rgb(216,216,216); 
+                QLabel{background-color:rgb(244,244,244); 
                     font: bold 17pt Sitka Text; color:rgb(97,38,33)}
         ''')
         self.tmp_label.setStyleSheet('''
-                QLabel{background-color:rgb(216,216,216)}
+                QLabel{background-color: white}
         ''')
         self.menuBar().setStyleSheet('''
-                QMenuBar{border: 5px solid rgb(255, 255, 255)}
+                QMenuBar{border: 3px solid rgb(207, 207, 207); font: 13pt}
         ''')
-
-        # self.center_widget.setStyleSheet('''
-        #         QWidget{background-color: black}
-        #         ''')
-        self.right_box.setStyleSheet('''
-                {background-color:rgb(216,216,216)}
-                ''')
 
 
 
@@ -769,6 +793,12 @@ class MainWindow(QMainWindow):
                 self.analysis_menu.setEnabled(True)
                 self.plot_menu.setEnabled(True)
                 self.data_menu.setEnabled(True)
+                self.resample_button.setEnabled(True)
+                self.filter_button.setEnabled(True)
+                self.channel_button.setEnabled(True)
+                self.plot_button.setEnabled(True)
+                self.event_button.setEnabled(True)
+                self.save_button.setEnabled(True)
             else:
                 QMessageBox.warning(self, 'Name Error',
                                     'Please name the data')
