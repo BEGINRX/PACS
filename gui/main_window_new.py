@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QAction, QMenu, \
     QMessageBox, QProgressBar, QInputDialog, QLineEdit, QWidget, QActionGroup, \
     QPushButton
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QKeySequence, QIcon, QPixmap, QFont
+from PyQt5.QtGui import QKeySequence, QIcon, QPixmap, QGuiApplication
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread
 from mne import events_from_annotations
 from gui.sub_window import Choose_Window, Event_Window, Select_Data, Epoch_Time
@@ -64,19 +64,22 @@ class MainWindow(QMainWindow):
         self.create_menubar()
         self.create_layout()
         self.set_qt_style()
-        self.setWindowFlags(Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint)
-        self.showMaximized()
+        # self.setWindowFlags(Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint |
+        #                     Qt.WindowMaximizeButtonHint)
+        self.show()
 
     def frame(self):
         '''set the app window to the center of the displayer of the computer'''
-        qr = self.frameGeometry()
-        cp = QDesktopWidget().availableGeometry().center()
-        qr.moveCenter(cp)
-        self.move(qr.topLeft())
+
+        fg= self.frameGeometry()
+        self.rect = QDesktopWidget().availableGeometry(screen=0)
+        cp = self.rect.center()
+        fg.moveCenter(cp)
+        self.setGeometry(self.rect)  # 可避免遮挡任务栏
 
 
     def create_central_widget(self):
-        '''create a central groupbox widget to house other two sub groupboxes'''
+        '''create a central widget to house other sub groupboxes'''
         self.center_widget = QWidget()
         self.center_widget.setProperty('name', 'center')
         self.setCentralWidget(self.center_widget)
@@ -260,21 +263,29 @@ class MainWindow(QMainWindow):
 
     def create_buttons(self):
         '''create buttons'''
-        # buttons for
+        # buttons for func
+        self.re_ref_button = QPushButton(self)
+        self.re_ref_button.setText('Re-reference')
+        self.re_ref_button.setToolTip('Re-reference sEEG data')
+        self.re_ref_button.setProperty('name', 'func')
+        self.re_ref_button.setEnabled(False)
+        self.re_ref_button.setFixedSize(135, 38)
+        self.re_ref_button.clicked.connect(self.re_ref)
+
         self.resample_button = QPushButton(self)
         self.resample_button.setText('Resample')
         self.resample_button.setToolTip('Resample the sEEG data')
         self.resample_button.setProperty('name', 'func')
         self.resample_button.setEnabled(False)
-        self.resample_button.setFixedSize(150, 38)
+        self.resample_button.setFixedSize(130, 38)
         self.resample_button.clicked.connect(self.execute_resample_data)
 
         self.filter_button = QPushButton(self)
         self.filter_button.setText('Filter')
-        self.filter_button.setToolTip('Basic fir filter')
+        self.filter_button.setToolTip('Basic iir filter')
         self.filter_button.setProperty('name', 'func')
         self.filter_button.setEnabled(False)
-        self.filter_button.setFixedSize(150, 38)
+        self.filter_button.setFixedSize(130, 38)
         self.filter_button.clicked.connect(self.filter_data_iir)
 
         self.channel_button = QPushButton(self)
@@ -282,7 +293,7 @@ class MainWindow(QMainWindow):
         self.channel_button.setToolTip('Select the channels')
         self.channel_button.setProperty('name', 'func')
         self.channel_button.setEnabled(False)
-        self.channel_button.setFixedSize(150, 38)
+        self.channel_button.setFixedSize(130, 38)
         self.channel_button.clicked.connect(self.select_channel)
 
         self.plot_button = QPushButton(self)
@@ -290,7 +301,7 @@ class MainWindow(QMainWindow):
         self.plot_button.setToolTip('Plot raw data')
         self.plot_button.setProperty('name', 'func')
         self.plot_button.setEnabled(False)
-        self.plot_button.setFixedSize(150, 38)
+        self.plot_button.setFixedSize(130, 38)
         self.plot_button.clicked.connect(self.plot_raw_data)
 
         self.event_button = QPushButton(self)
@@ -298,7 +309,7 @@ class MainWindow(QMainWindow):
         self.event_button.setToolTip('Select the events')
         self.event_button.setProperty('name', 'func')
         self.event_button.setEnabled(False)
-        self.event_button.setFixedSize(150, 38)
+        self.event_button.setFixedSize(130, 38)
         self.event_button.clicked.connect(self.select_event)
 
         self.save_button = QPushButton(self)
@@ -306,7 +317,7 @@ class MainWindow(QMainWindow):
         self.save_button.setToolTip('Save raw data in .fif format')
         self.save_button.setProperty('name', 'func')
         self.save_button.setEnabled(False)
-        self.save_button.setFixedSize(150, 38)
+        self.save_button.setFixedSize(130, 38)
         self.save_button.clicked.connect(self.save_fif_data)
 
 
@@ -621,6 +632,7 @@ class MainWindow(QMainWindow):
 
         data_button_layout = QHBoxLayout()
         data_button_layout.setContentsMargins(0, 0, 0, 0)
+        data_button_layout.addWidget(self.re_ref_button, stretch=0)
         data_button_layout.addWidget(self.resample_button, stretch=0)
         data_button_layout.addWidget(self.filter_button, stretch=0)
         data_button_layout.addWidget(self.channel_button, stretch=0)
@@ -673,15 +685,12 @@ class MainWindow(QMainWindow):
         # layout for main window
         right_layout = QVBoxLayout()
         right_layout.setSpacing(6)
-        # right_layout.setAlignment(Qt.AlignTop)
         self.seeg_info_box.setAlignment(Qt.AlignTop)
-        # right_layout.addWidget(self.seeg_info_box)
-        # right_layout.addWidget(self.brain_electrodes_box)
         right_layout.addWidget(self.seeg_info_box, stretch=5)
         right_layout.addWidget(self.brain_electrodes_box, stretch=25)
 
         left_layout = QVBoxLayout()
-        left_layout.setSpacing(0)
+        left_layout.setSpacing(4)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.addWidget(self.protocol_label)
         left_layout.addWidget(self.tmp_label)
@@ -709,7 +718,7 @@ class MainWindow(QMainWindow):
                 QLabel[name='electro']{background-color:rgb(244,244,244); font: bold 15pt Sitka Text}
                 QLabel[name='electro_pic']{background-color:white;}
                 QPushButton[name='func']{background-color:rgb(244,244,244);
-                    font:bold 12pt Sitka Text}
+                    font:bold 12pt Sitka Text; border-radius: 6px}
                 QGroupBox[name='sub']{background-color:rgb(207, 207, 207); border: 1px solid black}
                 QWidget[name='center']{background-color:rgb(207, 207, 207)}
                 QAction{font: 13pt}
@@ -793,6 +802,7 @@ class MainWindow(QMainWindow):
                 self.analysis_menu.setEnabled(True)
                 self.plot_menu.setEnabled(True)
                 self.data_menu.setEnabled(True)
+                self.re_ref_button.setEnabled(True)
                 self.resample_button.setEnabled(True)
                 self.filter_button.setEnabled(True)
                 self.channel_button.setEnabled(True)
@@ -936,6 +946,11 @@ class MainWindow(QMainWindow):
 
 
     def select_event(self):
+
+        pass
+
+
+    def re_ref(self):
 
         pass
 
