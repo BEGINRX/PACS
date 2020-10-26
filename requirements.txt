@@ -1,0 +1,5 @@
+PyQT5 >= 5.15.0
+numpy == 1.16.2
+matplotlib == 3.2.2
+mne
+h5py
