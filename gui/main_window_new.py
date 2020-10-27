@@ -12,9 +12,9 @@ matplotlib.use('Qt5Agg')
 from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QAction, QMenu, \
     QFileDialog, QLabel, QGroupBox, QVBoxLayout, QHBoxLayout, QFormLayout, \
     QMessageBox, QProgressBar, QInputDialog, QLineEdit, QWidget, QActionGroup, \
-    QPushButton
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QKeySequence, QIcon, QPixmap, QGuiApplication
+    QPushButton, QStyleFactory, QApplication
+from PyQt5.QtCore import Qt, pyqtSignal, QUrl
+from PyQt5.QtGui import QKeySequence, QIcon, QPixmap, QDesktopServices
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread
 from mne import events_from_annotations
 from gui.sub_window import Choose_Window, Event_Window, Select_Data, Epoch_Time
@@ -45,7 +45,7 @@ class MainWindow(QMainWindow):
         # 4. MNI coordinates - to plot the depth electrodes on fsaverage brain
         # 5. MRI - get the MRI from this subject
         self.seeg = {}
-        # current_data tells us which seeg data we want to use by set key
+        # current_data tells us which seeg data we want to use by set the 'key'
         self.current_data = {}
         self.action_num = 0
         self.data_mode = None
@@ -57,6 +57,7 @@ class MainWindow(QMainWindow):
 
     def init_ui(self):
         self.setWindowIcon(QIcon('image/source.jpg'))
+        # self.setStyle(['Fusion'])
         self.frame()
         self.create_central_widget()
         self.create_status_bar()
@@ -69,13 +70,14 @@ class MainWindow(QMainWindow):
         self.create_menubar()
         self.create_layout()
         self.set_qt_style()
+        QApplication.setStyle(QStyleFactory.create('Fusion'))
 
 
     def frame(self):
         '''set the app window to the center of the displayer of the computer'''
         # self.setWindowFlags(Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint | Qt.WindowMaximizeButtonHint)
         fg= self.frameGeometry()
-        self.rect = QDesktopWidget().availableGeometry(screen=0)
+        self.rect = QDesktopWidget().availableGeometry()
         cp = self.rect.center()
         fg.moveCenter(cp)
         self.setGeometry(self.rect)  # 可避免遮挡任务栏
@@ -257,7 +259,13 @@ class MainWindow(QMainWindow):
 
         # actions for Help menu bar
         #
-        #
+        #  website
+        self.website_action = QAction('sEEGPA website', self,
+                               triggered=self.show_website)
+        self.licence_action = QAction('licence', self,
+                                      triggered=self.show_licence)
+        self.email_action = QAction('Email us', self,
+                                    triggered=self.send_email)
 
 
     def create_buttons(self):
@@ -523,40 +531,11 @@ class MainWindow(QMainWindow):
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.exit_action)
 
-
-        # Edit menu bar
-        self.edit_menu = self.menuBar().addMenu('Edit')
-        self.edit_menu.addAction(self.select_seeg_action)
-        self.edit_menu.addAction(self.set_event_id_action)
-        self.edit_menu.addAction(self.rename_chan_action)
-        self.edit_menu.addAction(self.calculate_marker_action)
-        self.edit_menu.addMenu(self.del_chan_menu)
-        self.edit_menu.addAction(self.get_epoch_action)
-        self.edit_menu.setEnabled(False)
-
-
-        # Tool menu bar
-        self.tool_menu = self.menuBar().addMenu('Tool')
-        self.tool_menu.addAction(self.resample_action)
-        self.tool_menu.addMenu(self.filter_menu)
-        self.tool_menu.setEnabled(False)
-
-        # Analysis menu bar
-        self.analysis_menu = self.menuBar().addMenu('Analysis')
-        self.analysis_menu.addMenu(self.time_frequency_analysis_menu)
-        self.analysis_menu.addMenu((self.spectral_analysis_menu))
-        self.analysis_menu.setEnabled(False)
-
-        # Plot menu bar
-        self.plot_menu = self.menuBar().addMenu('Plot')
-        self.plot_menu.addAction(self.plot_raw_action)
-        self.plot_menu.setEnabled(False)
-
-
-
         # Help menu bar
         self.help_menu = self.menuBar().addMenu('Help')
-        # help_menu.addAction(self.help0_action)
+        self.help_menu.addAction(self.website_action)
+        self.help_menu.addAction(self.licence_action)
+        self.help_menu.addAction(self.email_action)
 
 
     def create_layout(self):
@@ -715,9 +694,12 @@ class MainWindow(QMainWindow):
                 QLabel[name='electro_pic']{background-color:white;}
                 QPushButton[name='func']{background-color:rgb(244,244,244);
                     font:bold 12pt Sitka Text; border-radius: 6px}
+                QPushButton[name='func']:hover{background-color:white}
+                QPushButton[name='func']:pressed{background-color:white;
+                    padding=left:3px; padding-top:3px}
                 QGroupBox[name='sub']{background-color:rgb(207, 207, 207); border: 1px solid black}
                 QWidget[name='center']{background-color:rgb(207, 207, 207)}
-                QAction{font: 13pt}
+                
         ''')
         # ; border: none
         self.file_name_label.setStyleSheet('''
@@ -1174,6 +1156,7 @@ class MainWindow(QMainWindow):
     # plot raw data
     def plot_raw_data(self):
         if self.current_data['data_mode'] == 'raw':
+            print('画图了')
             self.current_data['data'].plot(duration=5.0, n_channels=self.data_info['channel_number'], title='Raw sEEG data')
         elif self.current_data['data_mode'] == 'epoch':
             self.current_data['data'].plot(n_channels=self.data_info['channel_number'], title='Epoched sEEG data')
@@ -1185,6 +1168,20 @@ class MainWindow(QMainWindow):
 
     # Help menu function
     #
+    # show website
+    def show_website(self):
+
+        QDesktopServices.openUrl(QUrl("http://www.baidu.com"))
+
+
+    def show_licence(self):
+
+        pass
+
+
+    def send_email(self):
+
+        pass
 
 
 
