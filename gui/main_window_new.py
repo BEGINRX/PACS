@@ -12,7 +12,7 @@ matplotlib.use('Qt5Agg')
 from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QAction, QMenu, \
     QFileDialog, QLabel, QGroupBox, QVBoxLayout, QHBoxLayout, QFormLayout, \
     QMessageBox, QProgressBar, QInputDialog, QLineEdit, QWidget, QActionGroup, \
-    QPushButton, QStyleFactory, QApplication
+    QPushButton, QStyleFactory, QApplication, QTreeView, QComboBox
 from PyQt5.QtCore import Qt, pyqtSignal, QUrl
 from PyQt5.QtGui import QKeySequence, QIcon, QPixmap, QDesktopServices
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread
@@ -35,6 +35,7 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
 
         self.flag = 0
+        self.tree_list = []
         self.data_info = {'data_path':'', 'epoch_number':'', 'sampling_rate':'',
                           'channel_number':'', 'epoch_start':'', 'epoch_end':'', 'event_class':'',
                           'time_point':'', 'events':'', 'event_number':'', 'data_size':'',}
@@ -57,7 +58,6 @@ class MainWindow(QMainWindow):
 
     def init_ui(self):
         self.setWindowIcon(QIcon('image/source.jpg'))
-        # self.setStyle(['Fusion'])
         self.frame()
         self.create_central_widget()
         self.create_status_bar()
@@ -129,7 +129,7 @@ class MainWindow(QMainWindow):
                                      triggered=self.execute_import_data)
         self.create_ptc = QAction('Create a protocol', self,
                                 statusTip='Create a protocol',
-                                              )
+                                triggered=self.create_protocol)
         # triggered=self.create_ptc
 
         # save data
@@ -262,9 +262,9 @@ class MainWindow(QMainWindow):
         #  website
         self.website_action = QAction('sEEGPA website', self,
                                triggered=self.show_website)
-        self.licence_action = QAction('licence', self,
+        self.licence_action = QAction('Licence', self,
                                       triggered=self.show_licence)
-        self.email_action = QAction('Email us', self,
+        self.email_action = QAction('E-mail us', self,
                                     triggered=self.send_email)
 
 
@@ -334,10 +334,8 @@ class MainWindow(QMainWindow):
         pass
 
 
-    def create_widget(self):
+    def create_combo_box(self):
 
-        # self.func_button_wid = QWidget()
-        # self.func_button_wid.setFixedHeight(40)
         pass
 
 
@@ -722,7 +720,17 @@ class MainWindow(QMainWindow):
 
 ############################################# File ######################################################
     # File menu function
-    #06
+    #
+    # create qtreeview
+    def create_protocol(self):
+
+        self.tree_view = QTreeView()
+        self.pro_name, _ = QInputDialog.getText(self, 'Name this Data', 'Please Name the Data',
+                                           QLineEdit.Normal)
+
+
+
+
     # import sEEG data
     def execute_import_data(self):
         '''execute import data worker'''
@@ -756,6 +764,7 @@ class MainWindow(QMainWindow):
     def get_seeg_data(self, seeg_data):
         '''get seeg data'''
         if seeg_data.ch_names:
+            seeg_data.set_channel_types({ch_name: 'seeg' for ch_name in seeg_data.ch_names})
             self.key, _ = QInputDialog.getText(self, 'Name this Data', 'Please Name the Data',
                                           QLineEdit.Normal)
             if self.key:
@@ -772,10 +781,6 @@ class MainWindow(QMainWindow):
                 del seeg_data
                 gc.collect()
                 print(self.key, type(self.key))
-                self.edit_menu.setEnabled(True)
-                self.tool_menu.setEnabled(True)
-                self.analysis_menu.setEnabled(True)
-                self.plot_menu.setEnabled(True)
                 self.re_ref_button.setEnabled(True)
                 self.resample_button.setEnabled(True)
                 self.filter_button.setEnabled(True)
