@@ -10,8 +10,8 @@ import os
 import matplotlib
 matplotlib.use('Qt5Agg')
 from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QAction, QMenu, \
-    QFileDialog, QLabel, QGroupBox, QVBoxLayout, QHBoxLayout, QFormLayout, \
-    QMessageBox, QProgressBar, QInputDialog, QLineEdit, QWidget, QActionGroup, \
+    QFileDialog, QLabel, QGroupBox, QVBoxLayout, QHBoxLayout,  \
+    QMessageBox, QInputDialog, QLineEdit, QWidget, QActionGroup, \
     QPushButton, QStyleFactory, QApplication, QTreeView, QComboBox
 from PyQt5.QtCore import Qt, pyqtSignal, QUrl
 from PyQt5.QtGui import QKeySequence, QIcon, QPixmap, QDesktopServices
@@ -22,6 +22,7 @@ import mne
 import numpy as np
 import scipy.io as sio
 import gc
+import matplotlib.pyplot as plt
 
 
 class MainWindow(QMainWindow):
@@ -35,20 +36,19 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
 
         self.flag = 0
-        self.tree_list = []
+        self.tree_list = {}
         self.data_info = {'data_path':'', 'epoch_number':'', 'sampling_rate':'',
                           'channel_number':'', 'epoch_start':'', 'epoch_end':'', 'event_class':'',
                           'time_point':'', 'events':'', 'event_number':'', 'data_size':'',}
         # sEEG dict should have this structure:
         # 1. key(subject) - the name of the subject
-        # 2. data - the raw data import from the file
-        # 3. dict:process - the processed sEEG data is named after the key of process
-        # 4. MNI coordinates - to plot the depth electrodes on fsaverage brain
-        # 5. MRI - get the MRI from this subject
-        self.seeg = {}
-        # current_data tells us which seeg data we want to use by set the 'key'
-        self.current_data = {}
-        self.action_num = 0
+        # 2. [data, mode] - the raw data import from the file and it's mode(raw or epoch)
+        # 3. key_new(process) - [processed_data, mode]
+        # 4. MNI coordinates - to plot the depth electrodes on 'fsaverage' brain
+        # 5. MRI - the MRI of this subject
+        self.seeg = dict()
+        # current_data tells us which seeg data we want to use by choose the 'key'
+        self.current_data = dict()
         self.data_mode = None
         self.event_set = None
         self.event = None
@@ -64,8 +64,8 @@ class MainWindow(QMainWindow):
         self.create_workers()
         self.create_actions()
         self.create_buttons()
-        self.create_widget()
         self.create_labels()
+        self.create_combo_box()
         self.create_group_box()
         self.create_menubar()
         self.create_layout()
@@ -132,25 +132,6 @@ class MainWindow(QMainWindow):
                                 triggered=self.create_protocol)
         # triggered=self.create_ptc
 
-        # save data
-        self.save_menu = QMenu('Save data', self)
-        self.save_fif_data_action = QAction('Save as .fif file', self,
-                                            statusTip='Save sEEG data in .fif format',
-                                            triggered=self.save_fif_data)
-        self.save_menu.addActions([self.save_fif_data_action])
-
-
-        # export submenu
-        self.export_menu = QMenu('Export data and events', self)
-        self.export_npy_data = QAction('Export as .npy', self,
-                                   statusTip='Export sEEG data and events as .npy',
-                                   triggered=self.export_npy)
-        self.export_mat_data = QAction('Export as .mat', self,
-                                   statusTip='Export sEEG data and events as .mat',
-                                   triggered=self.export_mat)
-        self.export_menu.addActions([self.export_npy_data, self.export_mat_data])
-
-
 
         # delete data and clear the workshop
         self.clear_workshop = QAction('Clear the workshop', self,
@@ -166,59 +147,6 @@ class MainWindow(QMainWindow):
                                    shortcut=QKeySequence.Close,
                                    statusTip='Exit the Software',
                                    triggered=self.close)
-
-
-        # actions for Edit menu bar
-        #
-        # select data
-        self.select_seeg_action = QAction('Select Data', self,
-                                          statusTip='Select sEEG Data',
-                                          triggered=self.select_seeg)
-        # set event id
-        self.set_event_id_action = QAction('Set Event ID', self,
-                                           statusTip='Set Event ID',
-                                           triggered=self.get_event_id)
-        self.rename_chan_action = QAction('Rename channels', self,
-                                          statusTip='Rename channels by deleting POL',
-                                          triggered=self.rename_chan)
-        self.del_chan_menu = QMenu('Delete channels', self)
-        self.del_ref_action = QAction('Delete Ref channels', self,
-                                      statusTip='Delete Ref channels',
-                                      triggered=self.del_ref_chan)
-        self.del_useless_chan_action = QAction('Delete useless channels', self,
-                                               statusTip='Delete Useless channels',
-                                               triggered=self.del_useless_chan)
-        self.del_useless_chan_action.setEnabled(False)
-        self.del_chan_menu.addActions([self.del_ref_action,
-                                       self.del_useless_chan_action])
-
-        # 计算码 -- 总医院数据需要
-        self.calculate_marker_action = QAction('Calculate marker', self,
-                                               statusTip='Calculate marker using marker channels',
-                                               triggered=self.calculate_marker)
-        # get epoch
-        self.get_epoch_action = QAction('Get epoch', self,
-                                        statusTip='Get epoch data after set event',
-                                        triggered=self.get_epoch_data)
-
-
-        # actions for Tool menu bar
-        #
-        # resample action
-        self.resample_action = QAction('Resample the data', self,
-                                       statusTip='Resample sEEG data',
-                                       triggered=self.execute_resample_data)
-        # filter submenu and actions
-        self.filter_menu = QMenu('Filter the data', self)
-        self.fir_filter = QAction('FIR filter', self,
-                                  statusTip='Filt data with FIR filter',
-                                  triggered=self.filter_data_fir)
-        self.iir_filter = QAction('IIR filter', self,
-                                  statusTip='Filt data with IIR filter',
-                                  triggered=self.filter_data_iir)
-        self.filter_menu.addActions([self.fir_filter,
-                                     self.iir_filter])
-
 
         # actions for Analysis menu bar
         #
@@ -336,7 +264,9 @@ class MainWindow(QMainWindow):
 
     def create_combo_box(self):
 
-        pass
+        self.ptc_cb = QComboBox()
+        self.ptc_cb.currentIndexChanged.connect(self.change_ptc)
+        self.ptc_cb.setFixedHeight(30)
 
 
     def create_labels(self):
@@ -489,9 +419,6 @@ class MainWindow(QMainWindow):
         self.protocol_label = QLabel('Protocol', self)
         self.protocol_label.setProperty('name', 'title')
         self.protocol_label.setAlignment(Qt.AlignHCenter)
-        self.protocol_label.setFixedHeight(38)
-
-        self.tmp_label = QLabel('', self)
 
 
     def create_group_box(self):
@@ -513,6 +440,9 @@ class MainWindow(QMainWindow):
         self.protocol_box.setProperty('name', 'sub')
         self.protocol_box.setFixedWidth(350)
 
+        self.ptc_box = QGroupBox('')
+        self.ptc_box.setProperty('name', 'ptc')
+
 
     def create_menubar(self):
         '''create menu bars'''
@@ -521,9 +451,6 @@ class MainWindow(QMainWindow):
         self.file_menu = self.menuBar().addMenu('File')
         self.file_menu.addAction(self.import_action)
         self.file_menu.addAction(self.create_ptc)
-        self.file_menu.addMenu(self.save_menu)
-        self.file_menu.addSeparator()
-        self.file_menu.addMenu(self.export_menu)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.clear_all)
         self.file_menu.addSeparator()
@@ -651,9 +578,13 @@ class MainWindow(QMainWindow):
         self.brain_electrodes_box.setLayout(electro_layout)
 
         # layout for protocol
-        protocol_layout = QVBoxLayout()
-        protocol_layout.setContentsMargins(0, 0, 0, 0)
-        protocol_layout.addWidget(self.protocol_label)
+        left_layout = QVBoxLayout()
+        left_layout.setSpacing(4)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.addWidget(self.protocol_label, stretch=1)
+        left_layout.addWidget(self.ptc_cb, stretch=1)
+        left_layout.addWidget(self.ptc_box, stretch=100)
+        self.protocol_box.setLayout(left_layout)
 
         # layout for main window
         right_layout = QVBoxLayout()
@@ -661,13 +592,6 @@ class MainWindow(QMainWindow):
         self.seeg_info_box.setAlignment(Qt.AlignTop)
         right_layout.addWidget(self.seeg_info_box, stretch=5)
         right_layout.addWidget(self.brain_electrodes_box, stretch=25)
-
-        left_layout = QVBoxLayout()
-        left_layout.setSpacing(4)
-        left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.addWidget(self.protocol_label)
-        left_layout.addWidget(self.tmp_label)
-        self.protocol_box.setLayout(left_layout)
 
         main_layout = QHBoxLayout()
         main_layout.setSpacing(6)
@@ -696,6 +620,7 @@ class MainWindow(QMainWindow):
                 QPushButton[name='func']:pressed{background-color:white;
                     padding=left:3px; padding-top:3px}
                 QGroupBox[name='sub']{background-color:rgb(207, 207, 207); border: 1px solid black}
+                QGroupBox[name='ptc']{background-color:white; border: none}
                 QWidget[name='center']{background-color:rgb(207, 207, 207)}
                 
         ''')
@@ -707,9 +632,6 @@ class MainWindow(QMainWindow):
         self.file_name_cont_label.setStyleSheet('''
                 QLabel{background-color:rgb(244,244,244); 
                     font: bold 17pt Sitka Text; color:rgb(97,38,33)}
-        ''')
-        self.tmp_label.setStyleSheet('''
-                QLabel{background-color: white}
         ''')
         self.menuBar().setStyleSheet('''
                 QMenuBar{border: 3px solid rgb(207, 207, 207); font: 13pt}
@@ -724,10 +646,16 @@ class MainWindow(QMainWindow):
     # create qtreeview
     def create_protocol(self):
 
-        self.tree_view = QTreeView()
-        self.pro_name, _ = QInputDialog.getText(self, 'Name this Data', 'Please Name the Data',
+        self.ptc_name, _ = QInputDialog.getText(self, 'Protocol name', 'Please Name this protocol',
                                            QLineEdit.Normal)
+        if self.ptc_name:
+            self.ptc_cb.addItem(self.ptc_name)
+            self.tree_list[self.ptc_name] = QTreeView()
 
+
+    def change_ptc(self):
+
+        pass
 
 
 
@@ -1163,8 +1091,11 @@ class MainWindow(QMainWindow):
         if self.current_data['data_mode'] == 'raw':
             print('画图了')
             self.current_data['data'].plot(duration=5.0, n_channels=self.data_info['channel_number'], title='Raw sEEG data')
+            plt.show()
         elif self.current_data['data_mode'] == 'epoch':
             self.current_data['data'].plot(n_channels=self.data_info['channel_number'], title='Epoched sEEG data')
+            plt.show()
+
 
     # plot psd across channels
     def plot_psd_func(self):
