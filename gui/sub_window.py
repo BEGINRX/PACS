@@ -8,7 +8,7 @@
 from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QPushButton,\
     QLabel, QGroupBox, QVBoxLayout, QHBoxLayout, QFormLayout, \
     QInputDialog, QLineEdit, QApplication, QCheckBox, QScrollArea, QWidget, \
-    QMessageBox, QDoubleSpinBox
+    QMessageBox, QStyleFactory
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont, QDoubleValidator
 import sys
@@ -19,7 +19,6 @@ class Filter_Window(QMainWindow):
     iir_signal = pyqtSignal()
     freq_signal = pyqtSignal(object, object)
 
-
     def __init__(self, mode, mode_1):
         super(Filter_Window, self).__init__()
 
@@ -28,9 +27,8 @@ class Filter_Window(QMainWindow):
         self.low_freq = None
         self.high_freq = None
 
-
-
         self.init_ui()
+
 
     def init_ui(self):
 
@@ -44,6 +42,7 @@ class Filter_Window(QMainWindow):
         self.create_line_edit()
         self.create_layout()
         self.set_style()
+        QApplication.setStyle(QStyleFactory.create('Fusion'))
 
 
     def center(self):
@@ -173,6 +172,7 @@ class Choose_Window(QMainWindow):
         self.create_button()
         self.create_layout()
         self.set_style()
+        QApplication.setStyle(QStyleFactory.create('Fusion'))
 
 
     def center(self):
@@ -319,6 +319,7 @@ class Event_Window(QMainWindow):
         self.create_button()
         self.create_layout()
         self.set_style()
+        QApplication.setStyle(QStyleFactory.create('Fusion'))
 
 
     def center(self):
@@ -444,6 +445,7 @@ class Choose_Time(QMainWindow):
         self.create_button()
         self.create_layout()
         self.set_style()
+        QApplication.setStyle(QStyleFactory.create('Fusion'))
 
 
     def center(self):
@@ -570,6 +572,8 @@ class Choose_Channel(QMainWindow):
         self.create_check_box()
         self.create_layout()
         self.set_style()
+        QApplication.setStyle(QStyleFactory.create('Fusion'))
+
 
 
     def center(self):
@@ -716,7 +720,7 @@ class Select_Data(QMainWindow):
         self.create_button()
         self.create_layout()
         self.set_style()
-
+        QApplication.setStyle(QStyleFactory.create('Fusion'))
 
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
@@ -858,6 +862,7 @@ class Epoch_Time(QMainWindow):
         self.create_button()
         self.create_layout()
         self.set_style()
+        QApplication.setStyle(QStyleFactory.create('Fusion'))
 
 
     def center(self):
