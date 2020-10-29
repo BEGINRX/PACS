@@ -648,6 +648,7 @@ class MainWindow(QMainWindow):
             self.tree.setHeaderLabels([None])
             self.node_00 = QTreeWidgetItem(self.tree)
             self.node_00.setText(0, self.ptc_name)
+            self.tree.expandAll()
             self.tree_dict[self.ptc_name] = self.tree
             self.ptc_stack.addWidget(self.tree)
 
