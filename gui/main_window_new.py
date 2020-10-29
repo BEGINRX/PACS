@@ -12,7 +12,8 @@ matplotlib.use('Qt5Agg')
 from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QAction, QMenu, \
     QFileDialog, QLabel, QGroupBox, QVBoxLayout, QHBoxLayout,  \
     QMessageBox, QInputDialog, QLineEdit, QWidget, QActionGroup, \
-    QPushButton, QStyleFactory, QApplication, QTreeView, QComboBox
+    QPushButton, QStyleFactory, QApplication, QTreeWidget, QComboBox, \
+    QStackedWidget, QTreeWidgetItem
 from PyQt5.QtCore import Qt, pyqtSignal, QUrl
 from PyQt5.QtGui import QKeySequence, QIcon, QPixmap, QDesktopServices
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread
@@ -36,7 +37,7 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
 
         self.flag = 0
-        self.tree_list = {}
+        self.tree_dict = dict()
         self.data_info = {'data_path':'', 'epoch_number':'', 'sampling_rate':'',
                           'channel_number':'', 'epoch_start':'', 'epoch_end':'', 'event_class':'',
                           'time_point':'', 'events':'', 'event_number':'', 'data_size':'',}
@@ -61,10 +62,11 @@ class MainWindow(QMainWindow):
         self.frame()
         self.create_central_widget()
         self.create_status_bar()
-        self.create_workers()
-        self.create_actions()
-        self.create_buttons()
-        self.create_labels()
+        self.create_worker()
+        self.create_action()
+        self.create_label()
+        self.create_stack()
+        self.create_button()
         self.create_combo_box()
         self.create_group_box()
         self.create_menubar()
@@ -96,7 +98,7 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage('Ready')
 
 
-    def create_workers(self):
+    def create_worker(self):
         '''create workers   '''
         self.import_worker = Import_Thread()
         self.import_worker.trigger.connect(self.get_seeg_data)
@@ -118,7 +120,7 @@ class MainWindow(QMainWindow):
         self.iir_filter_window.notch_signal.connect(self.filter_subwindow_para)
 
 
-    def create_actions(self):
+    def create_action(self):
         '''create actions for menu bar'''
 
         # actions for File menu bar
@@ -196,7 +198,14 @@ class MainWindow(QMainWindow):
                                     triggered=self.send_email)
 
 
-    def create_buttons(self):
+    def create_stack(self):
+
+        self.ptc_stack = QStackedWidget()
+        self.ptc_stack.setProperty('name', 'ptc')
+        self.ptc_stack.addWidget(self.empty_label)
+
+
+    def create_button(self):
         '''create buttons'''
         # buttons for func
         self.re_ref_button = QPushButton(self)
@@ -265,14 +274,19 @@ class MainWindow(QMainWindow):
     def create_combo_box(self):
 
         self.ptc_cb = QComboBox()
-        self.ptc_cb.currentIndexChanged.connect(self.change_ptc)
-        self.ptc_cb.setFixedHeight(30)
+        self.ptc_cb.activated.connect(self.change_ptc)
+        self.ptc_cb.setProperty('name', 'ptc')
+        self.ptc_cb.setFixedHeight(35)
 
 
-    def create_labels(self):
+    def create_label(self):
         '''reate labels'''
         # labels for main window
         #
+        # empty label
+        self.empty_label = QLabel('', self)
+        self.empty_label.setProperty('name', 'empty')
+
         # sEEG Data Information title
         self.data_info_label = QLabel('sEEG Data Information', self)
         self.data_info_label.setProperty('name', 'title')
@@ -440,8 +454,6 @@ class MainWindow(QMainWindow):
         self.protocol_box.setProperty('name', 'sub')
         self.protocol_box.setFixedWidth(350)
 
-        self.ptc_box = QGroupBox('')
-        self.ptc_box.setProperty('name', 'ptc')
 
 
     def create_menubar(self):
@@ -583,7 +595,7 @@ class MainWindow(QMainWindow):
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.addWidget(self.protocol_label, stretch=1)
         left_layout.addWidget(self.ptc_cb, stretch=1)
-        left_layout.addWidget(self.ptc_box, stretch=100)
+        left_layout.addWidget(self.ptc_stack, stretch=100)
         self.protocol_box.setLayout(left_layout)
 
         # layout for main window
@@ -614,6 +626,7 @@ class MainWindow(QMainWindow):
                     font:bold 13pt Sitka Text; color:rgb(97,38,33)}
                 QLabel[name='electro']{background-color:rgb(244,244,244); font: bold 15pt Sitka Text}
                 QLabel[name='electro_pic']{background-color:white;}
+                QLabel[name='empty']{background-color:white}
                 QPushButton[name='func']{background-color:rgb(244,244,244);
                     font:bold 12pt Sitka Text; border-radius: 6px}
                 QPushButton[name='func']:hover{background-color:white}
@@ -622,6 +635,8 @@ class MainWindow(QMainWindow):
                 QGroupBox[name='sub']{background-color:rgb(207, 207, 207); border: 1px solid black}
                 QGroupBox[name='ptc']{background-color:white; border: none}
                 QWidget[name='center']{background-color:rgb(207, 207, 207)}
+                QComboBox[name='ptc']{font:15pt Times New Roman}
+                QTreeWidget[name='ptc']{font:3pt Times New Roman}
                 
         ''')
         # ; border: none
@@ -648,14 +663,37 @@ class MainWindow(QMainWindow):
 
         self.ptc_name, _ = QInputDialog.getText(self, 'Protocol name', 'Please Name this protocol',
                                            QLineEdit.Normal)
+        try:
+            self.ptc_stack.removeWidget(self.empty_label)
+        except:
+            pass
+        try:
+            self.ptc_stack.removeWidget(self.tree)
+        except:
+            pass
         if self.ptc_name:
             self.ptc_cb.addItem(self.ptc_name)
-            self.tree_list[self.ptc_name] = QTreeView()
+            self.ptc_cb.setCurrentText(self.ptc_name)
+            self.tree = QTreeWidget()
+            self.tree.setProperty('name', 'ptc')
+            self.tree.setColumnCount(1)
+            self.root = self.tree.invisibleRootItem()
+            self.tree.setHeaderLabels([None])
+            self.branch_00 = QTreeWidgetItem(self.tree)
+            self.branch_00.setText(0, self.ptc_name)
+            self.tree_dict[self.ptc_name] = self.tree
+            self.ptc_stack.addWidget(self.tree)
 
 
-    def change_ptc(self):
+    def change_ptc(self, index):
 
-        pass
+        key = self.ptc_cb.currentText()
+        try:
+            self.ptc_stack.removeWidget(self.tree)
+        except:
+            pass
+        self.tree = self.tree_dict[key]
+        self.ptc_stack.addWidget(self.tree)
 
 
 
