@@ -33,7 +33,7 @@ class Import_Thread(QThread):
 
 
     def run(self):
-        '''重写run'''
+        '''rewrite run'''
         try:
             self.import_data()
             print('data loaded')
@@ -55,6 +55,7 @@ class Load_Epoched_Data_Thread(QThread):
     def __init__(self):
         super(Load_Epoched_Data_Thread, self).__init__()
         self.data_path = ''
+        self.seeg_data = ''
 
     def load_data(self):
         '''load epoched data'''
@@ -62,7 +63,6 @@ class Load_Epoched_Data_Thread(QThread):
             self.seeg_data = io.read_epochs_eeglab(self.data_path)
         elif self.data_path[-3:] == 'fif':
             self.seeg_data = io.read_epochs(self.data_path)
-
 
 
     def run(self):
@@ -73,8 +73,8 @@ class Load_Epoched_Data_Thread(QThread):
             self.load.emit(self.seeg_data)
             self.data_path = ''
             self.seeg_data = ''
-        except AttributeError:
-            print('It is AttributeError')
+        except AttributeError as error:
+            print(error)
             self.load.emit(self.seeg_data)
 
 
