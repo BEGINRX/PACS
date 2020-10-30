@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QAction, QMenu, \
     QFileDialog, QLabel, QGroupBox, QVBoxLayout, QHBoxLayout,  \
     QMessageBox, QInputDialog, QLineEdit, QWidget, QActionGroup, \
     QPushButton, QStyleFactory, QApplication, QTreeWidget, QComboBox, \
-    QStackedWidget, QTreeWidgetItem
+    QStackedWidget, QTreeWidgetItem, QTreeWidgetItemIterator
 from PyQt5.QtCore import Qt, pyqtSignal, QUrl
 from PyQt5.Qt import QCursor
 from PyQt5.QtGui import QKeySequence, QIcon, QPixmap, QDesktopServices
@@ -50,7 +50,7 @@ class MainWindow(QMainWindow):
         # 2. seeg(dict) - the sEEG data structure
         # 4. MRI - the MRI of this subject
         # 5. MNI coordinates - to plot the depth electrodes on 'fsaverage' brain
-        self.subject = dict()
+        self.subject_data = dict()
         # sEEG dict should have this structure:
         # key0(user set) - data's name
         # key0-data(dict) - sEEG data; sEEG's path; sEEG's mode(raw or epoch)
@@ -58,8 +58,17 @@ class MainWindow(QMainWindow):
         # key1-data(dict) - processed sEEG data; processed sEEG's path; processed sEEG's mode(raw or epoch)
         # key2 ...
         self.seeg = dict()
-        # current_data tells us which seeg data we want to use by choose the 'key'
+        # current_data tells us which seeg data we want to use by choosing
+        # the 'key' in current subject's protocol
         self.current_data = dict()
+        # mri dict should have this structure:
+        # key0 - mri_0
+        # key1 - mri_1
+        # key2 ...
+        self.mri = dict()
+        # current mri tells us which mri we wnt to use by choosing the 'key'
+        # in current subject's protocol
+        self.current_mri = dict()
         # tell us the mode of the target sEEG data(raw or epoch)
         self.data_mode = None
         self.event_set = None
@@ -646,24 +655,24 @@ class MainWindow(QMainWindow):
                 self.ptc_stack.removeWidget(self.tree)
             except:
                 pass
-            self.subject[self.ptc_name] = dict()
+            self.subject_data[self.ptc_name] = dict()
+            self.subject_data[self.ptc_name]['sEEG'] = dict()
             self.ptc_cb.addItem(self.ptc_name)
             self.ptc_cb.setCurrentText(self.ptc_name)
             self.tree = QTreeWidget()
             self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
             self.tree.customContextMenuRequested.connect(self.right_menu)
             self.tree.setProperty('name', 'ptc')
-            self.tree.setColumnCount(1)
             self.root = self.tree.invisibleRootItem()
-            self.tree.setHeaderLabels([None])
             self.tree.setHeaderHidden(True)  # 隐藏列标题栏
             self.node_00 = QTreeWidgetItem(self.tree)
             self.node_00.setText(0, self.ptc_name)
             self.tree.expandAll()
+            self.tree.doubleClicked.connect(self.change_current_data)
             self.tree_dict[self.ptc_name] = self.tree
             self.ptc_stack.addWidget(self.tree)
-            self.tree_raw_item[self.ptc_name] = 0
-            self.tree_epoch_item[self.ptc_name] = 0
+            self.tree_raw_item[self.ptc_name] = dict()
+            self.tree_epoch_item[self.ptc_name] = dict()
         else:
             pass
 
@@ -778,12 +787,11 @@ class MainWindow(QMainWindow):
         # index = self.tree.indexAt(point)
         item = self.tree.itemAt(point)
         self.name = item.text(0)
-        print('name: ', self.name)
+        print('node name: ', self.name)
         try:
             item_parent = item.parent().text(0)
-            print('parent:', item_parent)
-        except AttributeError as error:
-            # print('parent error:', error)
+            print('parent name:', item_parent)
+        except AttributeError:
             item_parent = None
         self.tree_right_menu = QMenu(self)
         if not item_parent:
@@ -816,6 +824,21 @@ class MainWindow(QMainWindow):
         elif item_parent == 'MRI or CT':
             pass
         self.tree_right_menu.exec_(QCursor.pos())
+
+
+    def get_all_items(self):
+
+        child = []
+        key = self.ptc_cb.currentText()
+        iterator = QTreeWidgetItemIterator(self.tree_dict[key], QTreeWidgetItemIterator.All)
+        while iterator.value():
+            name = iterator.value().text(0)
+            print(name)
+            child.append(name)
+            iterator += 1
+        print('all child name:', child)
+        return child
+
 
 
     # import sEEG data
@@ -859,14 +882,20 @@ class MainWindow(QMainWindow):
                     self.seeg[self.key]['data_path'] = self.data_path
                     self.seeg[self.key]['data_mode'] = self.data_mode
                     subject_name = self.ptc_cb.currentText()
+                    child = self.get_all_items()
                     if self.data_mode == 'raw':
                         self.seeg[self.key]['event'], _ = mne.events_from_annotations(seeg_data)
-                        if self.tree_raw_item[self.ptc_cb.currentText()] == 0:
+                        if 'raw sEEG data' in child:
+                            name = self.ptc_cb.currentText()
+                            self.node_20 = QTreeWidgetItem(self.tree_raw_item[name]['raw'])
+                            self.node_20.setText(0, self.key)
+                        else:
+                            name = self.ptc_cb.currentText()
                             self.node_10 = QTreeWidgetItem(self.node_00)
                             self.node_10.setText(0, 'raw sEEG data')
-                            self.tree_raw_item[self.ptc_cb.currentText()] += 1
-                        self.node_20 = QTreeWidgetItem(self.node_10)
-                        self.node_20.setText(0, self.key)
+                            self.node_20 = QTreeWidgetItem(self.node_10)
+                            self.node_20.setText(0, self.key)
+                            self.tree_raw_item[name]['raw'] = self.node_10
                     elif self.data_mode == 'epoch':
                         self.seeg[self.key]['event'], _ = mne.events_from_annotations(seeg_data._raw)
                         if self.tree_epoch_item[self.ptc_cb.currentText()] == 0:
@@ -876,7 +905,7 @@ class MainWindow(QMainWindow):
                         self.node_20 = QTreeWidgetItem(self.node_10)
                         self.node_20.setText(0, self.key)
                     self.event = self.seeg[self.key]['event']
-                    self.subject[subject_name]['sEEG'] = self.seeg[self.key]
+                    self.subject_data[subject_name]['sEEG'][self.key] = self.seeg[self.key]
                     self.set_current_data(key=self.key)
                     del seeg_data
                     gc.collect()
@@ -884,13 +913,14 @@ class MainWindow(QMainWindow):
                     self.re_ref_button.setEnabled(True)
                     self.resample_button.setEnabled(True)
                     self.filter_button.setEnabled(True)
+                    self.time_button.setEnabled(True)
                     self.channel_button.setEnabled(True)
                     self.plot_button.setEnabled(True)
                     self.event_button.setEnabled(True)
                     self.save_button.setEnabled(True)
                 else:
                     pass
-        except AttributeError as error:
+        except Exception as error:
             print(error)
             QMessageBox.warning(self, 'Format Error', 'Error')
 
@@ -902,10 +932,34 @@ class MainWindow(QMainWindow):
         self.get_data_info()
 
 
+    def change_current_data(self, index):
+
+        print('运行了')
+        try:
+            parent = self.tree.currentItem().parent().text(0)
+            print(parent)
+            if ('raw sEEG data' or 'Epoch sEEG data') == parent:
+                subject_name = self.ptc_cb.currentText()
+                print(subject_name)
+                self.current_sub = self.subject_data[subject_name]
+                print('subject data', self.subject_data)
+                print(self.current_sub)
+                key = self.tree.currentItem().text(0)
+                print(key)
+                self.current_data = self.current_sub['sEEG'][key]
+                print(self.current_data)
+                self.get_data_info()
+                print('更改了Info')
+            if 'MRI or CT' == parent:
+                pass
+        except:
+            pass
+
+
     def get_data_info(self):
         '''get seeg data information'''
         if self.current_data['data'].ch_names:
-            if self.data_mode == 'raw':
+            if self.current_data['data_mode'] == 'raw':
                 self.data_info['data_path'] = self.current_data['data_path']
                 self.data_info['epoch_number'] = 1
                 self.data_info['sampling_rate'] = self.current_data['data'].info['sfreq']
@@ -918,7 +972,7 @@ class MainWindow(QMainWindow):
                 self.data_info['event_class'] = len(set(self.data_info['events'][:,2]))
                 self.data_info['event_number'] = len(self.data_info['events'])
                 self.data_info['data_size'] = round(0.5 * (self.current_data['data']._size / ((2**10)**2)), 2)
-            elif self.data_mode == 'epoch':
+            elif self.current_data['data_mode'] == 'epoch':
                 self.data_info['data_path'] = self.current_data['data_path']
                 self.data_info['sampling_rate'] = self.current_data['data']._raw.info['sfreq']
                 self.data_info['channel_name'] = self.current_data['data']._raw.info['ch_names']
