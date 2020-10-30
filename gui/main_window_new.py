@@ -39,18 +39,28 @@ class MainWindow(QMainWindow):
 
         self.flag = 0
         self.tree_dict = dict()
-        self.data_info = {'data_path':'', 'epoch_number':'', 'sampling_rate':'',
-                          'channel_number':'', 'epoch_start':'', 'epoch_end':'', 'event_class':'',
-                          'time_point':'', 'events':'', 'event_number':'', 'data_size':'',}
-        # sEEG dict should have this structure:
+        # tree_raw_item has the tree items in raw sEEG data
+        self.tree_raw_item = dict()
+        # tree_raw_item has the tree items in Epoch sEEG data
+        self.tree_epoch_item = dict()
+        # data info save the basic information of sEEG data to show in the main window
+        self.data_info = dict()
+        # subject dict should have this structure:
         # 1. key(subject) - the name of the subject
-        # 2. [data, mode] - the raw data import from the file and it's mode(raw or epoch)
-        # 3. key_new(process) - [processed_data, mode]
-        # 4. MNI coordinates - to plot the depth electrodes on 'fsaverage' brain
-        # 5. MRI - the MRI of this subject
+        # 2. seeg(dict) - the sEEG data structure
+        # 4. MRI - the MRI of this subject
+        # 5. MNI coordinates - to plot the depth electrodes on 'fsaverage' brain
+        self.subject = dict()
+        # sEEG dict should have this structure:
+        # key0(user set) - data's name
+        # key0-data(dict) - sEEG data; sEEG's path; sEEG's mode(raw or epoch)
+        # key1(user set) - processed data's name
+        # key1-data(dict) - processed sEEG data; processed sEEG's path; processed sEEG's mode(raw or epoch)
+        # key2 ...
         self.seeg = dict()
         # current_data tells us which seeg data we want to use by choose the 'key'
         self.current_data = dict()
+        # tell us the mode of the target sEEG data(raw or epoch)
         self.data_mode = None
         self.event_set = None
         self.event = None
@@ -62,7 +72,6 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QIcon('image/source.jpg'))
         self.frame()
         self.create_central_widget()
-        self.create_status_bar()
         self.create_worker()
         self.create_action()
         self.create_label()
@@ -92,10 +101,6 @@ class MainWindow(QMainWindow):
         self.center_widget = QWidget()
         self.center_widget.setProperty('name', 'center')
         self.setCentralWidget(self.center_widget)
-
-
-    def create_status_bar(self):
-        '''create the status bar'''
         self.statusBar().showMessage('Ready')
 
 
@@ -126,13 +131,9 @@ class MainWindow(QMainWindow):
 
         # actions for File menu bar
         #
-        # import data
-        self.import_action = QAction('Import Data', self,
-                                     statusTip='import data',
-                                     triggered=self.execute_import_data)
-        self.create_ptc = QAction('Create a subject', self,
-                                statusTip='Create a protocol',
-                                triggered=self.create_protocol)
+        self.create_subject = QAction('Create a subject', self,
+                                statusTip='Create a subject',
+                                triggered=self.create_subject)
         # triggered=self.create_ptc
 
 
@@ -197,13 +198,21 @@ class MainWindow(QMainWindow):
         self.filter_button.setFixedSize(130, 38)
         self.filter_button.clicked.connect(self.filter_data_iir)
 
+        self.time_button = QPushButton(self)
+        self.time_button.setText('Time')
+        self.time_button.setToolTip('Select time range')
+        self.time_button.setProperty('name', 'func')
+        self.time_button.setEnabled(False)
+        self.time_button.setFixedSize(130, 38)
+        self.time_button.clicked.connect(self.select_time)
+
         self.channel_button = QPushButton(self)
         self.channel_button.setText('Channel')
         self.channel_button.setToolTip('Select the channels')
         self.channel_button.setProperty('name', 'func')
         self.channel_button.setEnabled(False)
         self.channel_button.setFixedSize(130, 38)
-        self.channel_button.clicked.connect(self.select_channel)
+        self.channel_button.clicked.connect(self.select_chan)
 
         self.plot_button = QPushButton(self)
         self.plot_button.setText('Plot')
@@ -420,14 +429,12 @@ class MainWindow(QMainWindow):
         self.protocol_box.setFixedWidth(350)
 
 
-
     def create_menubar(self):
         '''create menu bars'''
 
         # file menu bar
         self.file_menu = self.menuBar().addMenu('File')
-        self.file_menu.addAction(self.import_action)
-        self.file_menu.addAction(self.create_ptc)
+        self.file_menu.addAction(self.create_subject)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.clear_all)
         self.file_menu.addSeparator()
@@ -512,6 +519,7 @@ class MainWindow(QMainWindow):
         data_button_layout.addWidget(self.re_ref_button, stretch=0)
         data_button_layout.addWidget(self.resample_button, stretch=0)
         data_button_layout.addWidget(self.filter_button, stretch=0)
+        data_button_layout.addWidget(self.time_button, stretch=0)
         data_button_layout.addWidget(self.channel_button, stretch=0)
         data_button_layout.addWidget(self.event_button, stretch=0)
         data_button_layout.addWidget(self.plot_button, stretch=0)
@@ -624,33 +632,40 @@ class MainWindow(QMainWindow):
     # File menu function
     #
     # create qtreeview
-    def create_protocol(self):
+    def create_subject(self):
 
         self.ptc_name, _ = QInputDialog.getText(self, 'Protocol name', 'Please Name this protocol',
                                            QLineEdit.Normal)
-        try:
-            self.ptc_stack.removeWidget(self.empty_label)
-        except:
-            pass
-        try:
-            self.ptc_stack.removeWidget(self.tree)
-        except:
-            pass
+
         if self.ptc_name:
+            try:
+                self.ptc_stack.removeWidget(self.empty_label)
+            except:
+                pass
+            try:
+                self.ptc_stack.removeWidget(self.tree)
+            except:
+                pass
+            self.subject[self.ptc_name] = dict()
             self.ptc_cb.addItem(self.ptc_name)
             self.ptc_cb.setCurrentText(self.ptc_name)
             self.tree = QTreeWidget()
             self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
-            self.tree.customContextMenuRequested.connect(self.subject_menu)
+            self.tree.customContextMenuRequested.connect(self.right_menu)
             self.tree.setProperty('name', 'ptc')
             self.tree.setColumnCount(1)
             self.root = self.tree.invisibleRootItem()
             self.tree.setHeaderLabels([None])
+            self.tree.setHeaderHidden(True)  # 隐藏列标题栏
             self.node_00 = QTreeWidgetItem(self.tree)
             self.node_00.setText(0, self.ptc_name)
             self.tree.expandAll()
             self.tree_dict[self.ptc_name] = self.tree
             self.ptc_stack.addWidget(self.tree)
+            self.tree_raw_item[self.ptc_name] = 0
+            self.tree_epoch_item[self.ptc_name] = 0
+        else:
+            pass
 
 
     def change_ptc(self, index):
@@ -665,11 +680,10 @@ class MainWindow(QMainWindow):
 
 
     # right click menu
-    def subject_menu(self):
+    def subject_rmenu(self):
 
-        self.subject_right_menu = QMenu(self)
-        self.rename_action = QAction()
-        self.subject_right_menu.addSeparator()
+        self.rename_action = QAction('Rename the subject', self,
+                                     statusTip='Rename the subject')
         self.import_action = QAction('Import raw sEEG data', self,
                                      statusTip='Import raw sEEG data',
                                      triggered=self.execute_import_data)
@@ -682,29 +696,23 @@ class MainWindow(QMainWindow):
         self.import_mri_action = QAction("Import MRI / CT", self,
                                          statusTip="Import subject's pre-surhery MRI/post-surery CT",
                                          triggered=self.import_mri_ct)
-        self.subject_right_menu.addActions([self.import_action,
-                                      self.import_epoch_action,
-                                      self.import_mni_action,
-                                      self.import_mri_action])
-        self.subject_right_menu.exec_(QCursor.pos())
 
 
-    def raw_data_menu(self):
+    def raw_data_rmenu(self):
 
-        self.raw_data_right_menu = QMenu(self)
         self.rename_chan_action = QAction('Rename channels', self,
                                           statusTip='Rename channels',
                                           triggered=self.rename_chan)
         self.cal_marker_action = QAction('Calculate markers and delete useless channels', self,
                                   statusTip='Calculate markers and delete useless channels',
-                                  triggered=self.cal_marker)
+                                  triggered=self.get_mark_del_chan)
         self.resample_action = QAction('Resample the sEEG data', self,
                                        statusTip='Resamle the sEEG data',
                                        triggered=self.execute_resample_data)
         self.re_ref_action = QAction('Re-reference the sEEG data', self,
                                      statusTip='Re-reference the sEEG data',
                                      triggered=self.re_ref)
-        self.filter_sub_menu = QMenu(self)
+        self.filter_sub_menu = QMenu('Filter', self)
         self.fir_action = QAction('Filter the sEEG data using fir', self,
                                      statusTip='Filter the sEEG data using fir',
                                      triggered=self.filter_data_fir)
@@ -731,49 +739,90 @@ class MainWindow(QMainWindow):
         self.plot_psd_topo_action = QAction('Plot topo psd', self,
                                        statusTip='Plot topo psd',
                                        triggered=self.plot_topo_psd)
-        self.plot_menu.addActions([self.plot_psd_action,
+        self.plot_menu.addActions([self.plot_raw_action,
+                                   self.plot_psd_action,
                                    self.plot_psd_topo_action])
         self.get_epoch_action = QAction('Get epoch', self,
                                         statusTip='Get epoch',
                                         triggered=self.get_epoch_data)
         self.save_menu = QMenu('Export data', self)
+        self.save_fif_action = QAction('Save sEEG data as .fif data', self,
+                                       statusTip='Save sEEG data in .fif format')
         self.save_edf_action = QAction('Save sEEG data as .edf data', self,
                                        statusTip='Save sEEG data in .edf format')
-        self.analysis_menu = QMenu(self)
-        self.raw_data_right_menu.addActions([self.rename_chan_action,
+        self.save_set_action = QAction('Save sEEG data as .set data', self,
+                                       statusTip='Save sEEG data in .set format')
+        self.save_menu.addActions([self.save_fif_action,
+                                   self.save_edf_action,
+                                   self.save_set_action])
+        self.analysis_menu = QMenu('Analysis', self)
+
+
+    def epoch_rmenu(self):
+
+        self.select_chan_action = QAction('Select sub channels', self,
+                                   statusTip='Choose sub channels',
+                                   triggered=self.select_chan)
+        self.epoch_analysis_menu = QMenu(self)
+
+
+    def mni_rmenu(self):
+
+        self.display_electro_action = QAction('Display depth electrodes', self,
+                                       statusTip='Display depth electrodes',
+                                       triggered=self.load_mni)
+
+
+    def right_menu(self, point):
+
+        # index = self.tree.indexAt(point)
+        item = self.tree.itemAt(point)
+        self.name = item.text(0)
+        print('name: ', self.name)
+        try:
+            item_parent = item.parent().text(0)
+            print('parent:', item_parent)
+        except AttributeError as error:
+            # print('parent error:', error)
+            item_parent = None
+        self.tree_right_menu = QMenu(self)
+        if not item_parent:
+            self.subject_rmenu()
+            self.tree_right_menu.addAction(self.rename_action)
+            self.tree_right_menu.addSeparator()
+            self.tree_right_menu.addActions([self.import_action,
+                                             self.import_epoch_action,
+                                             self.import_mri_action,
+                                             self.import_mni_action])
+        elif item_parent == 'raw sEEG data':
+            self.raw_data_rmenu()
+            self.tree_right_menu.addActions([self.rename_chan_action,
                                              self.cal_marker_action,
                                              self.rename_chan_action,
                                              self.re_ref_action])
-        self.raw_data_right_menu.addMenu(self.filter_sub_menu)
-        self.raw_data_right_menu.addMenu(self.select_data_menu)
-        self.raw_data_right_menu.addMenu(self.plot_menu)
-        self.raw_data_right_menu.addActions([self.get_epoch_actions])
-        self.raw_data_right_menu.addMenu(self.analysis_menu)
-        self.raw_data_right_menu.exec_(QCursor.pos())
-
-
-    def epoch_menu(self):
-
-        self.epoch_right_menu = QMenu(self)
-        self.epoch_analysis_menu = QMenu(self)
-        self.epoch_right_menu.exec_(QCursor.pos())
-
-
-
-    def mri_menu(self):
-
-        self.mri_right_menu - QMenu(self)
-        self.mri_right_menu.exec_(QCursor.pos())
-
+            self.tree_right_menu.addMenu(self.filter_sub_menu)
+            self.tree_right_menu.addMenu(self.select_data_menu)
+            self.tree_right_menu.addMenu(self.plot_menu)
+            self.tree_right_menu.addActions([self.get_epoch_action])
+            self.tree_right_menu.addMenu(self.save_menu)
+            self.tree_right_menu.addMenu(self.analysis_menu)
+        elif item_parent == 'Epoch sEEG data':
+            self.epoch_rmenu()
+            self.tree_right_menu.addActions([self.select_chan_action])
+            self.tree_right_menu.addMenu(self.analysis_menu)
+        elif self.name == 'MNI Coornidates':
+            self.mni_rmenu()
+            self.tree_right_menu.addActions([self.load_mni_action])
+        elif item_parent == 'MRI or CT':
+            pass
+        self.tree_right_menu.exec_(QCursor.pos())
 
 
     # import sEEG data
     def execute_import_data(self):
         '''execute import data worker'''
         self.data_path, _ = QFileDialog.getOpenFileName(self, 'Import data')
-        if self.data_path[-3:] == 'set' or \
-           self.data_path[-3:] == 'edf' or \
-           self.data_path[-3:] == 'fif':
+        if ('set' or 'edf' or 'fif') == self.data_path[-3:]:
             self.import_worker.data_path = self.data_path
             self.import_worker.start()
             self.flag += 1
@@ -786,8 +835,7 @@ class MainWindow(QMainWindow):
     def execute_load_epoched_data(self):
         '''execute load epoched data'''
         self.data_path, _ = QFileDialog.getOpenFileName(self, 'Import data')
-        if self.data_path[-3:] == 'set' or \
-           self.data_path[-3:] == 'fif':
+        if ('set' or 'fif' or 'edf') == self.data_path[-3:]:
             self.load_epoched_data_worker.data_path = self.data_path
             self.load_epoched_data_worker.start()
             self.flag += 1
@@ -800,51 +848,51 @@ class MainWindow(QMainWindow):
 
     def get_seeg_data(self, seeg_data):
         '''get seeg data'''
-        if seeg_data.ch_names:
-            seeg_data.set_channel_types({ch_name: 'seeg' for ch_name in seeg_data.ch_names})
-            self.key, _ = QInputDialog.getText(self, 'Name this Data', 'Please Name the Data',
-                                          QLineEdit.Normal)
-            if self.key:
-
-                self.seeg[self.key] = {}
-                self.seeg[self.key]['data'] =  seeg_data
-                self.seeg[self.key]['data_path'] = self.data_path
-                self.seeg[self.key]['data_mode'] = self.data_mode
-                if self.data_mode == 'raw':
-                    self.seeg[self.key]['event'], _ = mne.events_from_annotations(seeg_data)
-                    self.node_10 = QTreeWidgetItem(self.node_00)
-                    self.node_10.setText(0, 'raw sEEG data')
-                    self.node_10.setContextMenuPolicy(Qt.CustomContextMenu)
-                    self.node_10.customContextMenuRequested.connect(self.raw_data_menu)
-                    self.node_20 = QTreeWidgetItem(self.node_10)
-                    self.node_20.setText(0, self.key)
-                    self.node_20.setContextMenuPolicy(Qt.CustomContextMenu)
-                    self.node_20.customContextMenuRequested.connect(self.raw_data_menu)
-                elif self.data_mode == 'epoch':
-                    self.seeg[self.key]['event'], _ = mne.events_from_annotations(seeg_data._raw)
-                    self.node_10 = QTreeWidgetItem(self.node_00)
-                    self.node_10.setText(0, 'Epoch sEEG data')
-                    self.node_20 = QTreeWidgetItem(self.node_10)
-                    self.node_20.setText(0, self.key)
-                    self.node_20.setContextMenuPolicy(Qt.CustomContextMenu)
-                    self.node_20.customContextMenuRequested.connect(self.raw_data_menu)
-                self.event = self.seeg[self.key]['event']
-                self.set_current_data(key=self.key)
-                del seeg_data
-                gc.collect()
-                print(self.key, type(self.key))
-                self.re_ref_button.setEnabled(True)
-                self.resample_button.setEnabled(True)
-                self.filter_button.setEnabled(True)
-                self.channel_button.setEnabled(True)
-                self.plot_button.setEnabled(True)
-                self.event_button.setEnabled(True)
-                self.save_button.setEnabled(True)
-            else:
-                QMessageBox.warning(self, 'Name Error',
-                                    'Please name the data')
-        else:
-            QMessageBox.warning(self, 'Fromat Error', 'Data is Epoched')
+        try:
+            if seeg_data.ch_names:
+                # seeg_data.set_channel_types({ch_name: 'seeg' for ch_name in seeg_data.ch_names})
+                self.key, _ = QInputDialog.getText(self, 'Name this Data', 'Please Name the Data',
+                                              QLineEdit.Normal)
+                if self.key:
+                    self.seeg[self.key] = dict()
+                    self.seeg[self.key]['data'] =  seeg_data
+                    self.seeg[self.key]['data_path'] = self.data_path
+                    self.seeg[self.key]['data_mode'] = self.data_mode
+                    subject_name = self.ptc_cb.currentText()
+                    if self.data_mode == 'raw':
+                        self.seeg[self.key]['event'], _ = mne.events_from_annotations(seeg_data)
+                        if self.tree_raw_item[self.ptc_cb.currentText()] == 0:
+                            self.node_10 = QTreeWidgetItem(self.node_00)
+                            self.node_10.setText(0, 'raw sEEG data')
+                            self.tree_raw_item[self.ptc_cb.currentText()] += 1
+                        self.node_20 = QTreeWidgetItem(self.node_10)
+                        self.node_20.setText(0, self.key)
+                    elif self.data_mode == 'epoch':
+                        self.seeg[self.key]['event'], _ = mne.events_from_annotations(seeg_data._raw)
+                        if self.tree_epoch_item[self.ptc_cb.currentText()] == 0:
+                            self.node_10 = QTreeWidgetItem(self.node_00)
+                            self.node_10.setText(0, 'Epoch sEEG data')
+                            self.tree_epoch_item[self.ptc_cb.currentText()] += 1
+                        self.node_20 = QTreeWidgetItem(self.node_10)
+                        self.node_20.setText(0, self.key)
+                    self.event = self.seeg[self.key]['event']
+                    self.subject[subject_name]['sEEG'] = self.seeg[self.key]
+                    self.set_current_data(key=self.key)
+                    del seeg_data
+                    gc.collect()
+                    print(self.key, type(self.key))
+                    self.re_ref_button.setEnabled(True)
+                    self.resample_button.setEnabled(True)
+                    self.filter_button.setEnabled(True)
+                    self.channel_button.setEnabled(True)
+                    self.plot_button.setEnabled(True)
+                    self.event_button.setEnabled(True)
+                    self.save_button.setEnabled(True)
+                else:
+                    pass
+        except AttributeError as error:
+            print(error)
+            QMessageBox.warning(self, 'Format Error', 'Error')
 
 
     def set_current_data(self, key):
@@ -855,7 +903,7 @@ class MainWindow(QMainWindow):
 
 
     def get_data_info(self):
-        '''get seeg data info'''
+        '''get seeg data information'''
         if self.current_data['data'].ch_names:
             if self.data_mode == 'raw':
                 self.data_info['data_path'] = self.current_data['data_path']
@@ -888,14 +936,22 @@ class MainWindow(QMainWindow):
         pass
 
 
-
     def import_mri_ct(self):
 
         pass
 
 
-
     # save sEEG data
+    def save_edf(self):
+
+        pass
+
+
+    def save_set(self):
+
+        pass
+
+
     def save_fif_data(self):
         '''save as .fif data'''
         if self.data_info['data_path']:
@@ -966,26 +1022,21 @@ class MainWindow(QMainWindow):
     # Edit menu function
     #
     # select sub-channel
+    def select_chan(self):
+
+        pass
+
+
+    def get_del_chan(self, channel):
+
+        self.channel_new = channel
+        print('main window', self.channel_new)
+        del_channel_data = self.current_data['data'].copy().drop_channels(self.channel_new)
+        self.get_seeg_data(del_channel_data)
 
 
     # select sub-time
-
-
-    # select sub-event
-
-
-
-    def select_channel(self):
-
-        pass
-
-
-    def select_event(self):
-
-        pass
-
-
-    def re_ref(self):
+    def select_time(self):
 
         pass
 
@@ -997,13 +1048,16 @@ class MainWindow(QMainWindow):
         crop_data = self.current_data['data'].copy().crop(self.time_new[0], self.time_new[1])
         self.get_seeg_data(crop_data)
 
+    # select sub-event
+    def select_event(self):
 
-    def get_del_chan(self, channel):
+        pass
 
-        self.channel_new = channel
-        print('main window', self.channel_new)
-        del_channel_data = self.current_data['data'].copy().drop_channels(self.channel_new)
-        self.get_seeg_data(del_channel_data)
+
+    # re-ref
+    def re_ref(self):
+
+        pass
 
 
     def rename_chan(self):
@@ -1015,9 +1069,9 @@ class MainWindow(QMainWindow):
         self.get_seeg_data(rename_chan_data)
 
 
-    def del_useless_chan(self):
+    def del_useless_chan(self, data):
         '''delete useless channels'''
-        chans = self.current_data['data'].ch_names
+        chans = data.ch_names
         useless_chan = [chan for chan in chans if 'DC' in chan or 'BP' in chan
                         or 'EKG' in chan or 'EMG' in chan]
         print(useless_chan)
@@ -1025,12 +1079,12 @@ class MainWindow(QMainWindow):
         self.get_seeg_data(del_useless_data)
 
 
-    def del_ref_chan(self):
+    def del_ref_chan(self, data):
         '''delete reference channels'''
-        ref_channel = [ref_chan for ref_chan in self.current_data['data'].ch_names if ref_chan[-3:] == 'Ref']
+        ref_channel = [ref_chan for ref_chan in data.ch_names if ref_chan[-3:] == 'Ref']
         if ref_channel:
-            del_ref_data = self.current_data['data'].copy().drop_channels(ref_channel)
-            self.get_seeg_data(del_ref_data)
+            del_ref_data = data.copy().drop_channels(ref_channel)
+        return del_ref_data
 
 
     def calculate_marker(self):
@@ -1071,17 +1125,14 @@ class MainWindow(QMainWindow):
 
             if self.event.all() == self.event_test.all():
                 print('码可通过')
-            self.get_seeg_data(annot_data)
-            self.del_mark_chan_action.setEnabled(True)
-            self.del_useless_chan_action.setEnabled(True)
+            return annot_data
 
 
     def get_mark_del_chan(self):
 
-        self.calculate_marker()
-        self.del_marker_chan()
-        self.del_ref_chan()
-        self.del_useless_chan()
+        annot_data = self.calculate_marker()
+        del_ref_data = self.del_ref_chan(annot_data)
+        self.del_useless_chan(del_ref_data)
 
 
     # set event id_dict
