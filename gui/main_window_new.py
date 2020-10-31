@@ -772,8 +772,24 @@ class MainWindow(QMainWindow):
     def epoch_rmenu(self):
 
         self.select_chan_action = QAction('Select sub channels', self,
-                                   statusTip='Choose sub channels',
+                                   statusTip='Select sub channels',
                                    triggered=self.select_chan)
+        self.select_event_action = QAction('Select specific events', self,
+                                           statusTip='Select sub events',
+                                           triggered=self.select_event)
+        self.epoch_plot_menu = QMenu('Plot epoch', self)
+        self.plot_epoch_action = QAction('Plot time-frequency', self,
+                                       statusTip='Plot time-frequency',
+                                       triggered=self.plot_raw_data)
+        self.epoch_psd_action = QAction('Plot psd across channels', self,
+                                       statusTip='Plot psd across channels',
+                                       triggered=self.plot_psd)
+        self.epoch_psd_topo_action = QAction('Plot topo psd', self,
+                                       statusTip='Plot topo psd',
+                                       triggered=self.plot_topo_psd)
+        self.epoch_plot_menu.addActions([self.plot_epoch_action,
+                                         self.epoch_psd_action,
+                                         self.epoch_psd_action])
         self.epoch_analysis_menu = QMenu('Analysis', self)
 
 
@@ -821,7 +837,9 @@ class MainWindow(QMainWindow):
                 self.tree_right_menu.addMenu(self.analysis_menu)
             elif item_parent == 'Epoch sEEG data':
                 self.epoch_rmenu()
-                self.tree_right_menu.addActions([self.select_chan_action])
+                self.tree_right_menu.addActions([self.select_chan_action,
+                                                 self.select_event_action])
+                self.tree_right_menu.addMenu(self.epoch_plot_menu)
                 self.tree_right_menu.addMenu(self.epoch_analysis_menu)
             elif self.name == 'MNI Coornidates':
                 self.mni_rmenu()
