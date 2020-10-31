@@ -668,6 +668,105 @@ class Select_Event(QMainWindow):
     def __init__(self, event=None):
         
         super(Select_Event, self).__init__()
+        self.event = event
+        self.event_select = list()
+
+
+    def init_ui(self):
+
+        # self.setFixedWidth(170)
+        self.setWindowModality(Qt.ApplicationModal)
+        self.center()
+        self.set_font()
+        self.create_center_widget()
+        self.create_list_widget()
+        self.create_button()
+        self.create_layout()
+        self.set_style()
+        QApplication.setStyle(QStyleFactory.create('Fusion'))
+
+
+    def center(self):
+        '''set the app window to the center of the displayer of the computer'''
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+
+    def set_font(self):
+        '''set the font'''
+        self.font = QFont()
+        self.font.setFamily('Arial')
+        self.font.setPointSize(12)
+
+
+    def create_center_widget(self):
+        '''create center widget'''
+        self.center_widget = QWidget()
+        self.setCentralWidget(self.center_widget)
+        self.center_widget.setProperty('name', 'center')
+        self.center_widget.setFont(self.font)
+
+
+    def create_list_widget(self):
+
+        self.tip_label = QLabel('Please select the event(s)', self)
+        self.tip_label.setWordWrap(True)
+
+        self.list_wid = QListWidget()
+        self.list_wid.addItems(self.event)
+        self.list_wid.setSelectionMode(QAbstractItemView.ExtendedSelection)
+
+
+    def create_button(self):
+
+        self.ok_button = QPushButton(self)
+        self.ok_button.setText('OK')
+        self.ok_button.clicked.connect(self.ok_func)
+        self.ok_button.clicked.connect(self.close)
+        self.cancel_button = QPushButton(self)
+        self.cancel_button.setText('Cancel')
+        self.cancel_button.clicked.connect(self.close)
+
+
+    def ok_func(self):
+
+        event_select = self.list_wid.selectedItems()
+        self.event_select.append([item.text() for item in list(event_select)])
+        self.event_select = self.event_select[0]
+        print(self.event_select)
+        self.event_signal.emit(self.event_select)
+
+
+    def create_layout(self):
+
+        v_layout = QVBoxLayout()
+        v_layout.addWidget(self.tip_label)
+        v_layout.addWidget(self.list_wid)
+
+        h_layout = QHBoxLayout()
+        h_layout.addStretch(1)
+        h_layout.addWidget(self.ok_button)
+        h_layout.addWidget(self.cancel_button)
+
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(v_layout)
+        main_layout.addLayout(h_layout)
+
+        self.center_widget.setLayout(main_layout)
+
+
+    def set_style(self):
+        self.setStyleSheet('''
+                        QLabel{background-color:rgb(242,242,242) ;font:10pt Times New Roman}
+                        QListWidget{background-color:white ;font: 13pt Times New Roman}
+                        QListWidget:item{height:28px}
+                        QWidget[name='center']{background-color:rgb(242,242,242)}
+        ''')
+        # self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setWindowFlags(Qt.WindowMaximizeButtonHint)
+        self.setWindowFlags(Qt.WindowCloseButtonHint)
 
 
 
@@ -869,7 +968,6 @@ class Epoch_Time(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-
     chan = ['EEG A1-Ref', 'EEG A2-Ref', 'POL A3', 'POL A4', 'POL A5', 'POL A6', 'POL A7', 'POL A8', 'POL A9',
                     'POL A10', 'POL A13', 'POL A14', 'POL H1', 'POL H2', 'POL H3', 'POL H4', 'POL H5', 'POL H6',
                     'POL H7', 'POL E', 'POL H8', 'POL H9', 'POL A11', 'POL A12', 'POL H10', 'POL H11', 'POL H12',
@@ -881,9 +979,10 @@ if __name__ == "__main__":
                     'EEG F2-Ref', 'EEG F3-Ref', 'EEG F4-Ref', 'EEG F5-Ref', 'EEG F6-Ref', 'EEG F7-Ref', 'EEG F8-Ref',
                     'POL I1', 'POL I2', 'POL I3', 'POL I4', 'POL I5', 'POL I6', 'POL I7', 'POL I8', 'POL I9', 'POL I10',
                     "POL A'1", "POL A'2", "POL A'3"]
-    GUI = Select_Chan(chan_name=chan)
+    # GUI = Select_Chan(chan_name=chan)
     # GUI = Event_Window()
     # GUI = Epoch_Time()
+    GUI = Select_Event(event=['1', '2'])
     GUI.show()
     app.exec_()
 
