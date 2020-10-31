@@ -7,6 +7,8 @@
 '''
 
 import os
+import traceback
+import sys
 import matplotlib
 matplotlib.use('Qt5Agg')
 from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QAction, QMenu, \
@@ -772,7 +774,7 @@ class MainWindow(QMainWindow):
         self.select_chan_action = QAction('Select sub channels', self,
                                    statusTip='Choose sub channels',
                                    triggered=self.select_chan)
-        self.epoch_analysis_menu = QMenu(self)
+        self.epoch_analysis_menu = QMenu('Analysis', self)
 
 
     def mni_rmenu(self):
@@ -785,45 +787,51 @@ class MainWindow(QMainWindow):
     def right_menu(self, point):
 
         # index = self.tree.indexAt(point)
-        item = self.tree.itemAt(point)
-        self.name = item.text(0)
-        print('node name: ', self.name)
         try:
-            item_parent = item.parent().text(0)
-            print('parent name:', item_parent)
-        except AttributeError:
-            item_parent = None
-        self.tree_right_menu = QMenu(self)
-        if not item_parent:
-            self.subject_rmenu()
-            self.tree_right_menu.addAction(self.rename_action)
-            self.tree_right_menu.addSeparator()
-            self.tree_right_menu.addActions([self.import_action,
-                                             self.import_epoch_action,
-                                             self.import_mri_action,
-                                             self.import_mni_action])
-        elif item_parent == 'raw sEEG data':
-            self.raw_data_rmenu()
-            self.tree_right_menu.addActions([self.rename_chan_action,
-                                             self.cal_marker_action,
-                                             self.rename_chan_action,
-                                             self.re_ref_action])
-            self.tree_right_menu.addMenu(self.filter_sub_menu)
-            self.tree_right_menu.addMenu(self.select_data_menu)
-            self.tree_right_menu.addMenu(self.plot_menu)
-            self.tree_right_menu.addActions([self.get_epoch_action])
-            self.tree_right_menu.addMenu(self.save_menu)
-            self.tree_right_menu.addMenu(self.analysis_menu)
-        elif item_parent == 'Epoch sEEG data':
-            self.epoch_rmenu()
-            self.tree_right_menu.addActions([self.select_chan_action])
-            self.tree_right_menu.addMenu(self.analysis_menu)
-        elif self.name == 'MNI Coornidates':
-            self.mni_rmenu()
-            self.tree_right_menu.addActions([self.load_mni_action])
-        elif item_parent == 'MRI or CT':
-            pass
-        self.tree_right_menu.exec_(QCursor.pos())
+            item = self.tree.itemAt(point)
+            self.name = item.text(0)
+            print('node name: ', self.name)
+            try:
+                item_parent = item.parent().text(0)
+                print('parent name:', item_parent)
+            except AttributeError:
+                item_parent = None
+                print('Error is:')
+                traceback.print_exc()
+            self.tree_right_menu = QMenu(self)
+            if not item_parent:
+                self.subject_rmenu()
+                self.tree_right_menu.addAction(self.rename_action)
+                self.tree_right_menu.addSeparator()
+                self.tree_right_menu.addActions([self.import_action,
+                                                 self.import_epoch_action,
+                                                 self.import_mri_action,
+                                                 self.import_mni_action])
+            elif item_parent == 'raw sEEG data':
+                self.raw_data_rmenu()
+                self.tree_right_menu.addAction(self.rename_chan_action)
+                self.tree_right_menu.addAction(self.cal_marker_action)
+                self.tree_right_menu.addActions([self.rename_chan_action,
+                                                 self.re_ref_action])
+                self.tree_right_menu.addMenu(self.filter_sub_menu)
+                self.tree_right_menu.addMenu(self.select_data_menu)
+                self.tree_right_menu.addMenu(self.plot_menu)
+                self.tree_right_menu.addActions([self.get_epoch_action])
+                self.tree_right_menu.addMenu(self.save_menu)
+                self.tree_right_menu.addMenu(self.analysis_menu)
+            elif item_parent == 'Epoch sEEG data':
+                self.epoch_rmenu()
+                self.tree_right_menu.addActions([self.select_chan_action])
+                self.tree_right_menu.addMenu(self.epoch_analysis_menu)
+            elif self.name == 'MNI Coornidates':
+                self.mni_rmenu()
+                self.tree_right_menu.addActions([self.load_mni_action])
+            elif item_parent == 'MRI or CT':
+                pass
+            self.tree_right_menu.exec_(QCursor.pos())
+        except Exception as error:
+            print('Error is:')
+            traceback.print_exc()
 
 
     def get_all_items(self):
@@ -851,6 +859,8 @@ class MainWindow(QMainWindow):
             self.flag += 1
             self.data_mode = 'raw'
         elif self.flag == 0 and self.data_path:
+            print('Error is:')
+            traceback.print_exc()
             QMessageBox.warning(self, 'Data Format Error',
                                 'Please select the right file!')
 
@@ -864,7 +874,9 @@ class MainWindow(QMainWindow):
             self.flag += 1
             self.data_mode = 'epoch'
         elif self.flag == 0 and self.data_path:
-            self.seeg_data = ''
+            self.seeg_data = dict()
+            print('Error is:')
+            traceback.print_exc()
             QMessageBox.warning(self, 'Data Format Error',
                                 'Please select the right file!')
 
@@ -974,10 +986,13 @@ class MainWindow(QMainWindow):
                 self.data_info['data_size'] = round(0.5 * (self.current_data['data']._size / ((2**10)**2)), 2)
             elif self.current_data['data_mode'] == 'epoch':
                 self.data_info['data_path'] = self.current_data['data_path']
-                self.data_info['sampling_rate'] = self.current_data['data']._raw.info['sfreq']
-                self.data_info['channel_name'] = self.current_data['data']._raw.info['ch_names']
-                self.data_info['channel_number'] = len(self.data_info['channel_name'])
+                self.data_info['epoch_number'] = self.current_data['data'].events.shape[0]
+                self.data_info['sampling_rate'] = self.current_data['data'].info['sfreq']
+                self.data_info['chan_number'] = self.current_data['data'].info['nchan']
+                self.data_info['epoch_start'] = self.current_data['data'].tmin
+                self.data_info['epoch_end'] = self.current_data['data'].tmax
                 self.data_info['time_point'] = len(self.current_data['data']._raw_times)
+                self.data_info['event_class'] = len(set(self.current_data['data'].events[:, 2]))
                 self.data_info['event_number'] = len(self.current_data['data'].events)
                 self.data_info['data_size'] = round(0.5 * (self.current_data['data']._size / ((2 ** 10) ** 2)), 2)
         self.data_info_signal.connect(self.update_func)
@@ -1040,6 +1055,8 @@ class MainWindow(QMainWindow):
             sio.savemat(self.save_path + '_data.mat', {'seeg_data':self.current_data})
             sio.savemat(self.save_path + '.label', {'label':'event'})
         else:
+            print('Error is:')
+            traceback.print_exc()
             QMessageBox.warning(self, 'Data Save Error', 'No data to be saved!')
 
     def clear_all(self):
