@@ -38,8 +38,6 @@ class Import_Thread(QThread):
             self.import_data()
             print('data loaded')
             self.seeg_data.set_channel_types({ch_name: 'seeg' for ch_name in self.seeg_data.ch_names})
-            self.seeg_data.set_channel_types({ch_name: 'misc' for ch_name in self.seeg_data.ch_names
-                                              if 'DC' or 'Ref' in ch_name})
             self.trigger.emit(self.seeg_data)
             self.data_path = ''
             self.seeg_data = ''

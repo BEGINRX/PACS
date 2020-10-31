@@ -13,13 +13,13 @@ from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QAction, QMenu, \
     QFileDialog, QLabel, QGroupBox, QVBoxLayout, QHBoxLayout,  \
     QMessageBox, QInputDialog, QLineEdit, QWidget, QActionGroup, \
     QPushButton, QStyleFactory, QApplication, QTreeWidget, QComboBox, \
-    QStackedWidget, QTreeWidgetItem, QTreeWidgetItemIterator, QListWidget
+    QStackedWidget, QTreeWidgetItem, QTreeWidgetItemIterator
 from PyQt5.QtCore import Qt, pyqtSignal, QUrl
 from PyQt5.Qt import QCursor
 from PyQt5.QtGui import QKeySequence, QIcon, QPixmap, QDesktopServices
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread
 from mne import events_from_annotations
-from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time
+from gui.sub_window import Choose_Window, Event_Window, Select_Data, Epoch_Time
 import mne
 import numpy as np
 import scipy.io as sio
@@ -40,7 +40,9 @@ class MainWindow(QMainWindow):
         self.flag = 0
         self.tree_dict = dict()
         # tree_raw_item has the tree items in raw sEEG data
-        self.tree_item = dict()
+        self.tree_raw_item = dict()
+        # tree_raw_item has the tree items in Epoch sEEG data
+        self.tree_epoch_item = dict()
         # data info save the basic information of sEEG data to show in the main window
         self.data_info = dict()
         # subject dict should have this structure:
@@ -213,13 +215,13 @@ class MainWindow(QMainWindow):
         self.time_button.setFixedSize(130, 38)
         self.time_button.clicked.connect(self.select_time)
 
-        self.chan_button = QPushButton(self)
-        self.chan_button.setText('Channel')
-        self.chan_button.setToolTip('Select the channels')
-        self.chan_button.setProperty('name', 'func')
-        self.chan_button.setEnabled(False)
-        self.chan_button.setFixedSize(130, 38)
-        self.chan_button.clicked.connect(self.select_chan)
+        self.channel_button = QPushButton(self)
+        self.channel_button.setText('Channel')
+        self.channel_button.setToolTip('Select the channels')
+        self.channel_button.setProperty('name', 'func')
+        self.channel_button.setEnabled(False)
+        self.channel_button.setFixedSize(130, 38)
+        self.channel_button.clicked.connect(self.select_chan)
 
         self.plot_button = QPushButton(self)
         self.plot_button.setText('Plot')
@@ -243,7 +245,7 @@ class MainWindow(QMainWindow):
         self.save_button.setProperty('name', 'func')
         self.save_button.setEnabled(False)
         self.save_button.setFixedSize(130, 38)
-        self.save_button.clicked.connect(self.save_fif)
+        self.save_button.clicked.connect(self.save_fif_data)
 
 
     def create_progress_bar(self):
@@ -527,7 +529,7 @@ class MainWindow(QMainWindow):
         data_button_layout.addWidget(self.resample_button, stretch=0)
         data_button_layout.addWidget(self.filter_button, stretch=0)
         data_button_layout.addWidget(self.time_button, stretch=0)
-        data_button_layout.addWidget(self.chan_button, stretch=0)
+        data_button_layout.addWidget(self.channel_button, stretch=0)
         data_button_layout.addWidget(self.event_button, stretch=0)
         data_button_layout.addWidget(self.plot_button, stretch=0)
         data_button_layout.addWidget(self.save_button, stretch=0)
@@ -665,13 +667,12 @@ class MainWindow(QMainWindow):
             self.tree.setHeaderHidden(True)  # 隐藏列标题栏
             self.node_00 = QTreeWidgetItem(self.tree)
             self.node_00.setText(0, self.ptc_name)
-            self.node_00.setIcon(0, QIcon('image/subject.ico'))
             self.tree.expandAll()
-            self.tree.clicked.connect(self.change_current_data)
+            self.tree.doubleClicked.connect(self.change_current_data)
             self.tree_dict[self.ptc_name] = self.tree
             self.ptc_stack.addWidget(self.tree)
-            self.tree_item[self.ptc_name] = dict()
-            self.tree_item[self.ptc_name]['root'] = self.node_00
+            self.tree_raw_item[self.ptc_name] = dict()
+            self.tree_epoch_item[self.ptc_name] = dict()
         else:
             pass
 
@@ -757,11 +758,9 @@ class MainWindow(QMainWindow):
         self.save_fif_action = QAction('Save sEEG data as .fif data', self,
                                        statusTip='Save sEEG data in .fif format')
         self.save_edf_action = QAction('Save sEEG data as .edf data', self,
-                                       statusTip='Save sEEG data in .edf format',
-                                       triggered=self.save_edf)
+                                       statusTip='Save sEEG data in .edf format')
         self.save_set_action = QAction('Save sEEG data as .set data', self,
-                                       statusTip='Save sEEG data in .set format',
-                                       triggered=self.save_set)
+                                       statusTip='Save sEEG data in .set format')
         self.save_menu.addActions([self.save_fif_action,
                                    self.save_edf_action,
                                    self.save_set_action])
@@ -888,119 +887,73 @@ class MainWindow(QMainWindow):
                         self.seeg[self.key]['event'], _ = mne.events_from_annotations(seeg_data)
                         if 'raw sEEG data' in child:
                             name = self.ptc_cb.currentText()
-                            self.node_20 = QTreeWidgetItem(self.tree_item[name]['raw'])
+                            self.node_20 = QTreeWidgetItem(self.tree_raw_item[name]['raw'])
                             self.node_20.setText(0, self.key)
-                            self.node_20.setIcon(0, QIcon('image/sEEG.jpg'))
-                            self.tree.expandAll()
                         else:
                             name = self.ptc_cb.currentText()
-                            self.node_10 = QTreeWidgetItem(self.tree_item[name]['root'])
+                            self.node_10 = QTreeWidgetItem(self.node_00)
                             self.node_10.setText(0, 'raw sEEG data')
-                            self.node_10.setIcon(0, QIcon('image/EEG.ico'))
                             self.node_20 = QTreeWidgetItem(self.node_10)
                             self.node_20.setText(0, self.key)
-                            self.node_20.setIcon(0, QIcon('image/sEEG.jpg'))
-                            self.tree_item[name]['raw'] = self.node_10
-                            self.tree.expandAll()
+                            self.tree_raw_item[name]['raw'] = self.node_10
                     elif self.data_mode == 'epoch':
                         self.seeg[self.key]['event'], _ = mne.events_from_annotations(seeg_data._raw)
-                        if 'Epoch sEEG data' in child:
-                            name = self.ptc_cb.currentText()
-                            self.node_20 = QTreeWidgetItem(self.tree_item[name]['epoch'])
-                            self.node_20.setText(0, self.key)
-                            self.node_20.setIcon(0, QIcon('image/sEEG.jpg'))
-                            self.tree.expandAll()
-                        else:
-                            name = self.ptc_cb.currentText()
-                            self.node_10 = QTreeWidgetItem(self.tree_item[name]['root'])
+                        if self.tree_epoch_item[self.ptc_cb.currentText()] == 0:
+                            self.node_10 = QTreeWidgetItem(self.node_00)
                             self.node_10.setText(0, 'Epoch sEEG data')
-                            self.node_20 = QTreeWidgetItem(self.node_10)
-                            self.node_20.setText(0, self.key)
-                            self.node_20.setIcon(0, QIcon('image/sEEG.jpg'))
-                            self.tree_item[name]['epoch'] = self.node_10
-                            self.tree.expandAll()
+                            self.tree_epoch_item[self.ptc_cb.currentText()] += 1
+                        self.node_20 = QTreeWidgetItem(self.node_10)
+                        self.node_20.setText(0, self.key)
                     self.event = self.seeg[self.key]['event']
                     self.subject_data[subject_name]['sEEG'][self.key] = self.seeg[self.key]
                     self.set_current_data(key=self.key)
                     del seeg_data
                     gc.collect()
                     print(self.key, type(self.key))
+                    self.re_ref_button.setEnabled(True)
+                    self.resample_button.setEnabled(True)
+                    self.filter_button.setEnabled(True)
+                    self.time_button.setEnabled(True)
+                    self.channel_button.setEnabled(True)
+                    self.plot_button.setEnabled(True)
+                    self.event_button.setEnabled(True)
+                    self.save_button.setEnabled(True)
                 else:
                     pass
         except Exception as error:
-            print('*****************************')
-            print('Error is:', type(error), error.args[0])
-            print('*****************************')
-            QMessageBox.warning(self, 'Format Error', error.args[0])
+            print(error)
+            QMessageBox.warning(self, 'Format Error', 'Error')
 
 
     def set_current_data(self, key):
         '''set the curent seeg data'''
         self.current_data = self.seeg[key]
-        print('----------------------------')
-        print("current data\'s key:", key)
-        print('current data: ', self.current_data)
-        print('----------------------------')
-        if self.current_data['data_mode'] == 'raw':
-            self.re_ref_button.setEnabled(True)
-            self.resample_button.setEnabled(True)
-            self.filter_button.setEnabled(True)
-            self.time_button.setEnabled(True)
-            self.chan_button.setEnabled(True)
-            self.plot_button.setEnabled(True)
-            self.event_button.setEnabled(False)
-            self.save_button.setEnabled(True)
-        else:
-            self.re_ref_button.setEnabled(True)
-            self.resample_button.setEnabled(True)
-            self.filter_button.setEnabled(True)
-            self.time_button.setEnabled(False)
-            self.chan_button.setEnabled(True)
-            self.plot_button.setEnabled(True)
-            self.event_button.setEnabled(True)
-            self.save_button.setEnabled(True)
+        print('set data', key)
         self.get_data_info()
 
 
     def change_current_data(self, index):
 
+        print('运行了')
         try:
             parent = self.tree.currentItem().parent().text(0)
+            print(parent)
             if ('raw sEEG data' or 'Epoch sEEG data') == parent:
                 subject_name = self.ptc_cb.currentText()
+                print(subject_name)
                 self.current_sub = self.subject_data[subject_name]
+                print('subject data', self.subject_data)
+                print(self.current_sub)
                 key = self.tree.currentItem().text(0)
+                print(key)
                 self.current_data = self.current_sub['sEEG'][key]
-                print('----------------------------')
-                print('change current data to ', key)
-                print('----------------------------')
-                print('current data : ', self.current_data)
-                print('----------------------------')
-                if self.current_data['data_mode'] == 'raw':
-                    self.re_ref_button.setEnabled(True)
-                    self.resample_button.setEnabled(True)
-                    self.filter_button.setEnabled(True)
-                    self.time_button.setEnabled(True)
-                    self.chan_button.setEnabled(True)
-                    self.plot_button.setEnabled(True)
-                    self.event_button.setEnabled(False)
-                    self.save_button.setEnabled(True)
-                else:
-                    self.re_ref_button.setEnabled(True)
-                    self.resample_button.setEnabled(True)
-                    self.filter_button.setEnabled(True)
-                    self.time_button.setEnabled(False)
-                    self.chan_button.setEnabled(True)
-                    self.plot_button.setEnabled(True)
-                    self.event_button.setEnabled(True)
-                    self.save_button.setEnabled(True)
+                print(self.current_data)
                 self.get_data_info()
+                print('更改了Info')
             if 'MRI or CT' == parent:
                 pass
-        except Exception as error:
-            print('*****************************')
-            print('Error is: ', type(error), error.args[0], '/in change_current_data')
-            print('*****************************')
+        except:
+            pass
 
 
     def get_data_info(self):
@@ -1010,7 +963,8 @@ class MainWindow(QMainWindow):
                 self.data_info['data_path'] = self.current_data['data_path']
                 self.data_info['epoch_number'] = 1
                 self.data_info['sampling_rate'] = self.current_data['data'].info['sfreq']
-                self.data_info['chan_number'] = str(self.current_data['data'].info['nchan'])
+                self.data_info['channel_name'] = self.current_data['data'].info['ch_names']
+                self.data_info['channel_number'] = len(self.data_info['channel_name'])
                 self.data_info['epoch_start'] = self.current_data['data']._first_time
                 self.data_info['epoch_end'] = round(self.current_data['data']._last_time, 2)
                 self.data_info['time_point'] = self.current_data['data'].n_times
@@ -1042,122 +996,39 @@ class MainWindow(QMainWindow):
 
 
     # save sEEG data
-    def write_edf(self, fname, raw):
-        """Export raw to EDF/BDF file (requires pyEDFlib)."""
-        from pathlib import Path
-        import pyedflib
-
-        ext = "".join(Path(fname).suffixes)
-        if ext == ".edf":
-            filetype = pyedflib.FILETYPE_EDFPLUS
-            dmin, dmax = -32768, 32767
-        elif ext == ".bdf":
-            filetype = pyedflib.FILETYPE_BDFPLUS
-            dmin, dmax = -8388608, 8388607
-        data = raw.get_data() * 1e6  # convert to microvolts
-        fs = raw.info["sfreq"]
-        nchan = raw.info["nchan"]
-        ch_names = raw.info["ch_names"]
-        if raw.info["meas_date"] is not None:
-            meas_date = raw.info["meas_date"]
-        else:
-            meas_date = None
-        prefilter = (f"{raw.info['highpass']}Hz - "
-                     f"{raw.info['lowpass']}")
-        pmin, pmax = data.min(axis=1), data.max(axis=1)
-        f = pyedflib.EdfWriter(fname, nchan, filetype)
-        channel_info = []
-        data_list = []
-        for i in range(nchan):
-            channel_info.append(dict(label=ch_names[i],
-                                     dimension="uV",
-                                     sample_rate=fs,
-                                     physical_min=pmin[i],
-                                     physical_max=pmax[i],
-                                     digital_min=dmin,
-                                     digital_max=dmax,
-                                     transducer="",
-                                     prefilter=prefilter))
-            data_list.append(data[i])
-        f.setTechnician("Exported by MNELAB")
-        f.setSignalHeaders(channel_info)
-        if raw.info["meas_date"] is not None:
-            f.setStartdatetime(meas_date)
-        # note that currently, only blocks of whole seconds can be written
-        f.writeSamples(data_list)
-        for ann in raw.annotations:
-            f.writeAnnotation(ann["onset"], ann["duration"], ann["description"])
-
     def save_edf(self):
 
-        self.save_path, _ = QFileDialog.getSaveFileName(self, 'Save data to EDF')
-        try:
-            self.write_edf(self.save_path, self.current_data['data'])
-        except Exception as error:
-            print('Error is:', type(error), error.args[0])
-            QMessageBox.warning(self, 'Data Save to EDF Error', error.args[0])
+        pass
 
-    def write_set(self, fname, raw):
-        """Export raw to EEGLAB .set file."""
-        import numpy as np
-        from numpy.core.records import fromarrays
-        data = raw.get_data() * 1e6  # convert to microvolts
-        fs = raw.info["sfreq"]
-        times = raw.times
-        ch_names = raw.info["ch_names"]
-        chanlocs = fromarrays([ch_names], names=["labels"])
-        events = fromarrays([raw.annotations.description,
-                             raw.annotations.onset * fs + 1,
-                             raw.annotations.duration * fs],
-                            names=["type", "latency", "duration"])
-        sio.savemat(fname, dict(EEG=dict(data=data,
-                                     setname=fname,
-                                     nbchan=data.shape[0],
-                                     pnts=data.shape[1],
-                                     trials=1,
-                                     srate=fs,
-                                     xmin=times[0],
-                                     xmax=times[-1],
-                                     chanlocs=chanlocs,
-                                     event=events,
-                                     icawinv=[],
-                                     icasphere=[],
-                                     icaweights=[])),
-                appendmat=False)
 
     def save_set(self):
 
-        self.save_path, _ = QFileDialog.getSaveFileName(self, 'Save data to EDF')
-        try:
-            self.write_set(self.save_path + '.set', self.current_data['data'])
-        except Exception as error:
-            print('Error is:', type(error), error.args[0])
-            QMessageBox.warning(self, 'Data Save to EDF Error', error.args[0])
+        pass
 
 
-    def save_fif(self):
+    def save_fif_data(self):
         '''save as .fif data'''
-        if self.current_data['data_mode']:
+        if self.data_info['data_path']:
             self.save_path, _ = QFileDialog.getSaveFileName(self, 'Save data')
-            try:
+            print(self.save_path)
+            if self.save_path:
                 self.current_data['data'].save(self.save_path + '.fif')
-            except Exception as error:
-                print('Error is:', type(error), error.args[0])
-                QMessageBox.warning(self, 'Data Save Error', error.args[0])
+        else:
+            QMessageBox.warning(self, 'Data Save Error', 'No data to be saved!')
 
 
     def export_npy(self):
 
-        if self.current_data['data_mode']:
+        if self.current_data:
             save_path, _ = QFileDialog.getSaveFileName(self, 'Save data')
-            try:
-                np.save(save_path + '_data', self.current_data['data'])
-                # try:
-                np.save(save_path + '_label', self.current_data['event'])
-                # except:
-            except Exception as error:
-                print('Error is:', type(error), error.args[0])
-                QMessageBox.warning(self, 'Data Save Error', error.args[0])
+            print(save_path)
+        if save_path:
+            np.save(save_path + '_data', self.current_data['data'])
+            # try:
+            np.save(save_path + '_label', self.current_data['event'])
+            # except:
+        else:
+            QMessageBox.warning(self, 'Data Save Error', 'No data to be saved!')
 
 
     def export_mat(self):
@@ -1178,8 +1049,11 @@ class MainWindow(QMainWindow):
             del self.current_data
             del self.data_info
             del self.seeg
+            del self.data_action
             del self.event
-            self.data_info = dict()
+            self.data_info = {'data_path':'', 'sampling_rate':'',
+                              'channel_number':'', 'time_point':'',
+                              'events':'', 'event_number':'', 'data_size':'',}
             self.current_data = {}
             self.data_action = []
             self.seeg = {}
@@ -1204,35 +1078,29 @@ class MainWindow(QMainWindow):
     # select sub-channel
     def select_chan(self):
 
-        self.select_chan_win = Select_Chan(chan_name=self.current_data['data'].ch_names)
-        self.select_chan_win.chan_signal.connect(self.get_del_chan)
-        self.select_chan_win.show()
+        pass
 
 
-    def get_del_chan(self, chan):
+    def get_del_chan(self, channel):
 
-        self.chan_del = chan
-        print('chans to delete', self.chan_del)
-        del_chan_data = self.current_data['data'].copy().drop_channels(self.chan_del)
-        self.get_seeg_data(del_chan_data)
+        self.channel_new = channel
+        print('main window', self.channel_new)
+        del_channel_data = self.current_data['data'].copy().drop_channels(self.channel_new)
+        self.get_seeg_data(del_channel_data)
 
 
     # select sub-time
     def select_time(self):
 
-        time_end = round(self.current_data['data']._last_time, 2)
-        self.select_time_win = Select_Time(time_end)
-        self.select_time_win.time_signal.connect(self.get_time)
-        self.select_time_win.show()
+        pass
 
 
     def get_time(self, time):
 
         self.time_new = time
-        print('Time selected', self.time_new)
+        print('main window', self.time_new)
         crop_data = self.current_data['data'].copy().crop(self.time_new[0], self.time_new[1])
         self.get_seeg_data(crop_data)
-
 
     # select sub-event
     def select_event(self):
@@ -1257,34 +1125,20 @@ class MainWindow(QMainWindow):
 
     def del_useless_chan(self, data):
         '''delete useless channels'''
-        try:
-            chans = data.ch_names
-            useless_chan = [chan for chan in chans if 'DC' in chan or 'BP' in chan
-                            or 'EKG' in chan or 'EMG' in chan]
-            del_useless_data = data.copy().drop_channels(useless_chan)
-            print('----------------------------')
-            print('useless channles detected: ', useless_chan)
-            print('----------------------------')
-            print('delete useless channels finished')
-            print('----------------------------')
-            self.get_seeg_data(del_useless_data)
-        except Exception as error:
-            print('*****************************')
-            print('Error is:', type(error), error)
-            print('*****************************')
+        chans = data.ch_names
+        useless_chan = [chan for chan in chans if 'DC' in chan or 'BP' in chan
+                        or 'EKG' in chan or 'EMG' in chan]
+        print(useless_chan)
+        del_useless_data = self.current_data['data'].copy().drop_channels(useless_chan)
+        self.get_seeg_data(del_useless_data)
 
 
     def del_ref_chan(self, data):
         '''delete reference channels'''
-        try:
-            ref_channel = [ref_chan for ref_chan in data.ch_names if ref_chan[-3:] == 'Ref']
-            if ref_channel:
-                del_ref_data = data.copy().drop_channels(ref_channel)
-            return del_ref_data
-        except Exception as error:
-            print('*****************************')
-            print('Error is:', type(error), error.args[0])
-            print('*****************************')
+        ref_channel = [ref_chan for ref_chan in data.ch_names if ref_chan[-3:] == 'Ref']
+        if ref_channel:
+            del_ref_data = data.copy().drop_channels(ref_channel)
+        return del_ref_data
 
 
     def calculate_marker(self):
@@ -1293,11 +1147,8 @@ class MainWindow(QMainWindow):
                            'POL DC13', 'POL DC14', 'POL DC15']
         try:
             mark_data = self.current_data['data'].copy().pick_channels(marker_channel)._data * 1e6
-        except Exception as error:
+        except ValueError:
             QMessageBox.warning(self, 'Marker Calculating Error', 'No channels match the selection')
-            print('*****************************')
-            print('Error is:', type(error), error.args[0])
-            print('*****************************')
         else:
             mark_data_mean = np.mean(mark_data, axis=1).reshape(7, 1)
             mark_data_mean = np.tile(mark_data_mean, (1, mark_data.shape[1]))  # 计算均值并拓展到和数据一样的维度
@@ -1333,8 +1184,8 @@ class MainWindow(QMainWindow):
 
     def get_mark_del_chan(self):
 
-        self.annot_data = self.calculate_marker()
-        del_ref_data = self.del_ref_chan(self.annot_data)
+        annot_data = self.calculate_marker()
+        del_ref_data = self.del_ref_chan(annot_data)
         self.del_useless_chan(del_ref_data)
 
 
@@ -1469,11 +1320,11 @@ class MainWindow(QMainWindow):
     def plot_raw_data(self):
         if self.current_data['data_mode'] == 'raw':
             print('画图了')
-            self.current_data['data'].plot(duration=5.0, n_channels=self.current_data['data'].info['nchan'], title='Raw sEEG data')
-            # plt.show()
+            self.current_data['data'].plot(duration=5.0, n_channels=self.data_info['channel_number'], title='Raw sEEG data')
+            plt.show()
         elif self.current_data['data_mode'] == 'epoch':
-            self.current_data['data'].plot(n_channels=self.current_data['data'].info['nchan'], title='Epoched sEEG data')
-            # plt.show()
+            self.current_data['data'].plot(n_channels=self.data_info['channel_number'], title='Epoched sEEG data')
+            plt.show()
 
 
     # plot psd across channels
@@ -1512,7 +1363,7 @@ class MainWindow(QMainWindow):
                 self.file_name_cont_label.setText(str(data_info['data_path']))
                 self.epoch_num_cont_label.setText(str(data_info['epoch_number']))
                 self.samp_rate_cont_label.setText(str(data_info['sampling_rate']))
-                self.chan_cont_label.setText(str(data_info['chan_number']))
+                self.chan_cont_label.setText(str(data_info['channel_number']))
                 self.start_cont_label.setText(str(data_info['epoch_start']))
                 self.end_cont_label.setText(str(data_info['epoch_end']))
                 self.event_class_cont_label.setText(str(data_info['event_class']))
