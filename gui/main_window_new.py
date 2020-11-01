@@ -404,13 +404,10 @@ class MainWindow(QMainWindow):
         self.activate_label.setFixedHeight(38)
 
 
-        self.electro_loac_pic_label = QLabel('')
-        self.electro_loac_pic_label.setProperty('name', 'electro_pic')
-        self.electro_loac_pic_label.setAlignment(Qt.AlignCenter)
+        self.topomap_label = QLabel('')
+        self.topomap_label.setProperty('name', 'electro_pic')
+        self.topomap_label.setAlignment(Qt.AlignCenter)
 
-        self.activate_pic_label = QLabel('')
-        self.activate_pic_label.setProperty('name', 'electro_pic')
-        self.activate_pic_label.setAlignment(Qt.AlignCenter)
 
         # Protocol
         self.protocol_label = QLabel('Protocol', self)
@@ -427,15 +424,15 @@ class MainWindow(QMainWindow):
         self.button_func_box.setProperty('name', 'sub')
         self.button_func_box.setContentsMargins(0,0,0,0)
         # sEEG electrodes Visualization and Activation
-        self.brain_electrodes_box = QGroupBox()
-        self.brain_electrodes_box.setProperty('name', 'sub')
+        self.vis_box = QGroupBox()
+        self.vis_box.setProperty('name', 'sub')
         # right group box
         self.right_box = QGroupBox()
         self.right_box.setProperty('name', 'sub')
         # protocol
         self.protocol_box = QGroupBox('')
         self.protocol_box.setProperty('name', 'sub')
-        self.protocol_box.setFixedWidth(350)
+        # self.protocol_box.setFixedWidth(350)
 
 
     def create_menubar(self):
@@ -544,32 +541,13 @@ class MainWindow(QMainWindow):
 
         self.seeg_info_box.setLayout(data_info_layout)
 
-        # layout for electrodes locations and activation in the fsaverage brain
-        pic_layout_0 = QVBoxLayout()
-        pic_layout_0.setSpacing(1)
-        pic_layout_0.setContentsMargins(0, 0, 0, 0)
-        pic_layout_0.addWidget(self.electro_loac_label)
-        pic_layout_0.addWidget(self.electro_loac_pic_label)
-
-        pic_layout_1 = QVBoxLayout()
-        pic_layout_1.setSpacing(1)
-        pic_layout_1.setContentsMargins(0, 0, 0, 0)
-        pic_layout_1.addWidget(self.activate_label)
-        pic_layout_1.addWidget(self.activate_pic_label)
-
-        pic_layout_2 = QHBoxLayout()
-        pic_layout_2.setSpacing(2)
-        pic_layout_2.setContentsMargins(0, 0, 0, 0)
-        pic_layout_2.addLayout(pic_layout_0)
-        pic_layout_2.addLayout(pic_layout_1)
-
-        electro_layout = QVBoxLayout(self)
-        electro_layout.setSpacing(0)
-        electro_layout.setContentsMargins(0, 0, 0, 0)
-        electro_layout.addWidget(self.electro_title_label)
-        electro_layout.addLayout(pic_layout_2)
-
-        self.brain_electrodes_box.setLayout(electro_layout)
+        # layout for basic visualization of topomap of sEEG
+        vis_layout = QVBoxLayout(self)
+        vis_layout.setSpacing(0)
+        vis_layout.setContentsMargins(0, 0, 0, 0)
+        vis_layout.addWidget(self.electro_title_label)
+        vis_layout.addWidget(self.topomap_label)
+        self.vis_box.setLayout(vis_layout)
 
         # layout for protocol
         left_layout = QVBoxLayout()
@@ -585,13 +563,13 @@ class MainWindow(QMainWindow):
         right_layout.setSpacing(6)
         self.seeg_info_box.setAlignment(Qt.AlignTop)
         right_layout.addWidget(self.seeg_info_box, stretch=5)
-        right_layout.addWidget(self.brain_electrodes_box, stretch=25)
+        right_layout.addWidget(self.vis_box, stretch=25)
 
         main_layout = QHBoxLayout()
         main_layout.setSpacing(6)
         main_layout.setContentsMargins(5, 2, 5, 2)
-        main_layout.addWidget(self.protocol_box)
-        main_layout.addLayout(right_layout)
+        main_layout.addWidget(self.protocol_box, stretch=1)
+        main_layout.addLayout(right_layout, stretch=5)
         self.center_widget.setLayout(main_layout)
 
 
@@ -1210,7 +1188,7 @@ class MainWindow(QMainWindow):
                                      icawinv=[],
                                      icasphere=[],
                                      icaweights=[])),
-                appendmat=False)
+                                     appendmat=False)
 
 
     def save_set(self):
@@ -1297,7 +1275,6 @@ class MainWindow(QMainWindow):
     def get_sel_chan(self, chan):
 
         self.chan_sel = chan
-        print('chans to delete', self.chan_sel)
         sel_chan_data = self.current_data['data'].copy().pick_channels(self.chan_sel)
         self.get_seeg_data(sel_chan_data)
 
