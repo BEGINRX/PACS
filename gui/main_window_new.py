@@ -7,14 +7,19 @@
 '''
 
 import traceback
-
 import matplotlib
+import mne
+import numpy as np
+import scipy.io as sio
+import gc
 
 matplotlib.use('Qt5Agg')
+
 from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QAction, QMenu, \
     QFileDialog, QLabel, QGroupBox, QVBoxLayout, QHBoxLayout,  \
-    QMessageBox, QInputDialog, QLineEdit, QWidget, QPushButton, QStyleFactory, QApplication, QTreeWidget, QComboBox, \
-    QStackedWidget, QTreeWidgetItem, QTreeWidgetItemIterator
+    QMessageBox, QInputDialog, QLineEdit, QWidget, QPushButton, QStyleFactory, \
+    QApplication, QTreeWidget, QComboBox, QStackedWidget, QTreeWidgetItem, \
+    QTreeWidgetItemIterator
 from PyQt5.QtCore import Qt, pyqtSignal, QUrl
 from PyQt5.Qt import QCursor
 from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
@@ -22,10 +27,6 @@ from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thre
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Epoch_Time
 from mne import events_from_annotations
 
-import mne
-import numpy as np
-import scipy.io as sio
-import gc
 
 
 class MainWindow(QMainWindow):
