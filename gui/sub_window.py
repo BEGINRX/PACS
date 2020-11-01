@@ -12,7 +12,6 @@ from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QPushButton,\
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont, QDoubleValidator
 import sys
-import traceback
 
 
 class Filter_Window(QMainWindow):
