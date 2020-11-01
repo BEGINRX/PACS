@@ -556,7 +556,7 @@ class Select_Chan(QMainWindow):
         super(Select_Chan, self).__init__()
         self.chan_len = len(chan_name)
         self.chan_name = chan_name
-        self.chan_del = []
+        self.chan_sel = []
         self.setWindowTitle('Channel')
         # self.setWindowIcon()
         self.init_ui()
@@ -602,7 +602,7 @@ class Select_Chan(QMainWindow):
 
     def create_list_widget(self):
 
-        self.tip_label = QLabel('Please use Shift/Ctrl to select the channels you want to delete!', self)
+        self.tip_label = QLabel('Please select the channels you want to use!', self)
         self.tip_label.setWordWrap(True)
 
         self.list_wid = QListWidget()
@@ -623,11 +623,11 @@ class Select_Chan(QMainWindow):
 
     def ok_func(self):
 
-        chan_del = self.list_wid.selectedItems()
-        self.chan_del.append([item.text() for item in list(chan_del)])
-        self.chan_del = self.chan_del[0]
-        print(self.chan_del)
-        self.chan_signal.emit(self.chan_del)
+        chan_sel = self.list_wid.selectedItems()
+        self.chan_sel.append([item.text() for item in list(chan_sel)])
+        self.chan_sel = self.chan_sel[0]
+        print(self.chan_sel)
+        self.chan_signal.emit(self.chan_sel)
 
 
     def create_layout(self):
@@ -670,12 +670,15 @@ class Select_Event(QMainWindow):
         super(Select_Event, self).__init__()
         self.event = event
         self.event_select = list()
+        self.setWindowTitle('Channel')
+
+        self.init_ui()
 
 
     def init_ui(self):
 
-        # self.setFixedWidth(170)
-        self.setWindowModality(Qt.ApplicationModal)
+        self.setFixedWidth(170)
+        # self.setWindowModality(Qt.ApplicationModal)
         self.center()
         self.set_font()
         self.create_center_widget()
@@ -683,7 +686,8 @@ class Select_Event(QMainWindow):
         self.create_button()
         self.create_layout()
         self.set_style()
-        QApplication.setStyle(QStyleFactory.create('Fusion'))
+        # QApplication.setStyle(QStyleFactory.create('Fusion'))
+
 
 
     def center(self):
@@ -964,6 +968,63 @@ class Epoch_Time(QMainWindow):
     def set_style(self):
 
         self.setStyleSheet('''QLabel{color:black; font: bold 20px Arial}''')
+
+
+
+class Notepad(QMainWindow):
+
+    def __init__(self, mni):
+
+        super(Notepad, self).__init__()
+        self.mni = mni
+
+    def __init__(self):
+
+        super(Epoch_Time, self).__init__()
+        self.tmin = 0.
+        self.tmax = 0.
+
+        self.init_ui()
+
+
+    def init_ui(self):
+        self.setFixedSize(250, 140)
+        self.setWindowModality(Qt.ApplicationModal)
+        self.center()
+        self.set_font()
+        self.create_center_widget()
+        self.create_label()
+        self.create_qedit()
+        self.create_button()
+        self.create_layout()
+        self.set_style()
+        QApplication.setStyle(QStyleFactory.create('Fusion'))
+
+
+    def center(self):
+        '''set the app window to the center of the displayer of the computer'''
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+
+    def set_font(self):
+        '''set the font'''
+        self.font = QFont()
+        self.font.setFamily('Arial')
+        self.font.setPointSize(12)
+
+
+    def create_center_widget(self):
+        '''create center widget'''
+        self.center_widget = QWidget()
+        self.setCentralWidget(self.center_widget)
+        self.center_widget.setFont(self.font)
+
+
+
+
 
 
 if __name__ == "__main__":
