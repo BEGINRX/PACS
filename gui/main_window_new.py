@@ -19,6 +19,7 @@ from PyQt5.QtCore import Qt, pyqtSignal, QUrl
 from PyQt5.Qt import QCursor
 from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread
+from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Epoch_Time
 from mne import events_from_annotations
 
 import mne
