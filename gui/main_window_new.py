@@ -6,11 +6,10 @@
 @Desc  : new main window
 '''
 
-import os
 import traceback
-import sys
+
 import matplotlib
-import traceback
+
 matplotlib.use('Qt5Agg')
 from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QAction, QMenu, \
     QFileDialog, QLabel, QGroupBox, QVBoxLayout, QHBoxLayout,  \
@@ -19,7 +18,7 @@ from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QAction, QMenu, \
     QStackedWidget, QTreeWidgetItem, QTreeWidgetItemIterator
 from PyQt5.QtCore import Qt, pyqtSignal, QUrl
 from PyQt5.Qt import QCursor
-from PyQt5.QtGui import QKeySequence, QIcon, QPixmap, QDesktopServices
+from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread
 from mne import events_from_annotations
 from gui.sub_window import Choose_Window, Event_Window, Select_Data, Epoch_Time
