@@ -10,6 +10,7 @@ import os
 import traceback
 import sys
 import matplotlib
+import traceback
 matplotlib.use('Qt5Agg')
 from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QAction, QMenu, \
     QFileDialog, QLabel, QGroupBox, QVBoxLayout, QHBoxLayout,  \
@@ -866,7 +867,6 @@ class MainWindow(QMainWindow):
         return child
 
 
-
     # import sEEG data
     def execute_import_data(self):
         '''execute import data worker'''
@@ -988,7 +988,7 @@ class MainWindow(QMainWindow):
 
     def get_data_info(self):
         '''get seeg data information'''
-        if self.current_data['data'].ch_names:
+        if self.current_data['data_mode']:
             if self.current_data['data_mode'] == 'raw':
                 self.data_info['data_path'] = self.current_data['data_path']
                 self.data_info['epoch_number'] = 1
