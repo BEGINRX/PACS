@@ -5,10 +5,18 @@
 @Desc: create the threads for the main window
 """
 
-
+import traceback
+from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtCore import QThread, pyqtSignal
 from mne import io
+import mne
 
+
+def show_error(error):
+    print('*********************************************************************')
+    print('Error is: ')
+    traceback.print_exc()
+    print('*********************************************************************')
 
 class Import_Thread(QThread):
     '''one thread for import data'''
@@ -24,12 +32,13 @@ class Import_Thread(QThread):
 
     def import_data(self):
         '''import data selected'''
+        print(self.data_path)
         if self.data_path[-3:] == 'set':
             self.seeg_data = io.read_raw_eeglab(self.data_path, preload=True)
         elif self.data_path[-3:] == 'edf':
             self.seeg_data = io.read_raw_edf(self.data_path, preload=True)
         elif self.data_path[-3:] == 'fif':
-            self.seeg_data = io.read_raw_fif(self.data_path, preload=True)
+            self.seeg_data = io.read_raw_fif(self.data_path)
 
 
     def run(self):
@@ -41,8 +50,8 @@ class Import_Thread(QThread):
             self.trigger.emit(self.seeg_data)
             self.data_path = ''
             self.seeg_data = ''
-        except TypeError:
-            print('This is Type Error')
+        except Exception as error:
+            show_error(error)
             self.trigger.emit(self.seeg_data)
 
 
@@ -62,7 +71,7 @@ class Load_Epoched_Data_Thread(QThread):
         if self.data_path[-3:] == 'set':
             self.seeg_data = io.read_epochs_eeglab(self.data_path)
         elif self.data_path[-3:] == 'fif':
-            self.seeg_data = io.read_epochs(self.data_path)
+            self.seeg_data = mne.read_epochs(self.data_path)
 
 
     def run(self):
@@ -73,8 +82,8 @@ class Load_Epoched_Data_Thread(QThread):
             self.load.emit(self.seeg_data)
             self.data_path = ''
             self.seeg_data = ''
-        except AttributeError as error:
-            print(error)
+        except Exception as error:
+            show_error(error)
             self.load.emit(self.seeg_data)
 
 
@@ -92,12 +101,15 @@ class Resample_Thread(QThread):
 
     def run(self):
         '''rewrite run'''
-        if self.resampling_rate > 0:
-            self.resample_data = self.data.copy().resample(self.resampling_rate)
-            print('重采样结束')
-            self.resample.emit(self.resample_data)
-            self.data = ''
-            self.resample_data = ''
+        try:
+            if self.resampling_rate > 0:
+                self.resample_data = self.data.copy().resample(self.resampling_rate)
+                print('重采样结束')
+                self.resample.emit(self.resample_data)
+                self.data = ''
+                self.resample_data = ''
+        except Exception as error:
+            show_error(error)
 
 
 class Filter_Thread(QThread):
@@ -117,7 +129,7 @@ class Filter_Thread(QThread):
 
     def run(self):
         '''重写run'''
-        if self.seeg_data:
+        try:
             if self.filter_mode == 'fir':
                 if self.notch_freq and (not self.low_freq) and (not self.high_freq):
                     # 陷波
@@ -189,3 +201,5 @@ class Filter_Thread(QThread):
             self.low_freq = None
             self.high_freq = None
             self.notch_freq = None
+        except Exception as error:
+            show_error(error)

@@ -13,9 +13,11 @@ import mne
 import numpy as np
 import scipy.io as sio
 import gc
+import time
 
 matplotlib.use('Qt5Agg')
-
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib import pyplot as plt
 from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QAction, QMenu, \
     QFileDialog, QLabel, QGroupBox, QVBoxLayout, QHBoxLayout,  \
     QMessageBox, QInputDialog, QLineEdit, QWidget, QPushButton, QStyleFactory, \
@@ -28,7 +30,7 @@ from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thre
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time
 from mne import events_from_annotations
 
-
+cavans = None
 class MainWindow(QMainWindow):
     '''
     The main window
@@ -73,7 +75,7 @@ class MainWindow(QMainWindow):
         self.data_mode = None
         self.event_set = dict()
         self.event = None
-
+        self.cavans_tmp = None
         self.init_ui()
 
 
@@ -101,8 +103,11 @@ class MainWindow(QMainWindow):
         self.rect = QDesktopWidget().availableGeometry()
         cp = self.rect.center()
         fg.moveCenter(cp)
+        desktop =  QApplication.desktop()
+        # self.move(desktop.width()*0.9, desktop.height()*0.7)
         self.setGeometry(self.rect)  # 可避免遮挡任务栏
         self.showMaximized()
+        # self.show()
 
 
     def create_central_widget(self):
@@ -177,7 +182,11 @@ class MainWindow(QMainWindow):
 
         self.ptc_stack = QStackedWidget()
         self.ptc_stack.setProperty('name', 'ptc')
-        self.ptc_stack.addWidget(self.empty_label)
+        self.ptc_stack.addWidget(self.empty_label_0)
+
+        self.fig_stack = QStackedWidget()
+        self.fig_stack.setProperty('name', 'fig')
+        self.fig_stack.addWidget(self.empty_label_1)
 
 
     def create_button(self):
@@ -267,23 +276,27 @@ class MainWindow(QMainWindow):
         # labels for main window
         #
         # empty label
-        self.empty_label = QLabel('', self)
-        self.empty_label.setProperty('name', 'empty')
+        self.empty_label_0 = QLabel('', self)
+        self.empty_label_0.setProperty('name', 'empty')
+
+        self.empty_label_1 = QLabel('', self)
+        self.empty_label_1.setProperty('name', 'empty')
 
         # sEEG Data Information title
         self.data_info_label = QLabel('sEEG Data Information', self)
         self.data_info_label.setProperty('name', 'title')
         self.data_info_label.setAlignment(Qt.AlignHCenter)
-        self.data_info_label.setFixedHeight(38)
+        self.data_info_label.setFixedHeight(30)
 
         # basic info of the subject
         self.file_name_label = QLabel(' Filename', self)
         self.file_name_label.setAlignment(Qt.AlignLeft)
-        self.file_name_label.setFixedSize(180, 38)
+        self.file_name_label.setFixedSize(180, 33)
 
         self.file_name_cont_label = QLabel('', self)
         self.file_name_cont_label.setAlignment(Qt.AlignLeft)
-        self.file_name_cont_label.setFixedHeight(38)
+        self.file_name_cont_label.setFixedHeight(33
+                                                 )
 
         self.epoch_num_label = QLabel('Epochs', self)
         self.epoch_num_label.setProperty('name', 'group0')
@@ -388,31 +401,16 @@ class MainWindow(QMainWindow):
         # self.data_size_cont_label.setFixedSize(130, 38)
 
         # labels in electordes and activation
-        self.electro_title_label = QLabel('sEEG Electrodes Location and Activation', self)
+        self.electro_title_label = QLabel('sEEG data visualization', self)
         self.electro_title_label.setProperty('name', 'title')
         self.electro_title_label.setAlignment(Qt.AlignCenter)
-        self.electro_title_label.setFixedHeight(38)
-
-        self.electro_loac_label = QLabel('Electrodes Location')
-        self.electro_loac_label.setProperty('name', 'electro')
-        self.electro_loac_label.setAlignment(Qt.AlignCenter)
-        self.electro_loac_label.setFixedHeight(38)
-
-        self.activate_label = QLabel('Activation')
-        self.activate_label.setProperty('name', 'electro')
-        self.activate_label.setAlignment(Qt.AlignCenter)
-        self.activate_label.setFixedHeight(38)
-
-
-        self.topomap_label = QLabel('')
-        self.topomap_label.setProperty('name', 'electro_pic')
-        self.topomap_label.setAlignment(Qt.AlignCenter)
-
+        self.electro_title_label.setFixedHeight(30)
 
         # Protocol
         self.protocol_label = QLabel('Protocol', self)
         self.protocol_label.setProperty('name', 'title')
         self.protocol_label.setAlignment(Qt.AlignHCenter)
+        self.protocol_label.setFixedHeight(30)
 
 
     def create_group_box(self):
@@ -432,7 +430,7 @@ class MainWindow(QMainWindow):
         # protocol
         self.protocol_box = QGroupBox('')
         self.protocol_box.setProperty('name', 'sub')
-        # self.protocol_box.setFixedWidth(350)
+        self.protocol_box.setFixedWidth(300)
 
 
     def create_menubar(self):
@@ -543,33 +541,40 @@ class MainWindow(QMainWindow):
 
         # layout for basic visualization of topomap of sEEG
         vis_layout = QVBoxLayout(self)
-        vis_layout.setSpacing(0)
+        vis_layout.setSpacing(4)
         vis_layout.setContentsMargins(0, 0, 0, 0)
         vis_layout.addWidget(self.electro_title_label)
-        vis_layout.addWidget(self.topomap_label)
+        vis_layout.addWidget(self.fig_stack)
         self.vis_box.setLayout(vis_layout)
 
         # layout for protocol
+        left_layout_0 = QVBoxLayout()
+        left_layout_0.setContentsMargins(0, 0, 0, 0)
+        left_layout_0.addWidget(self.protocol_label)
+        left_layout_1 = QVBoxLayout()
+        left_layout_1.setSpacing(0)
+        left_layout_1.setContentsMargins(0, 0, 0, 0)
+        left_layout_1.addWidget(self.ptc_cb, stretch=1)
+        left_layout_1.addWidget(self.ptc_stack, stretch=100)
         left_layout = QVBoxLayout()
-        left_layout.setSpacing(4)
+        left_layout.setSpacing(3)
         left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.addWidget(self.protocol_label, stretch=1)
-        left_layout.addWidget(self.ptc_cb, stretch=1)
-        left_layout.addWidget(self.ptc_stack, stretch=100)
+        left_layout.addLayout(left_layout_0, stretch=1)
+        left_layout.addLayout(left_layout_1, stretch=100)
         self.protocol_box.setLayout(left_layout)
 
         # layout for main window
         right_layout = QVBoxLayout()
         right_layout.setSpacing(6)
         self.seeg_info_box.setAlignment(Qt.AlignTop)
-        right_layout.addWidget(self.seeg_info_box, stretch=5)
-        right_layout.addWidget(self.vis_box, stretch=25)
+        right_layout.addWidget(self.seeg_info_box, stretch=1)
+        right_layout.addWidget(self.vis_box, stretch=100)
 
         main_layout = QHBoxLayout()
         main_layout.setSpacing(6)
         main_layout.setContentsMargins(5, 2, 5, 2)
-        main_layout.addWidget(self.protocol_box, stretch=1)
-        main_layout.addLayout(right_layout, stretch=5)
+        main_layout.addWidget(self.protocol_box)
+        main_layout.addLayout(right_layout)
         self.center_widget.setLayout(main_layout)
 
 
@@ -578,7 +583,7 @@ class MainWindow(QMainWindow):
 
         # 备用字体：Arial、Consolas、Tahoma、Segoe UI、Sitka Text
         self.setStyleSheet('''         
-                QLabel[name='title']{font: bold 17pt Times New Roman; 
+                QLabel[name='title']{font: bold 15pt Times New Roman; 
                     color:rgb(0,120,215)} 
                 QLabel[name='group0']{background-color:rgb(244,244,244);
                     font:bold 13pt Sitka Text}
@@ -632,14 +637,14 @@ class MainWindow(QMainWindow):
         self.ptc_name, _ = QInputDialog.getText(self, 'Protocol name', 'Please Name this protocol',
                                            QLineEdit.Normal)
 
-        if self.ptc_name:
+        try:
             try:
-                self.ptc_stack.removeWidget(self.empty_label)
-            except:
+                self.ptc_stack.removeWidget(self.empty_label_0)
+            except Exception as error:
                 pass
             try:
                 self.ptc_stack.removeWidget(self.tree)
-            except:
+            except Exception as error:
                 pass
             self.subject_data[self.ptc_name] = dict()
             self.subject_data[self.ptc_name]['sEEG'] = dict()
@@ -660,8 +665,9 @@ class MainWindow(QMainWindow):
             self.ptc_stack.addWidget(self.tree)
             self.tree_item[self.ptc_name] = dict()
             self.tree_item[self.ptc_name]['root'] = self.node_00
-        else:
-            pass
+            print('创建subject', self.ptc_name)
+        except Exception as error:
+            self.show_error(error)
 
 
     def change_ptc(self, index):
@@ -702,25 +708,25 @@ class MainWindow(QMainWindow):
         self.cal_marker_action = QAction('Calculate markers and delete useless channels', self,
                                   statusTip='Calculate markers and delete useless channels',
                                   triggered=self.get_mark_del_chan)
-        self.resample_action = QAction('Resample the sEEG data', self,
+        self.resample_action = QAction('Resample', self,
                                        statusTip='Resamle the sEEG data',
                                        triggered=self.execute_resample_data)
-        self.re_ref_action = QAction('Re-reference the sEEG data', self,
+        self.re_ref_action = QAction('Re-reference', self,
                                      statusTip='Re-reference the sEEG data',
                                      triggered=self.re_ref)
         self.filter_sub_menu = QMenu('Filter', self)
-        self.fir_action = QAction('Filter the sEEG data using fir', self,
+        self.fir_action = QAction('FIR filter', self,
                                      statusTip='Filter the sEEG data using fir',
                                      triggered=self.filter_data_fir)
-        self.iir_action = QAction('Filter the sEEG data using iir', self,
+        self.iir_action = QAction('IIR filter', self,
                                      statusTip='Filter the sEEG data using iir',
                                      triggered=self.filter_data_iir)
         self.filter_sub_menu.addActions([self.fir_action, self.iir_action])
-        self.select_data_menu = QMenu('Select sub sEEG data', self)
-        self.select_time_action = QAction('Select sEEG data by time range', self,
+        self.select_data_menu = QMenu('Select sub-sEEG data', self)
+        self.select_time_action = QAction('Select data using time range', self,
                                      statusTip='Select sEEG data with time range',
                                      triggered=self.select_time)
-        self.select_chan_action = QAction('Select sEEG data by channels', self,
+        self.select_chan_action = QAction('Select data using channels', self,
                                      statusTip='Select sEEG data with time range',
                                      triggered=self.select_chan)
         self.select_data_menu.addActions([self.select_time_action,
@@ -732,7 +738,7 @@ class MainWindow(QMainWindow):
         self.plot_psd_action = QAction('Plot psd across channels', self,
                                        statusTip='Plot psd across channels',
                                        triggered=self.plot_psd)
-        self.plot_psd_topo_action = QAction('Plot topo psd', self,
+        self.plot_psd_topo_action = QAction('Plot psd topomap', self,
                                        statusTip='Plot topo psd',
                                        triggered=self.plot_topo_psd)
         self.plot_menu.addActions([self.plot_raw_action,
@@ -892,21 +898,43 @@ class MainWindow(QMainWindow):
 
     def execute_load_epoched_data(self):
         '''execute load epoched data'''
-        self.data_path, _ = QFileDialog.getOpenFileName(self, 'Import data')
-        if ('set' or 'fif' or 'edf') == self.data_path[-3:]:
-            self.load_epoched_data_worker.data_path = self.data_path
-            self.load_epoched_data_worker.start()
-            self.flag += 1
-            self.data_mode = 'epoch'
-        elif self.flag == 0 and self.data_path:
-            self.seeg_data = dict()
-            print('*********************************************************************')
-            print('Error is: ')
-            traceback.print_exc()
-            print('*********************************************************************')
+        self.data_path, _ = QFileDialog.getOpenFileName(self, 'Import epoch')
+        try:
+            if ('set' == self.data_path[-3:])  or \
+               ('fif' == self.data_path[-3:]) or \
+               ('edf' == self.data_path[-3:]):
+                self.load_epoched_data_worker.data_path = self.data_path
+                self.load_epoched_data_worker.start()
+                self.flag += 1
+                self.data_mode = 'epoch'
+        except Exception as error:
+            self.show_error(error)
             QMessageBox.warning(self, 'Data Format Error',
                                 'Please select the right file!')
 
+
+    def get_raw_fig(self):
+
+        # matplotlib.use('Qt5Agg')
+        try:
+            global cavans
+            if self.data_mode == 'raw':
+                fig = mne.viz.plot_raw(self.current_data['data'], n_channels=20, show=False)
+            elif self.data_mode == 'epoch':
+                fig = mne.viz.plot_epochs(self.current_data['data'], n_channels=20, show=False)
+            self.cavans = FigureCanvas(fig)
+            try:
+                self.fig_stack.removeWidget(self.empty_label_1)
+            except:
+                pass
+            try:
+                self.fig_stack.removeWidget(self.cavans_tmp)
+            except:
+                pass
+            self.cavans_tmp = self.cavans
+            self.fig_stack.addWidget(self.cavans_tmp)
+        except Exception as error:
+            self.show_error(error)
 
     def get_seeg_data(self, seeg_data):
         '''get seeg data'''
@@ -988,6 +1016,7 @@ class MainWindow(QMainWindow):
             self.event_button.setEnabled(True)
             self.save_button.setEnabled(True)
         self.get_data_info()
+        self.get_raw_fig()
 
 
     def change_current_data(self, index):
@@ -1023,6 +1052,7 @@ class MainWindow(QMainWindow):
                     self.event_button.setEnabled(True)
                     self.save_button.setEnabled(True)
                 self.get_data_info()
+                self.get_raw_fig()
             if 'MRI or CT' == parent:
                 pass
         except Exception as error:
@@ -1470,8 +1500,7 @@ class MainWindow(QMainWindow):
                     self.resample_worker.start()
         except Exception as error:
             print('*********************************************************************')
-            print('Error is: ')
-            traceback.print_exc()
+            self.show_error(error)
             print('*********************************************************************')
 
 
@@ -1556,10 +1585,10 @@ class MainWindow(QMainWindow):
         try:
                 if self.current_data['data_mode'] == 'raw':
                     print('画图了')
-                    self.current_data['data'].plot(duration=5.0, n_channels=self.current_data['data'].info['nchan'], title='Raw sEEG data')
+                    self.current_data['data'].plot(duration=5.0, n_channels=20, title='Raw sEEG data')
                     # plt.show()
                 elif self.current_data['data_mode'] == 'epoch':
-                    self.current_data['data'].plot(n_channels=self.current_data['data'].info['nchan'], n_epochs=5, title='Epoched sEEG data')
+                    self.current_data['data'].plot(n_channels=20, n_epochs=5, title='Epoched sEEG data')
                     # plt.show()
         except Exception as error:
             self.show_error(error)
