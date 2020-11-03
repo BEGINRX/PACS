@@ -978,12 +978,14 @@ class MainWindow(QMainWindow):
     def get_raw_fig(self, data):
 
         try:
-            if self.data_mode == 'raw':
-                fig = plot_raw(data, n_channels=20, show=False)
+            if data['data_mode'] == 'raw':
+                fig = plot_raw(data['data'], n_channels=20, show=False)
                 plt.close()
-            elif self.data_mode == 'epoch':
-                fig = plot_epochs(data, n_channels=20, show=False)
+                print('Raw data 绘制完毕')
+            elif data['data_mode'] == 'epoch':
+                fig = plot_epochs(data['data'], n_channels=20, show=False)
                 plt.close()
+                print('Epoch data 绘制完毕')
                 # 如果不添加plt.close(), 会出现
                 # AttributeError: 'FigureCanvasBase' object has no attribute 'manager'
                 # Figure.show works only for figures managed by pyplot, normally created by pyplot.figure().
@@ -1089,7 +1091,7 @@ class MainWindow(QMainWindow):
             self.event_button.setEnabled(True)
             self.save_button.setEnabled(True)
         self.get_data_info()
-        self.get_raw_fig(self.current_data['data'])
+        self.get_raw_fig(self.current_data)
 
 
     def change_current_data(self, index):
@@ -1125,7 +1127,7 @@ class MainWindow(QMainWindow):
                     self.event_button.setEnabled(True)
                     self.save_button.setEnabled(True)
                 self.get_data_info()
-                self.get_raw_fig(self.current_data['data'])
+                self.get_raw_fig(self.current_data)
             if 'MRI or CT' == parent:
                 pass
         except Exception as error:
@@ -1352,6 +1354,8 @@ class MainWindow(QMainWindow):
             self.mri = dict()
             self.current_mri = dict()
             self.event_set = dict()
+            self.ptc_cb.clear()
+            self.ptc_cb.setCurrentText('')
             self.flag = 0
             self.data_mode = None
             self.event = None
@@ -1371,10 +1375,10 @@ class MainWindow(QMainWindow):
             self.event_button.setEnabled(False)
             self.plot_button.setEnabled(False)
             self.save_button.setEnabled(False)
+            self.data_info_signal.connect(self.update_func)
+            self.data_info_signal.emit(self.data_info)
         except Exception as error:
             self.show_error(error)
-
-
         except Exception as error:
             self.show_error(error)
 
