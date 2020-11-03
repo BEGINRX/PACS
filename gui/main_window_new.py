@@ -9,15 +9,14 @@
 import os
 import traceback
 import matplotlib
-import mne
-import numpy as np
-import scipy.io as sio
-import gc
-import time
-
 matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib import pyplot as plt
+
+import numpy as np
+import scipy.io as sio
+import gc
+
 from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QAction, QMenu, \
     QFileDialog, QLabel, QGroupBox, QVBoxLayout, QHBoxLayout,  \
     QMessageBox, QInputDialog, QLineEdit, QWidget, QPushButton, QStyleFactory, \
@@ -28,7 +27,8 @@ from PyQt5.Qt import QCursor
 from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time
-from mne import events_from_annotations
+from mne import Annotations, events_from_annotations, Epochs
+from mne.viz import plot_raw, plot_epochs
 
 cavans = None
 class MainWindow(QMainWindow):
@@ -255,12 +255,6 @@ class MainWindow(QMainWindow):
         self.save_button.setEnabled(False)
         self.save_button.setFixedSize(130, 38)
         self.save_button.clicked.connect(self.save_fif)
-
-
-    def create_progress_bar(self):
-        '''create progress for needs'''
-
-        pass
 
 
     def create_combo_box(self):
@@ -705,15 +699,38 @@ class MainWindow(QMainWindow):
         self.rename_chan_action = QAction('Rename channels', self,
                                           statusTip='Rename channels',
                                           triggered=self.rename_chan)
-        self.cal_marker_action = QAction('Calculate markers and delete useless channels', self,
+        self.cal_marker_action = QAction('Calculate and set up markers', self,
                                   statusTip='Calculate markers and delete useless channels',
                                   triggered=self.get_mark_del_chan)
         self.resample_action = QAction('Resample', self,
                                        statusTip='Resamle the sEEG data',
                                        triggered=self.execute_resample_data)
-        self.re_ref_action = QAction('Re-reference', self,
-                                     statusTip='Re-reference the sEEG data',
-                                     triggered=self.re_ref)
+        self.re_ref_menu = QMenu('Re-reference', self)
+        self.car_reref_action = QAction('Common average reference (CAR)', self,
+                                        statusTip='Reference sEEG data using CAR',
+                                        triggered=self.car_reref)
+        self.gwr_reref_action = QAction('Gray-white matter reference (GWR)', self,
+                                        statusTip='Reference sEEG data using GWR',
+                                        triggered=self.gwr_reref)
+        self.esr_reref_action = QAction('Electrode shaft reference (ESR)', self,
+                                        statusTip='Reference sEEG data using ESR',
+                                        triggered=self.esr_reref)
+        self.bipolar_reref_action = QAction('Bipolar reference', self,
+                                        statusTip='Reference sEEG data using Bipolar reference',
+                                        triggered=self.bipolar_reref)
+        self.monopolar_action = QAction('Monopolar reference', self,
+                                            statusTip='Reference sEEG data using Monopolar reference',
+                                            triggered=self.monopolar_reref)
+        self.laplacian_action = QAction('Laplacian reference', self,
+                                        statusTip='Reference sEEG data using Laplacian reference',
+                                        triggered=self.laplacian_reref)
+        self.re_ref_menu.addActions([self.car_reref_action,
+                                     self.gwr_reref_action,
+                                     self.esr_reref_action,
+                                     self.bipolar_reref_action,
+                                     self.monopolar_action,
+                                     self.laplacian_action])
+
         self.filter_sub_menu = QMenu('Filter', self)
         self.fir_action = QAction('FIR filter', self,
                                      statusTip='Filter the sEEG data using fir',
@@ -722,6 +739,7 @@ class MainWindow(QMainWindow):
                                      statusTip='Filter the sEEG data using iir',
                                      triggered=self.filter_data_iir)
         self.filter_sub_menu.addActions([self.fir_action, self.iir_action])
+
         self.select_data_menu = QMenu('Select sub-sEEG data', self)
         self.select_time_action = QAction('Select data using time range', self,
                                      statusTip='Select sEEG data with time range',
@@ -731,6 +749,7 @@ class MainWindow(QMainWindow):
                                      triggered=self.select_chan)
         self.select_data_menu.addActions([self.select_time_action,
                                           self.select_chan_action])
+
         self.plot_menu = QMenu('Plot', self)
         self.plot_raw_action = QAction('Plot time-frequency', self,
                                        statusTip='Plot time-frequency',
@@ -744,6 +763,7 @@ class MainWindow(QMainWindow):
         self.plot_menu.addActions([self.plot_raw_action,
                                    self.plot_psd_action,
                                    self.plot_psd_topo_action])
+
         self.get_epoch_menu = QMenu('Get epoch of raw sEEG data', self)
         self.set_name_action = QAction('Set event name', self,
                                         statusTip='Set event name corresponding to its event id',
@@ -753,6 +773,7 @@ class MainWindow(QMainWindow):
                                         triggered=self.get_epoch_time_range)
         self.get_epoch_menu.addActions([self.set_name_action,
                                         self.get_epoch_action])
+
         self.save_menu = QMenu('Export data', self)
         self.save_fif_action = QAction('Save sEEG data as .fif data', self,
                                        statusTip='Save sEEG data in .fif format')
@@ -765,7 +786,48 @@ class MainWindow(QMainWindow):
         self.save_menu.addActions([self.save_fif_action,
                                    self.save_edf_action,
                                    self.save_set_action])
-        self.analysis_menu = QMenu('Analysis', self)
+
+        self.raw_analysis_menu = QMenu('Analysis', self)
+
+        self.t_f_analy_menu = QMenu('Time or frequency analysis', self)
+        self.ep_action = QAction('Evoked potential (EP)', self,
+                                 triggered=self.ep)
+        self.erp_action = QAction('Event-related potential (ERP)', self,
+                                  triggered=self.erp)
+        self.topo_analy_action = QAction('Topo map analysis', self,
+                                         triggered=self.topo_analysis)
+        self.t_f_analy_menu.addActions([self.ep_action,
+                                        self.erp_action,
+                                        self.topo_analy_action])
+
+        self.connect_analy_menu = QMenu('Connectivity analysis', self)
+        self.func_connect_menu = QMenu('Functional connectivity', self)
+        self.pcc_action = QAction('Pearson correlation coefficient', self,
+                                  triggered=self.pcc)
+        self.coherence_action = QAction('Coherence analysis', self,
+                                        triggered=self.coherence)
+        self.func_connect_menu.addActions([self.pcc_action,
+                                           self.coherence_action])
+        self.eff_connect_menu = QMenu('Effective connectivity', self)
+        self.gc_action = QAction('Granger Causality', self,
+                                 triggered=self.gc)
+        self.dtf_action = QAction('Directed transfer function', self,
+                                  triggered=self.dtf)
+        self.pdc_action = QAction('Partial directed coherence', self,
+                                  triggered=self.pdc)
+        self.plv_action = QAction('Phase lock value', self,
+                                  triggered=self.plv)
+        self.eff_connect_menu.addActions([self.gc_action,
+                                          self.dtf_action,
+                                          self.pdc_action,
+                                          self.plv_action])
+        self.connect_analy_menu.addMenu(self.func_connect_menu)
+        self.connect_analy_menu.addMenu(self.eff_connect_menu)
+
+        self.statistic_analy_menu = QMenu('Statistic analysis', self)
+
+        self.raw_analysis_menu.addMenu(self.t_f_analy_menu)
+        self.raw_analysis_menu.addMenu(self.connect_analy_menu)
 
 
     def epoch_rmenu(self):
@@ -842,14 +904,14 @@ class MainWindow(QMainWindow):
                 self.raw_data_rmenu()
                 self.tree_right_menu.addActions([self.rename_chan_action,
                                                  self.cal_marker_action,
-                                                 self.rename_chan_action,
-                                                 self.re_ref_action])
+                                                 self.rename_chan_action])
+                self.tree_right_menu.addMenu(self.re_ref_menu)
                 self.tree_right_menu.addMenu(self.filter_sub_menu)
                 self.tree_right_menu.addMenu(self.select_data_menu)
                 self.tree_right_menu.addMenu(self.plot_menu)
                 self.tree_right_menu.addMenu(self.get_epoch_menu)
                 self.tree_right_menu.addMenu(self.save_menu)
-                self.tree_right_menu.addMenu(self.analysis_menu)
+                self.tree_right_menu.addMenu(self.raw_analysis_menu)
             elif item_parent == 'Epoch sEEG data':
                 self.epoch_rmenu()
                 self.tree_right_menu.addActions([self.select_chan_action,
@@ -915,26 +977,37 @@ class MainWindow(QMainWindow):
 
     def get_raw_fig(self):
 
-        # matplotlib.use('Qt5Agg')
         try:
-            global cavans
             if self.data_mode == 'raw':
-                fig = mne.viz.plot_raw(self.current_data['data'], n_channels=20, show=False)
+                fig = plot_raw(self.current_data['data'], n_channels=20, show=False)
+                plt.close()
             elif self.data_mode == 'epoch':
-                fig = mne.viz.plot_epochs(self.current_data['data'], n_channels=20, show=False)
-            self.cavans = FigureCanvas(fig)
+                fig = plot_epochs(self.current_data['data'], n_channels=20, show=False)
+                plt.close()
+                # 如果不添加plt.close(), 会出现
+                # AttributeError: 'FigureCanvasBase' object has no attribute 'manager'
+                # Figure.show works only for figures managed by pyplot, normally created by pyplot.figure().
+                # 的报错， 具体原因可见：
+                # https://www.jb51.net/article/188756.htm 浅谈matplotlib中FigureCanvasXAgg的用法
+                # https://github.com/matplotlib/matplotlib/issues/1219/
+                # https://github.com/matplotlib/matplotlib/pull/1220
+            self.canvas = FigureCanvas(fig)
             try:
                 self.fig_stack.removeWidget(self.empty_label_1)
             except:
                 pass
             try:
-                self.fig_stack.removeWidget(self.cavans_tmp)
+                self.fig_stack.removeWidget(self.canvas_tmp)
             except:
                 pass
-            self.cavans_tmp = self.cavans
-            self.fig_stack.addWidget(self.cavans_tmp)
+            self.canvas_tmp = self.canvas
+            self.fig_stack.addWidget(self.canvas_tmp)
         except Exception as error:
-            self.show_error(error)
+            if error.args[0] == "'RawEEGLAB' object has no attribute 'drop_bad'":
+                pass
+            else:
+                self.show_error(error)
+
 
     def get_seeg_data(self, seeg_data):
         '''get seeg data'''
@@ -950,7 +1023,7 @@ class MainWindow(QMainWindow):
                 subject_name = self.ptc_cb.currentText()
                 child = self.get_all_items()
                 if self.data_mode == 'raw':
-                    self.seeg[self.key]['event'], _ = mne.events_from_annotations(seeg_data)
+                    self.seeg[self.key]['event'], _ = events_from_annotations(seeg_data)
                     if 'raw sEEG data' in child:
                         self.node_20 = QTreeWidgetItem(self.tree_item[subject_name]['raw'])
                         self.node_20.setText(0, self.key)
@@ -1266,34 +1339,75 @@ class MainWindow(QMainWindow):
 
     def clear_all(self):
         '''clear the whole workshop'''
-        if self.current_data:
-            self.flag = 0
-            del self.current_data
-            del self.data_info
-            del self.seeg
-            del self.event
-            self.data_info = dict()
-            self.current_data = {}
-            self.data_action = []
-            self.seeg = {}
-            self.event = None
-            self.action_num = 0
-            self.data_menu.clear()
+        try:
+            del self.flag, self.tree_dict, self.tree_item, self.data_info, self.subject_data, self.seeg, self.event
+            del self.current_data, self.mri, self.current_mri, self.data_mode, self.event_set, self.cavans_tmp
             gc.collect()
-            self.edit_menu.setEnabled(False)
-            self.tool_menu.setEnabled(False)
-            self.analysis_menu.setEnabled(False)
-            self.plot_menu.setEnabled(False)
-            self.data_menu.setEnabled(False)
-            self.del_mark_chan_action.setEnabled(False)
-            self.del_useless_chan_action.setEnabled(False)
-            self.data_info_signal.emit(self.data_info)
-        else:
-            pass
+            self.tree_dict = dict()
+            self.tree_item = dict()
+            self.data_info = dict()
+            self.subject_data = dict()
+            self.seeg = dict()
+            self.current_data = dict()
+            self.mri = dict()
+            self.current_mri = dict()
+            self.event_set = dict()
+            self.flag = 0
+            self.data_mode = None
+            self.event = None
+            self.cavans_tmp = None
+            try:
+                self.ptc_stack.removeWidget(self.tree)
+                self.ptc_stack.addWidget(self.empty_label_0)
+                self.fig_stack.removeWidget(self.canvas_tmp)
+                self.fig_stack.addWidget(self.empty_label_1)
+            except Exception as error:
+                self.show_error(error)
+            self.re_ref_button.setEnabled(False)
+            self.resample_button.setEnabled(False)
+            self.filter_button.setEnabled(False)
+            self.time_button.setEnabled(False)
+            self.chan_button.setEnabled(False)
+            self.event_button.setEnabled(False)
+            self.plot_button.setEnabled(False)
+            self.save_button.setEnabled(False)
+        except Exception as error:
+            self.show_error(error)
+
+
+        except Exception as error:
+            self.show_error(error)
 
 ############################################# Edit ######################################################
-    # Edit menu function
+    # Edit function
     #
+    # rereference sEEG data
+    def car_reref(self):
+        pass
+
+
+    def gwr_reref(self):
+        pass
+
+
+    def esr_reref(self):
+        pass
+
+
+    def bipolar_reref(self):
+        pass
+
+
+    def monopolar_reref(self):
+        pass
+
+
+    def laplacian_reref(self):
+        pass
+
+
+
+
     # select sub-channel
     def select_chan(self):
 
@@ -1414,11 +1528,11 @@ class MainWindow(QMainWindow):
 
             freq = self.current_data['data'].info['sfreq']
             event_onset = (self.event_latency / freq).astype(np.float64)
-            self.my_annot = mne.Annotations(
+            self.my_annot = Annotations(
                 onset=event_onset[0, :], duration=np.zeros(event_onset[0, :].shape[0]),
                 description=self.event_id[0, :])
             annot_data = self.current_data['data'].copy().set_annotations(self.my_annot)
-            self.event, _ = mne.events_from_annotations(self.current_data['data'])
+            self.event, _ = events_from_annotations(self.current_data['data'])
 
             self.event_test = np.zeros((self.event_id.shape[1], 3)).astype(np.int32)
             self.event_test[:, 0], self.event_test[:, 2] = self.event_latency, self.event_id
@@ -1458,7 +1572,6 @@ class MainWindow(QMainWindow):
             self.show_error(error)
 
 
-
     def get_epoch_time_range(self):
 
         self.epoch_time = Epoch_Time()
@@ -1471,13 +1584,13 @@ class MainWindow(QMainWindow):
         try:
             if self.current_data['event'].shape[1] == 3:
                 if tmin < 0 and tmax >= 0:
-                    epoch_data = mne.Epochs(self.current_data['data'], self.current_data['event'],
+                    epoch_data = Epochs(self.current_data['data'], self.current_data['event'],
                                             event_id=self.event_set, tmin=tmin, tmax=tmax)
                     self.data_mode = 'epoch'
                     self.get_seeg_data(epoch_data)
                 elif tmin == 0:
                     print(self.event_set)
-                    epoch_data = mne.Epochs(self.current_data['data'], self.current_data['event'], event_id=self.event_set,
+                    epoch_data = Epochs(self.current_data['data'], self.current_data['event'], event_id=self.event_set,
                                             baseline=(0, 0))
                     self.data_mode = 'epoch'
                     self.get_seeg_data(epoch_data)
@@ -1554,26 +1667,51 @@ class MainWindow(QMainWindow):
         except Exception as error:
             self.show_error(error)
 
-    # Analysis menu function
+    # Time analysis function
     #
-    # hilbert method for time-frequency analyses
-    def hilbert_method(self):
+    # EP
+    def ep(self):
         pass
 
-    # wavelet method for time-frequency analyses
-    def wavelet_method(self):
+
+    def erp(self):
         pass
 
-    # spectral power measures for spectral analyses
-    def spectral_power(self):
+
+    def topo_analysis(self):
         pass
 
-    # spectral variance measures for spectral analyses
-    def spectral_variance(self):
+
+    # Frequency analysis function
+    #
+    #
+
+    # Connecivity analysis function
+    #
+    # Functional connecivity
+    def pcc(self):
         pass
 
-    # spectral utilities
-    def spectral_utilities(self):
+
+    def coherence(self):
+        pass
+
+
+    # Effective connectivity
+
+    def gc(self):
+        pass
+
+
+    def dtf(self):
+        pass
+
+
+    def pdc(self):
+        pass
+
+
+    def plv(self):
         pass
 
 ############################################# Plot ######################################################
@@ -1583,13 +1721,13 @@ class MainWindow(QMainWindow):
     def plot_raw_data(self):
 
         try:
-                if self.current_data['data_mode'] == 'raw':
-                    print('画图了')
-                    self.current_data['data'].plot(duration=5.0, n_channels=20, title='Raw sEEG data')
-                    # plt.show()
-                elif self.current_data['data_mode'] == 'epoch':
-                    self.current_data['data'].plot(n_channels=20, n_epochs=5, title='Epoched sEEG data')
-                    # plt.show()
+            if self.current_data['data_mode'] == 'raw':
+                print('画图了')
+                self.canvas = None
+                self.current_data['data'].plot(duration=5.0, n_channels=20, title='Raw sEEG data')
+            elif self.current_data['data_mode'] == 'epoch':
+                self.canvas = None
+                self.current_data['data'].plot(n_channels=20, n_epochs=5, title='Epoched sEEG data')
         except Exception as error:
             self.show_error(error)
 
@@ -1598,7 +1736,7 @@ class MainWindow(QMainWindow):
     def plot_psd(self):
 
         try:
-            if self.current_data['data'].ch_names:
+            if self.current_data['data_mode']:
                 self.current_data['data'].plot_psd()
         except Exception as error:
             self.show_error(error)
@@ -1606,7 +1744,11 @@ class MainWindow(QMainWindow):
 
     def plot_topo_psd(self):
 
-        pass
+        try:
+            if self.current_data['data_mode']:
+                self.current_data['data'].plot_topomap_psd()
+        except Exception as error:
+            self.show_error(error)
 
     # Help menu function
     #
