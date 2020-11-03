@@ -8,7 +8,8 @@
 from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QPushButton,\
     QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, \
     QInputDialog, QLineEdit, QApplication, QScrollArea, QWidget, \
-    QMessageBox, QStyleFactory, QListWidget, QAbstractItemView
+    QMessageBox, QStyleFactory, QListWidget, QAbstractItemView, \
+    QStackedWidget
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont, QDoubleValidator
 import sys
@@ -308,8 +309,8 @@ class Event_Window(QMainWindow):
 
     def init_ui(self):
 
+        self.setWindowTitle('Generate event dict')
         self.setFixedWidth(400)
-        self.setMinimumHeight(100)
         self.setWindowModality(Qt.ApplicationModal)
         self.center()
         self.create_center_widget()
@@ -334,6 +335,11 @@ class Event_Window(QMainWindow):
         '''create center widget'''
         self.center_widget = QWidget()
         self.setCentralWidget(self.center_widget)
+
+        self.stack_wid = QStackedWidget()
+
+        self.stack_widgets = QWidget()
+        self.stack_wid.addWidget(self.stack_widgets)
 
 
     def set_font(self):
@@ -366,6 +372,7 @@ class Event_Window(QMainWindow):
 
         for i in range(len(self.event_id)):
             self.event_name_edit = QLineEdit()
+            self.event_name_edit.setAlignment(Qt.AlignCenter)
             self.event_id_edit = QLineEdit()
             self.event_id_edit.setText(str(self.event_id[i]))
             self.event_id_edit.setReadOnly(True)
@@ -376,33 +383,27 @@ class Event_Window(QMainWindow):
 
     def create_layout(self):
 
+
+
         self.label_layout = QHBoxLayout()
         self.label_layout.addWidget(self.event_name_label)
         self.label_layout.addWidget(self.event_id_label)
 
         self.line_edit_layout = QFormLayout(self)
         for i in range(len(self.event_name_edit_group)):
-            self.line_edit_layout.addRow(self.event_name_edit_group[i],
-                                         self.event_id_edit_group[i])
-
-        self.layout_0 = QVBoxLayout()
-        self.layout_0.addLayout(self.label_layout)
-        self.layout_0.addLayout(self.line_edit_layout)
-        self.widget = QWidget()
-        self.widget.setLayout(self.layout_0)
-        self.scrollarea = QScrollArea()
-        self.scrollarea.setWidget(self.widget)
-        self.scrollarea.setWidgetResizable(True)
-        self.scrollarea_layout = QVBoxLayout()
-        self.scrollarea_layout.addWidget(self.scrollarea)
+            self.line_edit_layout.addRow(self.event_id_edit_group[i],
+                                         self.event_name_edit_group[i])
+        self.stack_widgets.setLayout(self.line_edit_layout)
 
         self.button_layout = QHBoxLayout()
+        self.button_layout.addStretch(1)
         self.button_layout.addWidget(self.ok_button)
         self.button_layout.addWidget(self.cancel_button)
 
         self.main_layout = QVBoxLayout()
-        self.main_layout.addLayout(self.scrollarea_layout)
-        self.main_layout.addLayout(self.button_layout)
+        self.main_layout.addLayout(self.label_layout, stretch=1)
+        self.main_layout.addWidget(self.stack_wid, stretch=100)
+        self.main_layout.addLayout(self.button_layout,stretch=1)
 
         self.center_widget.setLayout(self.main_layout)
         self.center_widget.setFont(self.font)
@@ -1041,9 +1042,9 @@ if __name__ == "__main__":
                     'POL I1', 'POL I2', 'POL I3', 'POL I4', 'POL I5', 'POL I6', 'POL I7', 'POL I8', 'POL I9', 'POL I10',
                     "POL A'1", "POL A'2", "POL A'3"]
     # GUI = Select_Chan(chan_name=chan)
-    # GUI = Event_Window()
+    GUI = Event_Window([1,2,3, 4, 5, 6])
     # GUI = Epoch_Time()
-    GUI = Select_Event(event=['1', '2'])
+    # GUI = Select_Event(event=['1', '2'])
     GUI.show()
     app.exec_()
 
