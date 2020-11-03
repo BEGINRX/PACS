@@ -975,14 +975,14 @@ class MainWindow(QMainWindow):
                                 'Please select the right file!')
 
 
-    def get_raw_fig(self):
+    def get_raw_fig(self, data):
 
         try:
             if self.data_mode == 'raw':
-                fig = plot_raw(self.current_data['data'], n_channels=20, show=False)
+                fig = plot_raw(data, n_channels=20, show=False)
                 plt.close()
             elif self.data_mode == 'epoch':
-                fig = plot_epochs(self.current_data['data'], n_channels=20, show=False)
+                fig = plot_epochs(data, n_channels=20, show=False)
                 plt.close()
                 # 如果不添加plt.close(), 会出现
                 # AttributeError: 'FigureCanvasBase' object has no attribute 'manager'
@@ -1089,7 +1089,7 @@ class MainWindow(QMainWindow):
             self.event_button.setEnabled(True)
             self.save_button.setEnabled(True)
         self.get_data_info()
-        self.get_raw_fig()
+        self.get_raw_fig(self.current_data['data'])
 
 
     def change_current_data(self, index):
@@ -1125,7 +1125,7 @@ class MainWindow(QMainWindow):
                     self.event_button.setEnabled(True)
                     self.save_button.setEnabled(True)
                 self.get_data_info()
-                self.get_raw_fig()
+                self.get_raw_fig(self.current_data['data'])
             if 'MRI or CT' == parent:
                 pass
         except Exception as error:
