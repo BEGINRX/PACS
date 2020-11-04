@@ -25,10 +25,11 @@ from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QAction, QMenu, \
 from PyQt5.QtCore import Qt, pyqtSignal, QUrl
 from PyQt5.Qt import QCursor
 from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
-from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread
-from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time
 from mne import Annotations, events_from_annotations, Epochs
 from mne.viz import plot_raw, plot_epochs
+from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread
+from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time
+from gui.re_ref import car_ref, gwr_reref, esr_reref, bipolar_reref, monopolar_reref, laplacian_reref
 
 cavans = None
 class MainWindow(QMainWindow):
@@ -198,7 +199,7 @@ class MainWindow(QMainWindow):
         self.re_ref_button.setProperty('name', 'func')
         self.re_ref_button.setEnabled(False)
         self.re_ref_button.setFixedSize(135, 38)
-        self.re_ref_button.clicked.connect(self.re_ref)
+        self.re_ref_button.clicked.connect(self.monopolar_reref)
 
         self.resample_button = QPushButton(self)
         self.resample_button.setText('Resample')
@@ -395,7 +396,7 @@ class MainWindow(QMainWindow):
         # self.data_size_cont_label.setFixedSize(130, 38)
 
         # labels in electordes and activation
-        self.electro_title_label = QLabel('sEEG data visualization', self)
+        self.electro_title_label = QLabel('sEEG Data visualization', self)
         self.electro_title_label.setProperty('name', 'title')
         self.electro_title_label.setAlignment(Qt.AlignCenter)
         self.electro_title_label.setFixedHeight(30)
@@ -628,38 +629,39 @@ class MainWindow(QMainWindow):
     # create qtreeview
     def create_subject(self):
 
-        self.ptc_name, _ = QInputDialog.getText(self, 'Protocol name', 'Please Name this protocol',
+        self.ptc_name, _ = QInputDialog.getText(self, 'Subject name', 'Please Name this subject',
                                            QLineEdit.Normal)
 
         try:
-            try:
-                self.ptc_stack.removeWidget(self.empty_label_0)
-            except Exception as error:
-                pass
-            try:
-                self.ptc_stack.removeWidget(self.tree)
-            except Exception as error:
-                pass
-            self.subject_data[self.ptc_name] = dict()
-            self.subject_data[self.ptc_name]['sEEG'] = dict()
-            self.ptc_cb.addItem(self.ptc_name)
-            self.ptc_cb.setCurrentText(self.ptc_name)
-            self.tree = QTreeWidget()
-            self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
-            self.tree.customContextMenuRequested.connect(self.right_menu)
-            self.tree.setProperty('name', 'ptc')
-            self.root = self.tree.invisibleRootItem()
-            self.tree.setHeaderHidden(True)  # 隐藏列标题栏
-            self.node_00 = QTreeWidgetItem(self.tree)
-            self.node_00.setText(0, self.ptc_name)
-            self.node_00.setIcon(0, QIcon('image/subject.ico'))
-            self.tree.expandAll()
-            self.tree.clicked.connect(self.change_current_data)
-            self.tree_dict[self.ptc_name] = self.tree
-            self.ptc_stack.addWidget(self.tree)
-            self.tree_item[self.ptc_name] = dict()
-            self.tree_item[self.ptc_name]['root'] = self.node_00
-            print('创建subject', self.ptc_name)
+            if self.ptc_name:
+                try:
+                    self.ptc_stack.removeWidget(self.empty_label_0)
+                except Exception as error:
+                    pass
+                try:
+                    self.ptc_stack.removeWidget(self.tree)
+                except Exception as error:
+                    pass
+                self.subject_data[self.ptc_name] = dict()
+                self.subject_data[self.ptc_name]['sEEG'] = dict()
+                self.ptc_cb.addItem(self.ptc_name)
+                self.ptc_cb.setCurrentText(self.ptc_name)
+                self.tree = QTreeWidget()
+                self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
+                self.tree.customContextMenuRequested.connect(self.right_menu)
+                self.tree.setProperty('name', 'ptc')
+                self.root = self.tree.invisibleRootItem()
+                self.tree.setHeaderHidden(True)  # 隐藏列标题栏
+                self.node_00 = QTreeWidgetItem(self.tree)
+                self.node_00.setText(0, self.ptc_name)
+                self.node_00.setIcon(0, QIcon('image/subject.ico'))
+                self.tree.expandAll()
+                self.tree.clicked.connect(self.change_current_data)
+                self.tree_dict[self.ptc_name] = self.tree
+                self.ptc_stack.addWidget(self.tree)
+                self.tree_item[self.ptc_name] = dict()
+                self.tree_item[self.ptc_name]['root'] = self.node_00
+                print('创建subject', self.ptc_name)
         except Exception as error:
             self.show_error(error)
 
@@ -876,7 +878,7 @@ class MainWindow(QMainWindow):
                                        triggered=self.open_mni)
         self.disp_electro_action = QAction('Display depth electrodes', self,
                                        statusTip='Display depth electrodes',
-                                       )
+                                       triggered=self.display_electrodes)
 
 
     def right_menu(self, point):
@@ -927,7 +929,10 @@ class MainWindow(QMainWindow):
                 pass
             self.tree_right_menu.exec_(QCursor.pos())
         except Exception as error:
-            self.show_error(error)
+            if error.args[0] == "'NoneType' object has no attribute 'text'":
+                pass
+            else:
+                self.show_error(error)
 
 
     def get_all_items(self):
@@ -1068,6 +1073,7 @@ class MainWindow(QMainWindow):
     def set_current_data(self, key):
         '''set the curent seeg data'''
         self.current_data = self.seeg[key]
+        self.data_mode = self.current_data['data_mode']
         print('----------------------------')
         print("current data\'s key:", key)
         print('current data: ', self.current_data)
@@ -1103,6 +1109,7 @@ class MainWindow(QMainWindow):
                 self.current_sub = self.subject_data[subject_name]
                 key = self.tree.currentItem().text(0)
                 self.current_data = self.current_sub['sEEG'][key]
+                self.data_mode = self.current_data['data_mode']
                 print('----------------------------')
                 print('change current data to ', key)
                 print('----------------------------')
@@ -1387,29 +1394,60 @@ class MainWindow(QMainWindow):
     #
     # rereference sEEG data
     def car_reref(self):
-        pass
+        '''Reference sEEG data using Common Average Reference(CAR)'''
+        data = self.current_data['data'].copy()
+        raw = car_ref(data)
+        self.get_seeg_data(raw)
 
 
     def gwr_reref(self):
-        pass
+        '''Reference sEEG data using Gray-white Matter Reference(GWR)'''
+        data = self.current_data['data'].copy()
+        try:
+            raw = gwr_reref(data)
+            self.get_seeg_data(raw)
+        except Exception as error:
+            self.show_error(error)
 
 
     def esr_reref(self):
-        pass
+        '''Reference sEEG data using Electrode Shaft Reference(ESR)'''
+        data = self.current_data['data'].copy()
+        try:
+            raw = esr_reref(data)
+            self.get_seeg_data(raw)
+        except Exception as error:
+            self.show_error(error)
 
 
     def bipolar_reref(self):
-        pass
+        '''Reference sEEG data using Bipolar Reference'''
+        data = self.current_data['data'].copy()
+        try:
+            raw = bipolar_reref(data)
+            self.get_seeg_data(raw)
+        except Exception as error:
+            self.show_error(error)
 
 
     def monopolar_reref(self):
-        pass
+        '''Reference sEEG data using Monopolar Reference'''
+        data = self.current_data['data'].copy()
+        try:
+            raw = monopolar_reref(data)
+            self.get_seeg_data(raw)
+        except Exception as error:
+            self.show_error(error)
 
 
     def laplacian_reref(self):
-        pass
-
-
+        '''Reference sEEG data using Laplacian Reference'''
+        data = self.current_data['data'].copy()
+        try:
+            raw = laplacian_reref(data)
+            self.get_seeg_data(raw)
+        except Exception as error:
+            self.show_error(error)
 
 
     # select sub-channel
@@ -1423,6 +1461,7 @@ class MainWindow(QMainWindow):
     def get_sel_chan(self, chan):
 
         self.chan_sel = chan
+        self.current_data['data'].load_data()
         sel_chan_data = self.current_data['data'].copy().pick_channels(self.chan_sel)
         self.get_seeg_data(sel_chan_data)
 
@@ -1452,12 +1491,6 @@ class MainWindow(QMainWindow):
         self.select_time_win.event_signal.connect(self.get_event)
 
     def get_event(self, event_select):
-
-        pass
-
-
-    # re-ref
-    def re_ref(self):
 
         pass
 
@@ -1753,6 +1786,56 @@ class MainWindow(QMainWindow):
                 self.current_data['data'].plot_topomap_psd()
         except Exception as error:
             self.show_error(error)
+
+
+    def display_electrodes(self):
+        '''Electrodes Visualization'''
+        from mne.datasets import fetch_fsaverage
+        from mne.coreg import get_mni_fiducials
+        from mne.channels import make_dig_montage, compute_native_head_t
+        from mne.viz import plot_alignment
+
+        sample_path = 'datasets/'
+        subject = 'fsaverage'
+        subjects_dir = sample_path + '/subjects'
+        try:
+            fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)
+            subject_name = self.ptc_cb.currentText()
+            self.ch_coords =  self.subject_data[subject_name]['MNI']
+            lpa, nasion, rpa = get_mni_fiducials(
+                subject, subjects_dir=subjects_dir)
+            lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
+
+            montage = make_dig_montage(
+                self.ch_coords, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
+            # print('Created %s channel positions' % len(ch_names))
+            trans = compute_native_head_t(montage)
+            print(trans)
+
+            ch_names = []
+            for i in self.ch_coords:
+                ch_names.append(i)
+            ch_names = ch_names[:-1]
+            self.current_data['data'].info['bads'].extend([ch for ch in self.current_data['data'].ch_names
+                                                           if ch not in ch_names])
+            self.current_data['data'].load_data()
+            self.current_data['data'].drop_channels(self.current_data['data'].info['bads'])
+
+            self.current_data['data'].set_montage(montage)
+            self.current_data['data'].set_channel_types(
+                {ch_name: 'seeg' if np.isfinite(self.ch_coords[ch_name]).all() else 'misc'
+                 for ch_name in self.current_data['data'].ch_names})
+            fig = plot_alignment(self.current_data['data'].info, trans, 'fsaverage', surfaces='pial',
+                                         subjects_dir=subjects_dir, show_axes=True, seeg=True)
+        except Exception as error:
+            self.show_error(error)
+
+
+
+
+
+
+
 
     # Help menu function
     #
