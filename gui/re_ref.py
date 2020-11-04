@@ -44,6 +44,8 @@ def esr_reref(raw):
         for index in range(length[i]):
             if ('\'' not in group) and ((group + '\'') in ch_group_cont[group][-1]):
                 ch_group_cont[group].remove(ch_group_cont[group][-1])
+            if ('DC' in ch_group_cont[group][-1]) and group != 'DC':
+                ch_group_cont[group].remove(ch_group_cont[group][-1])
         i += 1
 
     ch_data = {group: raw.copy().pick_channels(ch_group_cont[group]) for group in ch_group_cont}
@@ -52,9 +54,14 @@ def esr_reref(raw):
         data_mean = np.mean(data, axis=0)
         ch_data[group]._data = data - data_mean
 
+    raw_new = ch_data['A']
+    ch_data.pop('A')
+    for name in ch_data:
+        if not name == 'DC':
+            # try:
+            raw_new.add_channels([ch_data[name]])
 
-
-    return raw
+    return raw_new
 
 
 def bipolar_reref(raw):
