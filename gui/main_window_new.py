@@ -984,11 +984,11 @@ class MainWindow(QMainWindow):
 
         try:
             if data['data_mode'] == 'raw':
-                fig = plot_raw(data['data'], n_channels=20, show=False)
+                fig = plot_raw(data['data'], n_channels=20, scalings={'eeg':100e-6}, show=False)
                 plt.close()
                 print('Raw data 绘制完毕')
             elif data['data_mode'] == 'epoch':
-                fig = plot_epochs(data['data'], n_channels=20, show=False)
+                fig = plot_epochs(data['data'], n_channels=20, scalings={'eeg':100e-6}, show=False)
                 plt.close()
                 print('Epoch data 绘制完毕')
                 # 如果不添加plt.close(), 会出现
@@ -1490,6 +1490,7 @@ class MainWindow(QMainWindow):
         self.select_event_win = Select_Event(event)
         self.select_time_win.event_signal.connect(self.get_event)
 
+
     def get_event(self, event_select):
 
         pass
@@ -1764,7 +1765,7 @@ class MainWindow(QMainWindow):
                 self.current_data['data'].plot(duration=5.0, n_channels=20, title='Raw sEEG data')
             elif self.current_data['data_mode'] == 'epoch':
                 self.canvas = None
-                self.current_data['data'].plot(n_channels=20, n_epochs=5, title='Epoched sEEG data')
+                self.current_data['data'].plot(n_channels=20, n_epochs=5, scalings={'eeg':100e-6}, title='Epoched sEEG data')
         except Exception as error:
             self.show_error(error)
 
@@ -1829,10 +1830,6 @@ class MainWindow(QMainWindow):
                                          subjects_dir=subjects_dir, show_axes=True, seeg=True)
         except Exception as error:
             self.show_error(error)
-
-
-
-
 
 
 
