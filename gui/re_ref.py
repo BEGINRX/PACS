@@ -33,6 +33,7 @@ def get_group_chan(raw):
 
     for group in ch_group_cont:
         [ch_group_cont[group].remove(chan) for chan in chan_del[group]]
+        ch_group_cont[group].sort(key=lambda chan: (chan[0], int(chan[1:])))
     try:
         del ch_group_cont['E']
     except Exception as error:
@@ -40,7 +41,6 @@ def get_group_chan(raw):
             pass
 
     return ch_group_cont
-
 
 
 def car_ref(raw):
