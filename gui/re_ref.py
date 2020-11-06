@@ -1,4 +1,5 @@
 import numpy as np
+import traceback
 
 
 def get_group_chan(raw):
@@ -31,14 +32,21 @@ def get_group_chan(raw):
                 chan_del[group].append(ch_group_cont[group][index])
         i += 1
 
-    for group in ch_group_cont:
-        [ch_group_cont[group].remove(chan) for chan in chan_del[group]]
-        ch_group_cont[group].sort(key=lambda chan: (chan[0], int(chan[1:])))
     try:
         del ch_group_cont['E']
+        del ch_group_cont['DC']
     except Exception as error:
         if error.args[0] == "KeyError: 'E'":
             pass
+    try:
+        for group in ch_group_cont:
+            [ch_group_cont[group].remove(chan) for chan in chan_del[group]]
+            if '\'' in group:
+                ch_group_cont[group].sort(key=lambda chan: (chan[0], int(chan[2:])))
+            else:
+                ch_group_cont[group].sort(key=lambda chan: (chan[0], int(chan[1:])))
+    except:
+        traceback.print_exc()
 
     return ch_group_cont
 
@@ -90,10 +98,11 @@ def esr_reref(raw):
         data_mean = np.mean(data, axis=0)
         ch_data[group]._data = (data - data_mean) * 1e-6
 
-    raw_new = ch_data['A']
-    ch_data.pop('A')
+    group_0 = list(group_chan.keys())[0]
+    raw_new = ch_data[group_0]
+    ch_data.pop(group_0)
     for name in ch_data:
-        if not name == 'DC' or name == 'E':
+        if not (name == 'DC') or not (name == 'E'):
             raw_new.add_channels([ch_data[name]])
 
     return raw_new
@@ -101,12 +110,34 @@ def esr_reref(raw):
 
 def bipolar_reref(raw):
     '''Reference sEEG data using Bipolar Reference'''
+    group_chan = get_group_chan(raw)
+    group_data = {group: raw.copy().pick_channels(group_chan[group]).reorder_channels(group_chan[group])
+                  for group in group_chan}
 
-    return raw
+    group_data_new = {group: np.diff(group_data[group]._data, axis=0) for group in group_chan}
+
+    # 保留最后一个没东西减的通道，但是不显示
+    for group in group_data:
+        miss_data = {group:group_data[group].pick_channels(group_chan[group][0])}
+        group_data[group].drop_channels(group_chan[group][0])._data = group_data_new[group]
+    group_0 = list(group_chan.keys())[0]
+    raw_new = group_data_new[group_0]
+    group_data_new.pop(group_0)
+    for name in group_data_new:
+        if not (name == 'DC') or not (name == 'E'):
+            raw_new.add_channels([group_data_new[name]])
+
+    return raw_new, miss_data
 
 
-def monopolar_reref(raw):
+def monopolar_reref(raw, chan):
     '''Reference sEEG data using Monopolar Reference'''
+    raw_ref = raw.copy().pick_channels(chan)
+    data = raw.drop_channels(chan)._data
+    ref_data = raw_ref._data
+    ref_mean = np.mean(ref_data, axis=0)
+    data = data - ref_mean
+    raw._data = data
 
     return raw
 
