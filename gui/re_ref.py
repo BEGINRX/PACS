@@ -144,7 +144,35 @@ def monopolar_reref(raw, chan):
 
 def laplacian_reref(raw):
     '''Reference sEEG data using Laplacian Reference'''
+    group_chan = get_group_chan(raw)
+    group_len = {group: len(group_chan[group]) for group in group_chan}
+    group_data = {group: raw.copy().pick_channels(group_chan[group]) for group in group_chan}
+    group_data = {group: group_data[group].reorder_channels(group_chan[group])
+                  for group in group_chan}
+    group_data_only = {group: group_data[group]._data * 1e3 for group in group_data}
 
-    return raw
+    for group in group_data_only:
+        for index in range(1, group_len[group] - 1):
+            group_data_only[group][index] = group_data_only[group][index] - \
+                                            np.divide(group_data_only[group][index - 1] +
+                                                      group_data_only[group][index + 1], 2)
+        group_data_only[group] = np.delete(group_data_only[group], 0, axis=0)
+        group_data_only[group] = np.delete(group_data_only[group], group_len[group] - 2, axis=0)
+
+    miss_data = dict()
+    for group in group_chan:
+        ch_name = group_data[group].ch_names
+        miss_data[group] = group_data[group].copy().pick_channels([ch_name[0], ch_name[-1]])
+        group_data[group].drop_channels([ch_name[0], ch_name[-1]])
+        group_data[group]._data = group_data_only[group] * 1e-3
+
+    group_0 = list(group_chan.keys())[0]
+    raw_new = group_data[group_0]
+    group_data.pop(group_0)
+    for name in group_data:
+        if not (name == 'DC') or not (name == 'E'):
+            raw_new.add_channels([group_data[name]])
+
+    return raw_new, miss_data
 
 
