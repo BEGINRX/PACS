@@ -61,7 +61,7 @@ def car_ref(raw):
     return raw
 
 
-def gwr_reref(raw, chan_gm, chan_wm):
+def gwr_ref(raw, chan_gm, chan_wm):
     '''
     Reference sEEG data using Gray-white Matter Reference(GWR)
     :param raw: raw data
@@ -87,7 +87,7 @@ def gwr_reref(raw, chan_gm, chan_wm):
     return raw_ref
 
 
-def esr_reref(raw):
+def esr_ref(raw):
     '''Reference sEEG data using Electrode Shaft Reference(ESR)'''
     # 获取分组
     group_chan = get_group_chan(raw)
@@ -108,7 +108,7 @@ def esr_reref(raw):
     return raw_new
 
 
-def bipolar_reref(raw):
+def bipolar_ref(raw):
     '''Reference sEEG data using Bipolar Reference'''
     group_chan = get_group_chan(raw)
     group_data = {group: raw.copy().pick_channels(group_chan[group]).reorder_channels(group_chan[group])
@@ -118,19 +118,19 @@ def bipolar_reref(raw):
 
     # 保留最后一个没东西减的通道，但是不显示
     for group in group_data:
-        miss_data = {group:group_data[group].pick_channels(group_chan[group][0])}
+        miss_data = {group:group_data[group].copy().pick_channels([group_chan[group][0]])}
         group_data[group].drop_channels(group_chan[group][0])._data = group_data_new[group]
     group_0 = list(group_chan.keys())[0]
-    raw_new = group_data_new[group_0]
-    group_data_new.pop(group_0)
-    for name in group_data_new:
+    raw_new = group_data[group_0]
+    group_data.pop(group_0)
+    for name in group_data:
         if not (name == 'DC') or not (name == 'E'):
-            raw_new.add_channels([group_data_new[name]])
+            raw_new.add_channels([group_data[name]])
 
     return raw_new, miss_data
 
 
-def monopolar_reref(raw, chan):
+def monopolar_ref(raw, chan):
     '''Reference sEEG data using Monopolar Reference'''
     raw_ref = raw.copy().pick_channels(chan)
     data = raw.drop_channels(chan)._data
@@ -142,7 +142,7 @@ def monopolar_reref(raw, chan):
     return raw
 
 
-def laplacian_reref(raw):
+def laplacian_ref(raw):
     '''Reference sEEG data using Laplacian Reference'''
     group_chan = get_group_chan(raw)
     group_len = {group: len(group_chan[group]) for group in group_chan}
