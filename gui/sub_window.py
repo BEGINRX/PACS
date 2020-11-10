@@ -627,7 +627,6 @@ class Select_Chan(QMainWindow):
         chan_sel = self.list_wid.selectedItems()
         self.chan_sel.append([item.text() for item in list(chan_sel)])
         self.chan_sel = self.chan_sel[0]
-        print(self.chan_sel)
         self.chan_signal.emit(self.chan_sel)
 
 
@@ -972,6 +971,304 @@ class Epoch_Time(QMainWindow):
 
 
 
+class Refer_Window(QMainWindow):
+
+    ref_signal = pyqtSignal(str)
+
+    def __init__(self, chan_name=None):
+        super(Refer_Window, self).__init__()
+
+        self.setWindowTitle('Re-reference')
+        self.ref_method = ['Common Average', 'Gray-white Matter',
+                           'Electrode Shaft', 'Bipolar', 'Monopolar', 'Laplacian']
+        self.ref_sel = []
+        # self.setWindowIcon()
+        self.init_ui()
+
+
+    def init_ui(self):
+        self.setFixedWidth(200)
+        # self.setMinimumHeight(950)
+        self.setWindowModality(Qt.ApplicationModal)
+        self.center()
+        self.set_font()
+        self.create_center_widget()
+        self.create_list_widget()
+        self.create_button()
+        self.create_layout()
+        self.set_style()
+        QApplication.setStyle(QStyleFactory.create('Fusion'))
+
+
+    def center(self):
+        '''set the app window to the center of the displayer of the computer'''
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+
+    def set_font(self):
+        '''set the font'''
+        self.font = QFont()
+        self.font.setFamily('Arial')
+        self.font.setPointSize(12)
+
+
+    def create_center_widget(self):
+        '''create center widget'''
+        self.center_widget = QWidget()
+        self.setCentralWidget(self.center_widget)
+        self.center_widget.setProperty('name', 'center')
+        self.center_widget.setFont(self.font)
+
+
+    def create_list_widget(self):
+
+        self.list_wid = QListWidget()
+        self.list_wid.addItems(self.ref_method)
+
+
+    def create_button(self):
+
+        self.ok_button = QPushButton(self)
+        self.ok_button.setText('OK')
+        self.ok_button.clicked.connect(self.ok_func)
+        self.ok_button.clicked.connect(self.close)
+        self.cancel_button = QPushButton(self)
+        self.cancel_button.setText('Cancel')
+        self.cancel_button.clicked.connect(self.close)
+
+
+    def create_layout(self):
+
+        h_layout = QHBoxLayout()
+        h_layout.addStretch(1)
+        h_layout.addWidget(self.ok_button)
+        h_layout.addWidget(self.cancel_button)
+
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(self.list_wid)
+        main_layout.addLayout(h_layout)
+
+        self.center_widget.setLayout(main_layout)
+
+
+    def ok_func(self):
+
+        ref_sel = self.list_wid.selectedItems()[0]
+        self.ref_sel = ref_sel.text()
+        print(self.ref_sel)
+        self.ref_signal.emit(self.ref_sel)
+
+
+
+    def set_style(self):
+        self.setStyleSheet('''
+                        QListWidget{background-color:white ;font: 13pt Times New Roman}
+                        QListWidget:item{height:28px}
+                        QWidget[name='center']{background-color:rgb(242,242,242)}
+        ''')
+
+
+
+class Baseline_Time(QMainWindow):
+
+    time_signal = pyqtSignal(float, float)
+
+    def __init__(self):
+
+        super(Baseline_Time, self).__init__()
+        self.tmin = 0.
+        self.tmax = 0.
+
+        self.init_ui()
+
+
+    def init_ui(self):
+        self.setFixedSize(250, 140)
+        self.setWindowModality(Qt.ApplicationModal)
+        self.center()
+        self.set_font()
+        self.create_center_widget()
+        self.create_label()
+        self.create_qedit()
+        self.create_button()
+        self.create_layout()
+        self.set_style()
+        QApplication.setStyle(QStyleFactory.create('Fusion'))
+
+
+    def center(self):
+        '''set the app window to the center of the displayer of the computer'''
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+
+    def set_font(self):
+        '''set the font'''
+        self.font = QFont()
+        self.font.setFamily('Arial')
+        self.font.setPointSize(12)
+
+
+    def create_center_widget(self):
+        '''create center widget'''
+        self.center_widget = QWidget()
+        self.setCentralWidget(self.center_widget)
+        self.center_widget.setFont(self.font)
+
+
+    def create_label(self):
+
+        self.tmin_label = QLabel('tmin  (sec)')
+        self.tmax_label = QLabel('tmax (sec)')
+
+
+    def create_qedit(self):
+
+        self.tmin_qedit = QLineEdit()
+        self.tmin_qedit.setAlignment(Qt.AlignCenter)
+        self.tmin_qedit.setValidator(QDoubleValidator())
+
+        self.tmax_qedit = QLineEdit()
+        self.tmax_qedit.setAlignment(Qt.AlignCenter)
+        self.tmax_qedit.setValidator(QDoubleValidator())
+
+
+    def create_button(self):
+
+        self.ok_button = QPushButton(self)
+        self.ok_button.setText('OK')
+        self.ok_button.clicked.connect(self.ok_func)
+        self.cancel_button = QPushButton(self)
+        self.cancel_button.setText('Cancel')
+        self.cancel_button.clicked.connect(self.close)
+
+
+    def ok_func(self):
+
+        if not (self.tmin_qedit.text() and self.tmax_qedit.text()):
+            self.tmin = 0.
+            self.tmax = 0.
+        else:
+            self.tmin = float(self.tmin_qedit.text())
+            self.tmax = float(self.tmax_qedit.text())
+        print(self.tmin, self.tmax)
+        self.time_signal.emit(self.tmin, self.tmax)
+        self.close()
+
+
+    def create_layout(self):
+
+        time_layout = QFormLayout()
+        time_layout.addRow(self.tmin_label, self.tmin_qedit)
+        time_layout.addRow(self.tmax_label, self.tmax_qedit)
+
+        button_layout = QHBoxLayout()
+        button_layout.addStretch(1)
+        button_layout.addWidget(self.ok_button)
+        button_layout.addWidget(self.cancel_button)
+
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(time_layout)
+        main_layout.addLayout(button_layout)
+        self.center_widget.setLayout(main_layout)
+
+
+    def set_style(self):
+
+        self.setStyleSheet('''QLabel{font: 20px Arial}
+                              ''')
+
+
+    def center(self):
+        '''set the app window to the center of the displayer of the computer'''
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+
+    def set_font(self):
+        '''set the font'''
+        self.font = QFont()
+        self.font.setFamily('Arial')
+        self.font.setPointSize(12)
+
+
+    def create_center_widget(self):
+        '''create center widget'''
+        self.center_widget = QWidget()
+        self.setCentralWidget(self.center_widget)
+        self.center_widget.setFont(self.font)
+
+
+    def create_label(self):
+
+        self.tmin_label = QLabel('tmin (sec)')
+        self.tmax_label = QLabel('tmax(sec)')
+
+
+    def create_qedit(self):
+
+        self.tmin_qedit = QLineEdit()
+        self.tmin_qedit.setAlignment(Qt.AlignCenter)
+        self.tmin_qedit.setValidator(QDoubleValidator())
+
+        self.tmax_qedit = QLineEdit()
+        self.tmax_qedit.setAlignment(Qt.AlignCenter)
+        self.tmax_qedit.setValidator(QDoubleValidator())
+
+
+    def create_button(self):
+
+        self.ok_button = QPushButton(self)
+        self.ok_button.setText('OK')
+        self.ok_button.clicked.connect(self.ok_func)
+        self.cancel_button = QPushButton(self)
+        self.cancel_button.setText('Cancel')
+        self.cancel_button.clicked.connect(self.close)
+
+
+    def ok_func(self):
+
+        if not (self.tmin_qedit.text() and self.tmax_qedit.text()):
+            self.tmin = 0.
+            self.tmax = 0.
+        else:
+            self.tmin = float(self.tmin_qedit.text())
+            self.tmax = float(self.tmax_qedit.text())
+        print(self.tmin, self.tmax)
+        self.time_signal.emit(self.tmin, self.tmax)
+        self.close()
+
+
+    def create_layout(self):
+
+        time_layout = QFormLayout()
+        time_layout.addRow(self.tmin_label, self.tmin_qedit)
+        time_layout.addRow(self.tmax_label, self.tmax_qedit)
+
+        button_layout = QHBoxLayout()
+        button_layout.addStretch(1)
+        button_layout.addWidget(self.ok_button)
+        button_layout.addWidget(self.cancel_button)
+
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(time_layout)
+        main_layout.addLayout(button_layout)
+        self.center_widget.setLayout(main_layout)
+
+
+    def set_style(self):
+
+        self.setStyleSheet('''QLabel{color:black; font: bold 20px Arial}''')
+
+
+
 class Notepad(QMainWindow):
 
     def __init__(self, mni):
@@ -1031,20 +1328,12 @@ class Notepad(QMainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     chan = ['EEG A1-Ref', 'EEG A2-Ref', 'POL A3', 'POL A4', 'POL A5', 'POL A6', 'POL A7', 'POL A8', 'POL A9',
-                    'POL A10', 'POL A13', 'POL A14', 'POL H1', 'POL H2', 'POL H3', 'POL H4', 'POL H5', 'POL H6',
-                    'POL H7', 'POL E', 'POL H8', 'POL H9', 'POL A11', 'POL A12', 'POL H10', 'POL H11', 'POL H12',
-                    'POL H13', 'POL H14', 'POL H15', 'POL H16', 'POL B1', 'POL B2', 'POL B3', 'POL B4', 'POL B5',
-                    'POL B6', 'POL DC09', 'POL DC10', 'POL DC11', 'POL DC12', 'POL DC13', 'POL DC14', 'POL DC15',
-                    'POL DC16', 'POL B7', 'POL B8', 'POL B9', 'POL B10', 'POL B11', 'POL B12', 'POL B13', 'POL B14',
-                    'EEG C1-Ref', 'EEG C2-Ref', 'EEG C3-Ref', 'EEG C4-Ref', 'EEG C5-Ref', 'EEG C6-Ref', 'POL C7',
-                    'POL C8', 'POL C9', 'POL C10', 'POL C11', 'POL C12', 'POL C13', 'POL C14', 'EEG F1-Ref',
-                    'EEG F2-Ref', 'EEG F3-Ref', 'EEG F4-Ref', 'EEG F5-Ref', 'EEG F6-Ref', 'EEG F7-Ref', 'EEG F8-Ref',
-                    'POL I1', 'POL I2', 'POL I3', 'POL I4', 'POL I5', 'POL I6', 'POL I7', 'POL I8', 'POL I9', 'POL I10',
-                    "POL A'1", "POL A'2", "POL A'3"]
+                    'POL A10', 'POL A13', 'POL A14', 'POL H1', 'POL H2', 'POL H3', 'POL H4', 'POL H5', 'POL H6']
     # GUI = Select_Chan(chan_name=chan)
-    GUI = Event_Window([1,2,3, 4, 5, 6])
+    # GUI = Event_Window([1, 2, 3, 4, 5, 6])
     # GUI = Epoch_Time()
     # GUI = Select_Event(event=['1', '2'])
+    GUI = Refer_Window()
     GUI.show()
     app.exec_()
 
