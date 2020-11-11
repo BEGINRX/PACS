@@ -1887,9 +1887,7 @@ class MainWindow(QMainWindow):
         from mne.viz import plot_alignment
 
         sample_path = 'datasets/'
-        subject = 'fsaverage'
         subjects_dir = sample_path + '/subjects'
-        subject_name = self.ptc_cb.currentText()
         try:
             data = self.current_data['data'].copy()
             montage = data.get_montage()
