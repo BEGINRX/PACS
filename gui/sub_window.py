@@ -776,13 +776,15 @@ class Select_Event(QMainWindow):
 
 class Epoch_Time(QMainWindow):
 
-    time_signal = pyqtSignal(float, float)
+    time_signal = pyqtSignal(float, float, float, float)
 
     def __init__(self):
 
         super(Epoch_Time, self).__init__()
         self.tmin = 0.
         self.tmax = 0.
+        self.base_tmin = 0.
+        self.base_tmax = 0.
 
         self.init_ui()
 
@@ -825,8 +827,21 @@ class Epoch_Time(QMainWindow):
 
     def create_label(self):
 
+        self.time_range_label = QLabel('Time range')
+        self.time_range_label.setProperty('group', 'title')
+
         self.tmin_label = QLabel('tmin  (sec)')
+        self.tmin_label.setProperty('group', 'time')
         self.tmax_label = QLabel('tmax (sec)')
+        self.tmax_label.setProperty('group', 'time')
+
+        self.base_label = QLabel('Baseline')
+        self.base_label.setProperty('group', 'title')
+
+        self.base_tmin_label = QLabel('tmin  (sec)')
+        self.base_tmin_label.setProperty('group', 'time')
+        self.base_tmax_label = QLabel('tmax (sec)')
+        self.base_tmax_label.setProperty('group', 'time')
 
 
     def create_qedit(self):
@@ -838,6 +853,14 @@ class Epoch_Time(QMainWindow):
         self.tmax_qedit = QLineEdit()
         self.tmax_qedit.setAlignment(Qt.AlignCenter)
         self.tmax_qedit.setValidator(QDoubleValidator())
+
+        self.base_tmin_qedit = QLineEdit()
+        self.base_tmin_qedit.setAlignment(Qt.AlignCenter)
+        self.base_tmin_qedit.setValidator(QDoubleValidator())
+
+        self.base_tmax_qedit = QLineEdit()
+        self.base_tmax_qedit.setAlignment(Qt.AlignCenter)
+        self.base_tmax_qedit.setValidator(QDoubleValidator())
 
 
     def create_button(self):
@@ -865,9 +888,13 @@ class Epoch_Time(QMainWindow):
 
     def create_layout(self):
 
-        time_layout = QFormLayout()
-        time_layout.addRow(self.tmin_label, self.tmin_qedit)
-        time_layout.addRow(self.tmax_label, self.tmax_qedit)
+        time_layout_0 = QFormLayout()
+        time_layout_0.addRow(self.tmin_label, self.tmin_qedit)
+        time_layout_0.addRow(self.tmax_label, self.tmax_qedit)
+
+        time_layout_1  = QFormLayout()
+        time_layout_1.addRow(self.base_tmin_label, self.base_tmin_qedit)
+        time_layout_1.addRow(self.base_tmax_label, self.base_tmax_qedit)
 
         button_layout = QHBoxLayout()
         button_layout.addStretch(1)
@@ -875,7 +902,10 @@ class Epoch_Time(QMainWindow):
         button_layout.addWidget(self.cancel_button)
 
         main_layout = QVBoxLayout()
-        main_layout.addLayout(time_layout)
+        main_layout.addLayout(self.time_range_label)
+        main_layout.addLayout(time_layout_0)
+        main_layout.addLayout(self.base_label)
+        main_layout.addLayout(time_layout_1)
         main_layout.addLayout(button_layout)
         self.center_widget.setLayout(main_layout)
 
