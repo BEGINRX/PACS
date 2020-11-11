@@ -884,6 +884,9 @@ class MainWindow(QMainWindow):
         self.show_mni_action = QAction('Open MNI file in NotePad', self,
                                        statusTip='Open MNI file in NotePad',
                                        triggered=self.open_mni)
+        self.set_montage_action = QAction('Set montage', self,
+                                          statusTip='Set SEEG\'s montage',
+                                          triggered=self.set_seeg_montage)
         self.disp_electro_action = QAction('Display depth electrodes', self,
                                        statusTip='Display depth electrodes',
                                        triggered=self.display_electrodes)
@@ -933,6 +936,7 @@ class MainWindow(QMainWindow):
             elif self.name == 'MNI Coornidates':
                 self.mni_rmenu()
                 self.tree_right_menu.addActions([self.show_mni_action,
+                                                 self.set_montage_action,
                                                  self.disp_electro_action])
             elif item_parent == 'MRI or CT':
                 pass
@@ -1193,6 +1197,7 @@ class MainWindow(QMainWindow):
     def load_mni(self):
 
         import pandas as pd
+
         self.mni_path, _ = QFileDialog.getOpenFileName(self, 'Load MNI Coornidates')
         try:
             self.elec_df = pd.read_csv(self.mni_path, sep='\t', header=0, index_col=None)
@@ -1204,7 +1209,7 @@ class MainWindow(QMainWindow):
             self.ch_pos = dict(zip(ch_names, ch_coords))
             child = self.get_all_items()
             if 'MNI Coornidates' in child:
-                pass
+                self.subject_data[subject_name]['MNI'] = self.ch_pos
             else:
                 subject_name = self.ptc_cb.currentText()
                 self.node_12 = QTreeWidgetItem(self.tree_item[subject_name]['root'])
@@ -1212,6 +1217,43 @@ class MainWindow(QMainWindow):
                 self.node_12.setIcon(0, QIcon('image/EEG.ico'))
                 self.tree_item[subject_name]['MNI'] = self.node_12
                 self.subject_data[subject_name]['MNI'] = self.ch_pos
+        except Exception as error:
+            self.show_error(error)
+
+
+    def set_seeg_montage(self):
+
+        from mne.datasets import fetch_fsaverage
+        from mne.coreg import get_mni_fiducials
+        from mne.channels import make_dig_montage
+
+        sample_path = 'datasets/'
+        subject = 'fsaverage'
+        subjects_dir = sample_path + '/subjects'
+        data = self.current_data['data'].copy()
+        try:
+            fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)
+            subject_name = self.ptc_cb.currentText()
+            self.ch_coords = self.subject_data[subject_name]['MNI']
+            lpa, nasion, rpa = get_mni_fiducials(
+                subject, subjects_dir=subjects_dir)
+            lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
+
+            montage = make_dig_montage(
+                self.ch_coords, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
+
+            ch_names = []
+            for i in self.ch_coords:
+                ch_names.append(i)
+            ch_names = ch_names[:-1]
+            data.info['bads'].extend([ch for ch in data.ch_names if ch not in ch_names])
+            data.load_data()
+            data.drop_channels(data.info['bads'])
+            data.set_montage(montage)
+            data.set_channel_types(
+                {ch_name: 'seeg' if np.isfinite(self.ch_coords[ch_name]).all() else 'misc'
+                 for ch_name in data.ch_names})
+            self.get_seeg_data(data)
         except Exception as error:
             self.show_error(error)
 
@@ -1600,19 +1642,15 @@ class MainWindow(QMainWindow):
         self.epoch_time.show()
 
 
-    def get_epoch_data(self, tmin, tmax):
+    def get_epoch_data(self, tmin, tmax, base_tmin, base_tmax):
 
         try:
-            if self.current_data['event'].shape[1] == 3:
+            if self.current_data['data_mode'] == 'raw':
                 if tmin < 0 and tmax >= 0:
+                    # data = self.current_data['data'].copy()
                     epoch_data = Epochs(self.current_data['data'], self.current_data['event'],
-                                            event_id=self.event_set, tmin=tmin, tmax=tmax)
-                    self.data_mode = 'epoch'
-                    self.get_seeg_data(epoch_data)
-                elif tmin == 0:
-                    print(self.event_set)
-                    epoch_data = Epochs(self.current_data['data'], self.current_data['event'], event_id=self.event_set,
-                                            baseline=(0, 0))
+                                            event_id=self.event_set, tmin=tmin, tmax=tmax,
+                                        baseline=(base_tmin, base_tmax))
                     self.data_mode = 'epoch'
                     self.get_seeg_data(epoch_data)
         except Exception as error:
@@ -1837,49 +1875,27 @@ class MainWindow(QMainWindow):
 
         try:
             if self.current_data['data_mode']:
-                self.current_data['data'].plot_topomap_psd()
+                self.current_data['data'].plot_psd_topo()
         except Exception as error:
             self.show_error(error)
 
 
     def display_electrodes(self):
         '''Electrodes Visualization'''
-        from mne.datasets import fetch_fsaverage
-        from mne.coreg import get_mni_fiducials
-        from mne.channels import make_dig_montage, compute_native_head_t
+
+        from mne.channels import compute_native_head_t
         from mne.viz import plot_alignment
 
         sample_path = 'datasets/'
         subject = 'fsaverage'
         subjects_dir = sample_path + '/subjects'
+        subject_name = self.ptc_cb.currentText()
         try:
-            fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)
-            subject_name = self.ptc_cb.currentText()
-            self.ch_coords =  self.subject_data[subject_name]['MNI']
-            lpa, nasion, rpa = get_mni_fiducials(
-                subject, subjects_dir=subjects_dir)
-            lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
+            data = self.current_data['data'].copy()
+            montage = data.get_montage()
 
-            montage = make_dig_montage(
-                self.ch_coords, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
-            # print('Created %s channel positions' % len(ch_names))
             trans = compute_native_head_t(montage)
-            print(trans)
-
-            ch_names = []
-            for i in self.ch_coords:
-                ch_names.append(i)
-            ch_names = ch_names[:-1]
-            self.current_data['data'].info['bads'].extend([ch for ch in self.current_data['data'].ch_names
-                                                           if ch not in ch_names])
-            self.current_data['data'].load_data()
-            self.current_data['data'].drop_channels(self.current_data['data'].info['bads'])
-
-            self.current_data['data'].set_montage(montage)
-            self.current_data['data'].set_channel_types(
-                {ch_name: 'seeg' if np.isfinite(self.ch_coords[ch_name]).all() else 'misc'
-                 for ch_name in self.current_data['data'].ch_names})
-            fig = plot_alignment(self.current_data['data'].info, trans, 'fsaverage', surfaces='pial',
+            fig = plot_alignment(data.info, trans, 'fsaverage', surfaces='pial',
                                          subjects_dir=subjects_dir, show_axes=True, seeg=True)
         except Exception as error:
             self.show_error(error)
