@@ -26,13 +26,14 @@ from PyQt5.QtCore import Qt, pyqtSignal, QUrl
 from PyQt5.Qt import QCursor
 from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 from mne import Annotations, events_from_annotations, Epochs
-from mne.viz import plot_raw, plot_epochs
+from mne.viz import plot_raw, plot_epochs, plot_evoked_topo
+from mne.channels import compute_native_head_t
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
-                           Refer_Window, Baseline_Time
+                           Refer_Window, Baseline_Time, ERP_WIN
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
 
-cavans = None
+
 class MainWindow(QMainWindow):
     '''
     The main window
@@ -966,7 +967,9 @@ class MainWindow(QMainWindow):
     def execute_import_data(self):
         '''execute import data worker'''
         self.data_path, _ = QFileDialog.getOpenFileName(self, 'Import data')
-        if ('set' or 'edf' or 'fif') == self.data_path[-3:]:
+        if 'set' == self.data_path[-3:] or \
+           'edf' == self.data_path[-3:] or \
+           'fif' == self.data_path[-3:]:
             self.import_worker.data_path = self.data_path
             self.import_worker.start()
             self.flag += 1
@@ -1200,6 +1203,7 @@ class MainWindow(QMainWindow):
 
         self.mni_path, _ = QFileDialog.getOpenFileName(self, 'Load MNI Coornidates')
         try:
+            subject_name = self.ptc_cb.currentText()
             self.elec_df = pd.read_csv(self.mni_path, sep='\t', header=0, index_col=None)
             ch_names = self.elec_df['name'].tolist()
             ch_coords = self.elec_df[['x', 'y', 'z']].to_numpy(dtype=float)
@@ -1241,7 +1245,8 @@ class MainWindow(QMainWindow):
 
             montage = make_dig_montage(
                 self.ch_coords, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
-
+            trans = compute_native_head_t(montage)
+            self.subject_data[subject_name]['montage_trans'] = trans
             ch_names = []
             for i in self.ch_coords:
                 ch_names.append(i)
@@ -1702,7 +1707,26 @@ class MainWindow(QMainWindow):
 
 
     def erp(self):
-        pass
+
+        data = self.current_data['data'].copy()
+        self.event = data.event_id
+        self.erp_win = ERP_WIN(list(self.event.keys()))
+        self.erp_win.erp_signal.connect(self.plot_erp)
+        self.erp_win.show()
+        del data
+
+
+    def plot_erp(self, event):
+
+        data = self.current_data['data'].copy()
+        if len(event) > 1:
+            evokeds = [data[name].average().pick_types(seeg=True) for name in event]
+            plot_evoked_topo(evokeds, background_color='w')
+        elif len(event) == 1:
+            print('到这')
+            evokeds = data[event].average().pick_types(seeg=True)
+            plot_evoked_topo(evokeds, background_color='w')
+
 
 
     def topo_analysis(self):
@@ -1889,12 +1913,13 @@ class MainWindow(QMainWindow):
         sample_path = 'datasets/'
         subjects_dir = sample_path + '/subjects'
         try:
+            subject_name = self.ptc_cb.currentText()
             data = self.current_data['data'].copy()
             montage = data.get_montage()
 
-            trans = compute_native_head_t(montage)
+            trans = self.subject_data[subject_name]['montage_trans']
             fig = plot_alignment(data.info, trans, 'fsaverage', surfaces='pial',
-                                         subjects_dir=subjects_dir, show_axes=True, seeg=True)
+                                 subjects_dir=subjects_dir, show_axes=True, seeg=True)
         except Exception as error:
             self.show_error(error)
 

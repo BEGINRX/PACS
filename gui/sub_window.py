@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QPushButton,\
     QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, \
     QInputDialog, QLineEdit, QApplication, QScrollArea, QWidget, \
     QMessageBox, QStyleFactory, QListWidget, QAbstractItemView, \
-    QStackedWidget
+    QStackedWidget, QGroupBox
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont, QDoubleValidator
 import sys
@@ -790,7 +790,7 @@ class Epoch_Time(QMainWindow):
 
 
     def init_ui(self):
-        self.setFixedSize(250, 140)
+        # self.setFixedSize(250, 140)
         self.setWindowModality(Qt.ApplicationModal)
         self.center()
         self.set_font()
@@ -829,6 +829,7 @@ class Epoch_Time(QMainWindow):
 
         self.time_range_label = QLabel('Time range')
         self.time_range_label.setProperty('group', 'title')
+        self.time_range_label.setAlignment(Qt.AlignCenter)
 
         self.tmin_label = QLabel('tmin  (sec)')
         self.tmin_label.setProperty('group', 'time')
@@ -837,6 +838,7 @@ class Epoch_Time(QMainWindow):
 
         self.base_label = QLabel('Baseline')
         self.base_label.setProperty('group', 'title')
+        self.base_label.setAlignment(Qt.AlignCenter)
 
         self.base_tmin_label = QLabel('tmin  (sec)')
         self.base_tmin_label.setProperty('group', 'time')
@@ -881,8 +883,15 @@ class Epoch_Time(QMainWindow):
         else:
             self.tmin = float(self.tmin_qedit.text())
             self.tmax = float(self.tmax_qedit.text())
+        if not (self.base_tmax_qedit.text() and self.base_tmax_qedit.text()):
+            self.base_tmin = 0.
+            self.base_tmax = 0.
+        else:
+            self.base_tmin = float(self.base_tmax_qedit.text())
+            self.base_tmax = float(self.base_tmax_qedit.text())
         print(self.tmin, self.tmax)
-        self.time_signal.emit(self.tmin, self.tmax)
+        print(self.base_tmin, self.base_tmax)
+        self.time_signal.emit(self.tmin, self.tmax, self.base_tmin, self.base_tmax)
         self.close()
 
 
@@ -902,9 +911,9 @@ class Epoch_Time(QMainWindow):
         button_layout.addWidget(self.cancel_button)
 
         main_layout = QVBoxLayout()
-        main_layout.addLayout(self.time_range_label)
+        main_layout.addWidget(self.time_range_label)
         main_layout.addLayout(time_layout_0)
-        main_layout.addLayout(self.base_label)
+        main_layout.addWidget(self.base_label)
         main_layout.addLayout(time_layout_1)
         main_layout.addLayout(button_layout)
         self.center_widget.setLayout(main_layout)
@@ -914,90 +923,6 @@ class Epoch_Time(QMainWindow):
 
         self.setStyleSheet('''QLabel{font: 20px Arial}
                               ''')
-
-
-    def center(self):
-        '''set the app window to the center of the displayer of the computer'''
-        qr = self.frameGeometry()
-        cp = QDesktopWidget().availableGeometry().center()
-        qr.moveCenter(cp)
-        self.move(qr.topLeft())
-
-
-    def set_font(self):
-        '''set the font'''
-        self.font = QFont()
-        self.font.setFamily('Arial')
-        self.font.setPointSize(12)
-
-
-    def create_center_widget(self):
-        '''create center widget'''
-        self.center_widget = QWidget()
-        self.setCentralWidget(self.center_widget)
-        self.center_widget.setFont(self.font)
-
-
-    def create_label(self):
-
-        self.tmin_label = QLabel('tmin (sec)')
-        self.tmax_label = QLabel('tmax(sec)')
-
-
-    def create_qedit(self):
-
-        self.tmin_qedit = QLineEdit()
-        self.tmin_qedit.setAlignment(Qt.AlignCenter)
-        self.tmin_qedit.setValidator(QDoubleValidator())
-
-        self.tmax_qedit = QLineEdit()
-        self.tmax_qedit.setAlignment(Qt.AlignCenter)
-        self.tmax_qedit.setValidator(QDoubleValidator())
-
-
-    def create_button(self):
-
-        self.ok_button = QPushButton(self)
-        self.ok_button.setText('OK')
-        self.ok_button.clicked.connect(self.ok_func)
-        self.cancel_button = QPushButton(self)
-        self.cancel_button.setText('Cancel')
-        self.cancel_button.clicked.connect(self.close)
-
-
-    def ok_func(self):
-
-        if not (self.tmin_qedit.text() and self.tmax_qedit.text()):
-            self.tmin = 0.
-            self.tmax = 0.
-        else:
-            self.tmin = float(self.tmin_qedit.text())
-            self.tmax = float(self.tmax_qedit.text())
-        print(self.tmin, self.tmax)
-        self.time_signal.emit(self.tmin, self.tmax)
-        self.close()
-
-
-    def create_layout(self):
-
-        time_layout = QFormLayout()
-        time_layout.addRow(self.tmin_label, self.tmin_qedit)
-        time_layout.addRow(self.tmax_label, self.tmax_qedit)
-
-        button_layout = QHBoxLayout()
-        button_layout.addStretch(1)
-        button_layout.addWidget(self.ok_button)
-        button_layout.addWidget(self.cancel_button)
-
-        main_layout = QVBoxLayout()
-        main_layout.addLayout(time_layout)
-        main_layout.addLayout(button_layout)
-        self.center_widget.setLayout(main_layout)
-
-
-    def set_style(self):
-
-        self.setStyleSheet('''QLabel{color:black; font: bold 20px Arial}''')
 
 
 
@@ -1214,89 +1139,6 @@ class Baseline_Time(QMainWindow):
                               ''')
 
 
-    def center(self):
-        '''set the app window to the center of the displayer of the computer'''
-        qr = self.frameGeometry()
-        cp = QDesktopWidget().availableGeometry().center()
-        qr.moveCenter(cp)
-        self.move(qr.topLeft())
-
-
-    def set_font(self):
-        '''set the font'''
-        self.font = QFont()
-        self.font.setFamily('Arial')
-        self.font.setPointSize(12)
-
-
-    def create_center_widget(self):
-        '''create center widget'''
-        self.center_widget = QWidget()
-        self.setCentralWidget(self.center_widget)
-        self.center_widget.setFont(self.font)
-
-
-    def create_label(self):
-
-        self.tmin_label = QLabel('tmin (sec)')
-        self.tmax_label = QLabel('tmax(sec)')
-
-
-    def create_qedit(self):
-
-        self.tmin_qedit = QLineEdit()
-        self.tmin_qedit.setAlignment(Qt.AlignCenter)
-        self.tmin_qedit.setValidator(QDoubleValidator())
-
-        self.tmax_qedit = QLineEdit()
-        self.tmax_qedit.setAlignment(Qt.AlignCenter)
-        self.tmax_qedit.setValidator(QDoubleValidator())
-
-
-    def create_button(self):
-
-        self.ok_button = QPushButton(self)
-        self.ok_button.setText('OK')
-        self.ok_button.clicked.connect(self.ok_func)
-        self.cancel_button = QPushButton(self)
-        self.cancel_button.setText('Cancel')
-        self.cancel_button.clicked.connect(self.close)
-
-
-    def ok_func(self):
-
-        if not (self.tmin_qedit.text() and self.tmax_qedit.text()):
-            self.tmin = 0.
-            self.tmax = 0.
-        else:
-            self.tmin = float(self.tmin_qedit.text())
-            self.tmax = float(self.tmax_qedit.text())
-        print(self.tmin, self.tmax)
-        self.time_signal.emit(self.tmin, self.tmax)
-        self.close()
-
-
-    def create_layout(self):
-
-        time_layout = QFormLayout()
-        time_layout.addRow(self.tmin_label, self.tmin_qedit)
-        time_layout.addRow(self.tmax_label, self.tmax_qedit)
-
-        button_layout = QHBoxLayout()
-        button_layout.addStretch(1)
-        button_layout.addWidget(self.ok_button)
-        button_layout.addWidget(self.cancel_button)
-
-        main_layout = QVBoxLayout()
-        main_layout.addLayout(time_layout)
-        main_layout.addLayout(button_layout)
-        self.center_widget.setLayout(main_layout)
-
-
-    def set_style(self):
-
-        self.setStyleSheet('''QLabel{color:black; font: bold 20px Arial}''')
-
 
 
 class Notepad(QMainWindow):
@@ -1352,6 +1194,104 @@ class Notepad(QMainWindow):
 
 
 
+class ERP_WIN(QMainWindow):
+
+    erp_signal = pyqtSignal(list)
+
+    def __init__(self, event):
+        super(ERP_WIN, self).__init__()
+
+        self.event = event
+        self.event_sel = []
+
+        self.init_ui()
+
+    def init_ui(self):
+
+        self.setFixedWidth(30)
+        self.setWindowModality(Qt.ApplicationModal)
+        self.center()
+        self.set_font()
+        self.create_center_widget()
+        self.create_list_widget()
+        self.create_button()
+        self.create_layout()
+        self.set_style()
+        QApplication.setStyle(QStyleFactory.create('Fusion'))
+
+
+    def center(self):
+        '''set the app window to the center of the displayer of the computer'''
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+
+    def set_font(self):
+        '''set the font'''
+        self.font = QFont()
+        self.font.setFamily('Arial')
+        self.font.setPointSize(12)
+
+
+    def create_center_widget(self):
+        '''create center widget'''
+        self.center_widget = QWidget()
+        self.center_widget.setFont(self.font)
+        self.setCentralWidget(self.center_widget)
+
+
+    def create_list_widget(self):
+
+        self.list_wid = QListWidget()
+        self.list_wid.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.list_wid.addItems(self.event)
+        [self.list_wid.item(index).setTextAlignment(Qt.AlignCenter)
+         for index in range(self.list_wid.count())]
+
+        self.event_box = QGroupBox('Event')
+
+
+    def create_button(self):
+
+        self.ok_button = QPushButton(self)
+        self.ok_button.setText('OK')
+        self.ok_button.setFixedWidth(60)
+        self.ok_button.clicked.connect(self.ok_func)
+
+
+    def ok_func(self):
+        event_sel = self.list_wid.selectedItems()
+        self.event_sel.append([item.text() for item in list(event_sel)])
+        self.event_sel = self.event_sel[0]
+        self.erp_signal.emit(self.event_sel)
+        self.close()
+
+
+    def create_layout(self):
+
+        button_layout = QHBoxLayout()
+        button_layout.addStretch(1)
+        button_layout.addWidget(self.ok_button)
+
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(self.list_wid)
+        main_layout.addLayout(button_layout)
+
+        self.center_widget.setLayout(main_layout)
+
+
+    def set_style(self):
+        self.setStyleSheet('''
+                        QPushButton{font: 10pt Times New Roman}
+                        QListWidget{background-color:white ;font: 13pt Times New Roman}
+                        QListWidget:item{height:28px}
+                        QGroupBox{background-color:rgb(242,242,242)}
+        ''')
+
+
+
 
 
 
@@ -1363,7 +1303,8 @@ if __name__ == "__main__":
     # GUI = Event_Window([1, 2, 3, 4, 5, 6])
     # GUI = Epoch_Time()
     # GUI = Select_Event(event=['1', '2'])
-    GUI = Refer_Window()
+    # GUI = Refer_Window()
+    GUI = ERP_WIN(event=['red', 'blue'])
     GUI.show()
     app.exec_()
 
