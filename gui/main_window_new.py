@@ -13,6 +13,7 @@ matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib import pyplot as plt
 
+import mne as mne
 import numpy as np
 import scipy.io as sio
 import gc
@@ -26,8 +27,8 @@ from PyQt5.QtCore import Qt, pyqtSignal, QUrl
 from PyQt5.Qt import QCursor
 from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 from mne import Annotations, events_from_annotations, Epochs
-from mne.viz import plot_raw, plot_epochs, plot_evoked_topo
 from mne.channels import compute_native_head_t
+from mne.time_frequency import tfr_morlet, psd_multitaper, psd_welch
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
                            Refer_Window, Baseline_Time, ERP_WIN
@@ -161,6 +162,9 @@ class MainWindow(QMainWindow):
         self.clear_all = QAction('Clear all', self,
                                  statusTip='Clear all workshops',
                                  triggered=self.clear_all)
+        self.setting_action = QAction('Settings...', self,
+                                      statusTip='Settings',
+                                      triggered=self.show_setting)
 
 
         # exit
@@ -168,6 +172,7 @@ class MainWindow(QMainWindow):
                                    shortcut=QKeySequence.Close,
                                    statusTip='Exit the Software',
                                    triggered=self.close)
+
 
 
         # actions for Help menu bar
@@ -438,6 +443,8 @@ class MainWindow(QMainWindow):
         self.file_menu.addAction(self.create_subject)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.clear_all)
+        self.file_menu.addSeparator()
+        self.file_menu.addAction(self.setting_action)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.exit_action)
 
@@ -760,13 +767,10 @@ class MainWindow(QMainWindow):
                                        triggered=self.plot_raw_data)
         self.plot_psd_action = QAction('Plot psd across channels', self,
                                        statusTip='Plot psd across channels',
-                                       triggered=self.plot_psd)
-        self.plot_psd_topo_action = QAction('Plot psd topomap', self,
-                                       statusTip='Plot topo psd',
-                                       triggered=self.plot_topo_psd)
+                                       triggered=self.plot_raw_psd)
+
         self.plot_menu.addActions([self.plot_raw_action,
-                                   self.plot_psd_action,
-                                   self.plot_psd_topo_action])
+                                   self.plot_psd_action])
 
         self.get_epoch_menu = QMenu('Get epoch of raw sEEG data', self)
         self.set_name_action = QAction('Set event name', self,
@@ -840,13 +844,13 @@ class MainWindow(QMainWindow):
                                          triggered=self.plot_raw_data)
         self.epoch_psd_action = QAction('Plot psd across channels', self,
                                         statusTip='Plot psd across channels',
-                                        triggered=self.plot_psd)
+                                        triggered=self.plot_raw_psd)
         self.epoch_psd_topo_action = QAction('Plot topo psd', self,
                                              statusTip='Plot topo psd',
                                              triggered=self.plot_topo_psd)
         self.epoch_plot_menu.addActions([self.plot_epoch_action,
                                          self.epoch_psd_action,
-                                         self.epoch_psd_action])
+                                         self.epoch_psd_topo_action])
         self.epoch_analysis_menu = QMenu('Analysis', self)
 
         self.t_f_analy_menu = QMenu('Time or frequency analysis', self)
@@ -856,9 +860,18 @@ class MainWindow(QMainWindow):
                                   triggered=self.erp)
         self.topo_analy_action = QAction('Topo map analysis', self,
                                          triggered=self.topo_analysis)
+        self.power_topo_action = QAction('Power topomap', self,
+                                         triggered=self.plot_epoch_power)
+        self.power_joint_action = QAction('Power joint', self,
+                                         triggered=self.plot_epoch_power_joint)
+        self.coher_inter_trial_action = QAction('Inter-trial coherence', self,
+                                                    triggered=self.plot_inter_trial_coher)
         self.t_f_analy_menu.addActions([self.ep_action,
                                         self.erp_action,
-                                        self.topo_analy_action])
+                                        self.topo_analy_action,
+                                        self.power_topo_action,
+                                        self.power_joint_action,
+                                        self.coher_inter_trial_action])
 
         self.epoch_analysis_menu.addMenu(self.t_f_analy_menu)
 
@@ -1000,12 +1013,12 @@ class MainWindow(QMainWindow):
 
         try:
             if data['data_mode'] == 'raw':
-                fig = plot_raw(data['data'], n_channels=20, scalings={'eeg':100e-6}, show_scrollbars=False,
+                fig = mne.viz.plot_raw(data['data'], n_channels=20, scalings={'eeg':100e-6}, show_scrollbars=False,
                                show_scalebars=False, show=False)
                 plt.close()
                 print('Raw data 绘制完毕')
             elif data['data_mode'] == 'epoch':
-                fig = plot_epochs(data['data'], n_channels=20, scalings={'eeg':100e-6}, show_scrollbars=False,
+                fig = mne.viz.plot_epochs(data['data'], n_channels=20, scalings={'eeg':100e-6}, show_scrollbars=False,
                                show=False)
                 plt.close()
                 print('Epoch data 绘制完毕')
@@ -1718,15 +1731,62 @@ class MainWindow(QMainWindow):
 
     def plot_erp(self, event):
 
-        data = self.current_data['data'].copy()
-        if len(event) > 1:
-            evokeds = [data[name].average().pick_types(seeg=True) for name in event]
-            plot_evoked_topo(evokeds, background_color='w')
-        elif len(event) == 1:
-            print('到这')
-            evokeds = data[event].average().pick_types(seeg=True)
-            plot_evoked_topo(evokeds, background_color='w')
+        try:
+            data = self.current_data['data'].copy()
+            if len(event) > 1:
+                evokeds = [data[name].average().pick_types(seeg=True) for name in event]
+                mne.viz.plot_evoked_topo(evokeds, background_color='w')
+            elif len(event) == 1:
+                print('到这')
+                evokeds = data[event].average().pick_types(seeg=True, eeg=True)
+                mne.viz.plot_evoked_topo(evokeds, background_color='w')
+        except Exception as error:
+            if error.args[0] == "Cannot determine location of MEG/EOG/ECG channels using digitization points.":
+                QMessageBox.warning(self, 'Value Error', 'Please set montage first using MNI coornidates')
+            else:
+                self.show_error(error)
 
+
+    def freq_power(self):
+
+        data = self.current_data['data'].copy()
+        if self.current_data['data_mode'] == 'epoch':
+            print('YES')
+            freqs = np.logspace(*np.log10([1, 100]), num=8)
+            n_cycles = freqs / 2.  # different number of cycle per frequency
+            power, itc = tfr_morlet(data, freqs=freqs, n_cycles=n_cycles, use_fft=True,
+                                    return_itc=True, decim=3)
+        # del data
+        return power, itc
+
+
+    def plot_epoch_power(self):
+
+        data = self.current_data['data']
+        if self.current_data['data_mode'] == 'epoch':
+
+            self.freqs = np.logspace(*np.log10([0.1, 100]), num=8)
+            self.n_cycles = self.freqs / 2.  # different number of cycle per frequency
+            self.power, self.itc = tfr_morlet(data, freqs=self.freqs, n_cycles=self.n_cycles, use_fft=True,
+                                    return_itc=True, decim=3)
+            print('YES')
+        self.power.plot_topo(baseline=(-0.5, 0),
+                        mode='logratio', title='Average power')
+
+
+    def plot_epoch_power_joint(self):
+
+        power, _ = self.freq_power()
+        power.plot_joint(baseline=(-0.5, 0), mode='mean',
+                         tmin=-.5, tmax=2,
+                         timefreqs=[(.5, 10), (1.3, 8)])
+
+
+    def plot_inter_trial_coher(self):
+
+        _, itc = self.freq_power()
+        itc.plot_topo(title='Inter-Trial coherence',
+                      vmin=0., vmax=1., cmap='Reds')
 
 
     def topo_analysis(self):
@@ -1886,7 +1946,7 @@ class MainWindow(QMainWindow):
 
 
     # plot psd across channels
-    def plot_psd(self):
+    def plot_raw_psd(self):
 
         try:
             if self.current_data['data_mode']:
@@ -1899,7 +1959,7 @@ class MainWindow(QMainWindow):
 
         try:
             if self.current_data['data_mode']:
-                self.current_data['data'].plot_psd_topo()
+                self.current_data['data'].plot_psd_topo(picks='seeg',n_jobs=2)
         except Exception as error:
             self.show_error(error)
 
@@ -1909,24 +1969,51 @@ class MainWindow(QMainWindow):
 
         from mne.channels import compute_native_head_t
         from mne.viz import plot_alignment
+        from mne.datasets import fetch_fsaverage
+        from mne.coreg import get_mni_fiducials
+        from mne.channels import make_dig_montage
 
         sample_path = 'datasets/'
+        subject = 'fsaverage'
         subjects_dir = sample_path + '/subjects'
+        data = self.current_data['data'].copy()
         try:
+            fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)
             subject_name = self.ptc_cb.currentText()
-            data = self.current_data['data'].copy()
-            montage = data.get_montage()
-
-            trans = self.subject_data[subject_name]['montage_trans']
+            self.ch_coords = self.subject_data[subject_name]['MNI']
+            lpa, nasion, rpa = get_mni_fiducials(
+                subject, subjects_dir=subjects_dir)
+            lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
+            montage = make_dig_montage(
+                self.ch_coords, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
+            trans = compute_native_head_t(montage)
+            ch_names = []
+            for i in self.ch_coords:
+                ch_names.append(i)
+            ch_names = ch_names[:-1]
+            data.info['bads'].extend([ch for ch in data.ch_names if ch not in ch_names])
+            data.load_data()
+            data.drop_channels(data.info['bads'])
+            data.set_montage(montage)
+            data.set_channel_types(
+                {ch_name: 'seeg' if np.isfinite(self.ch_coords[ch_name]).all() else 'misc'
+                 for ch_name in data.ch_names})
             fig = plot_alignment(data.info, trans, 'fsaverage', surfaces='pial',
                                  subjects_dir=subjects_dir, show_axes=True, seeg=True)
+
         except Exception as error:
             self.show_error(error)
+
+
 
 ############################################# Help #####################################################
     # Help menu function
     #
     # show website
+    def show_setting(self):
+        pass
+
+
     def show_website(self):
 
         QDesktopServices.openUrl(QUrl("http://www.baidu.com"))
