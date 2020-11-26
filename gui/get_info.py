@@ -13,7 +13,7 @@
 import pandas as pd
 import numpy  as np
 
-def get_mni_struct(filename, start_row = 1, end_row = 'auto'):
+def load_seeg_loc(filename, start_row = 1, end_row = 'auto'):
 
     delimiter = '\t'
     file_pd = pd.read_csv(filename, delimiter=delimiter, header=None)
@@ -32,8 +32,20 @@ def get_mni_struct(filename, start_row = 1, end_row = 'auto'):
     return ch_name, ch_coord
 
 
-def load_seeg_loc():
+def mni2cor(mni, T='auto'):
 
+    if T == 'auto':
+        T = np.array([
+             [2, 0, 0, -92],
+             [0, 2, 0, -128],
+             [0, 0, 2, -74],
+             [0, 0, 0, 1]])
+
+
+def get_mni_struct(mni, db = 'auto'):
+
+    if db == 'auto':
+        pass
     pass
 
 
