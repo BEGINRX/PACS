@@ -94,9 +94,9 @@ def esr_ref(raw):
 
     ch_data = {group: raw.copy().pick_channels(group_chan[group]) for group in group_chan}
     for group in ch_data:
-        data = ch_data[group]._data * 1e6
+        data = ch_data[group]._data * 1e3
         data_mean = np.mean(data, axis=0)
-        ch_data[group]._data = (data - data_mean) * 1e-6
+        ch_data[group]._data = (data - data_mean) * 1e-3
 
     group_0 = list(group_chan.keys())[0]
     raw_new = ch_data[group_0]
@@ -108,8 +108,15 @@ def esr_ref(raw):
     return raw_new
 
 
-def bipolar_ref(raw):
-    '''Reference sEEG data using Bipolar Reference'''
+def bipolar_ref(raw, mode='auto'):
+    '''
+    Reference sEEG data using Bipolar Reference
+    :param raw: raw data
+    :param mode:
+        if mode = 'auto' then don't show the first contact in each shafts
+        if mode ='keep' then show
+    :return: data and raw data of the first contact in each shafts
+    '''
     group_chan = get_group_chan(raw)
     group_data = {group: raw.copy().pick_channels(group_chan[group]).reorder_channels(group_chan[group])
                   for group in group_chan}
@@ -117,9 +124,14 @@ def bipolar_ref(raw):
     group_data_new = {group: np.diff(group_data[group]._data, axis=0) for group in group_chan}
 
     # 保留最后一个没东西减的通道，但是不显示
+    miss_data = dict()
     for group in group_data:
-        miss_data = {group:group_data[group].copy().pick_channels([group_chan[group][0]])}
+        print(group_chan[group][0])
+        miss_data[group] = group_data[group].copy().pick_channels([group_chan[group][0]])
         group_data[group].drop_channels(group_chan[group][0])._data = group_data_new[group]
+        if mode == 'keep':
+            group_data[group].add_channels([miss_data[group]])
+
     group_0 = list(group_chan.keys())[0]
     raw_new = group_data[group_0]
     group_data.pop(group_0)
@@ -134,16 +146,23 @@ def monopolar_ref(raw, chan):
     '''Reference sEEG data using Monopolar Reference'''
     raw_ref = raw.copy().pick_channels(chan)
     data = raw.drop_channels(chan)._data
-    ref_data = raw_ref._data
+    ref_data = raw_ref._data * 1e3
     ref_mean = np.mean(ref_data, axis=0)
     data = data - ref_mean
-    raw._data = data
+    raw._data = data * 1e-3
 
     return raw
 
 
-def laplacian_ref(raw):
-    '''Reference sEEG data using Laplacian Reference'''
+def laplacian_ref(raw, mode='auto'):
+    '''
+    Reference sEEG data using Laplacian Reference
+    :param raw: raw data
+    :param mode:
+        if mode = 'auto' then don't show the first contact in each shafts
+        if mode ='keep' then show
+    :return: data and raw data of the first contact in each shafts
+    '''
     group_chan = get_group_chan(raw)
     group_len = {group: len(group_chan[group]) for group in group_chan}
     group_data = {group: raw.copy().pick_channels(group_chan[group]) for group in group_chan}
@@ -165,6 +184,8 @@ def laplacian_ref(raw):
         miss_data[group] = group_data[group].copy().pick_channels([ch_name[0], ch_name[-1]])
         group_data[group].drop_channels([ch_name[0], ch_name[-1]])
         group_data[group]._data = group_data_only[group] * 1e-3
+        if mode == 'keep':
+            group_data[group].add_channels([miss_data[group]]).reorder_channels(group_chan[group])
 
     group_0 = list(group_chan.keys())[0]
     raw_new = group_data[group_0]
