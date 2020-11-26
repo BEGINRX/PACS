@@ -10,10 +10,26 @@
 # of each electrode, here are the functions we need.
 
 #
+import pandas as pd
+import numpy  as np
 
-def get_mni_struct():
+def get_mni_struct(filename, start_row = 1, end_row = 'auto'):
 
-    pass
+    delimiter = '\t'
+    file_pd = pd.read_csv(filename, delimiter=delimiter, header=None)
+    # file_tab = pd.read_table(filename, delimiter=delimiter, header=None)
+    if end_row == 'auto':
+        file = file_pd[start_row - 1:]
+    else:
+        file = file_pd[start_row - 1 : end_row]
+
+    ch_name = file[0].tolist()
+    ch_coord = file[[1, 2, 3]].to_numpy(dtype=np.float64)
+    ch_x = ch_coord[:, 0]
+    ch_y = ch_coord[:, 1]
+    ch_z = ch_coord[:, 2]
+
+    return ch_name, ch_x, ch_y ,ch_z
 
 
 
