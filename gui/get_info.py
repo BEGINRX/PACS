@@ -29,8 +29,7 @@ def get_mni_struct(filename, start_row = 1, end_row = 'auto'):
     ch_y = ch_coord[:, 1]
     ch_z = ch_coord[:, 2]
 
-    return ch_name, ch_x, ch_y ,ch_z
-
+    return ch_name, ch_coord
 
 
 def load_seeg_loc():
