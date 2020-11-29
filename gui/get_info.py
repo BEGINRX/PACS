@@ -34,19 +34,52 @@ def load_seeg_loc(filename, start_row = 1, end_row = 'auto'):
 
 def mni2cor(mni, T='auto'):
 
+    n = mni.shape[0]
     if T == 'auto':
         T = np.array([
-             [2, 0, 0, -92],
-             [0, 2, 0, -128],
-             [0, 0, 2, -74],
-             [0, 0, 0, 1]])
+            [-4, 0, 0, 84],
+            [0, 4, 0, -116],
+            [0, 0, 4, -56],
+            [0, 0, 0, 1]])
+    coord = np.array([
+        [mni[:, 0], mni[:, 1], mni[:, 2], np.ones((n))]]).T
+    coord = coord.reshape(coord.shape[0], coord.shape[1])
+    coord = coord.dot(np.linalg.inv(T).T)
+    coord = np.round(np.delete(coord, -1, axis=1))
+
+    return coord
 
 
-def get_mni_struct(mni, db = 'auto'):
+def get_mni_struct(coord, db = 'auto'):
 
+    td_data_base = np.load('D:\SEEG_Cognition\datasets\TDDataBase.npy').item()
+    db_default = td_data_base['DB']
     if db == 'auto':
-        pass
-    pass
+        db = db_default
+    n = coord.shape[0]
+    loca_data = np.empty((n, len(db)), dtype=object)
+
+    for i in range(n):
+        for j in range(len(db)):
+            try:
+                # 注：python与matlab存储三维数组形式不一样，所以索引方式也不同
+                gray_level = db[j]['mnilist'][coord[i, 2] - 1, coord[i, 1] - 1, coord[i, 0] - 1].astype(np.int64)
+            except:
+                gray_level = None
+            finally:
+                if gray_level == 0:
+                    label = 'undefined'
+                elif gray_level == None:
+                    label = str('None')
+                else:
+                    if j == len(db) - 1:
+                        tmp = ' (aal)'
+                    else:
+                        tmp = ''
+                    label = db[j]['anatomy'][gray_level - 1] + tmp
+            loca_data[i, j] = label
+
+    return loca_data
 
 
 
