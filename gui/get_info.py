@@ -82,9 +82,11 @@ def get_mni_struct(coord, db = 'auto'):
     return loca_data
 
 
-def get_anat_loc(fpath, td_data_path):
+def get_anat_loc(fpath, td_data_path = None):
 
     ch_name, ch_coord = get_coord(filename=fpath)
+    if td_data_path == None:
+        td_data_path = 'D:\\SEEG_Cognition\\dataset\\TDDataBase.npy'
     td_data_base = np.load(td_data_path).item()
     db = td_data_base['DB']
 
