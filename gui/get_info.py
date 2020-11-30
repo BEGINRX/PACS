@@ -82,7 +82,6 @@ def get_mni_struct(coord, db = 'auto'):
     return loca_data
 
 
-
 def get_anat_loc(fpath, td_data_path):
 
     ch_name, ch_coord = get_coord(filename=fpath)
@@ -105,7 +104,7 @@ def get_anat_loc(fpath, td_data_path):
     loca_data_new = np.hstack((ch_name, ch_coord, loca_data))
     loca_data = np.vstack((header, loca_data_new))
 
-    return  loca_data
+    return loca_data
 
 
 def get_brain_coord():
