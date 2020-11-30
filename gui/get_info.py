@@ -13,7 +13,7 @@
 import pandas as pd
 import numpy  as np
 
-def load_seeg_loc(filename, start_row = 1, end_row = 'auto'):
+def get_coord(filename, start_row = 1, end_row = 'auto'):
 
     delimiter = '\t'
     file_pd = pd.read_csv(filename, delimiter=delimiter, header=None)
@@ -83,9 +83,29 @@ def get_mni_struct(coord, db = 'auto'):
 
 
 
-def get_anat_loc():
+def get_anat_loc(fpath, td_data_path):
 
-    pass
+    ch_name, ch_coord = get_coord(filename=fpath)
+    td_data_base = np.load(td_data_path).item()
+    db = td_data_base['DB']
+
+    mni = np.round(ch_coord / 2) * 2
+    n = len(mni)
+    T = np.array([
+        [2, 0, 0, -92],
+        [0, 2, 0, -128],
+        [0, 0, 2, -74],
+        [0, 0, 0, 1]])
+    coord = mni2cor(mni, T=T)
+    loca_data = get_mni_struct(coord)
+
+    header = np.array(['Channel Name', 'MNI(X)', 'MNI(Y)', 'MNI(Z)', 'TD Hemispheres',
+                       'TD Lobes', 'TD Labels', 'TD Type', 'TD brodmann areas+', 'AAL'], dtype=object)
+    ch_name = np.array(ch_name, dtype=object).reshape(-1, 1)
+    loca_data_new = np.hstack((ch_name, ch_coord, loca_data))
+    loca_data = np.vstack((header, loca_data_new))
+
+    return  loca_data
 
 
 def get_brain_coord():
