@@ -668,7 +668,7 @@ class Select_Event(QMainWindow):
     def __init__(self, event=None):
         
         super(Select_Event, self).__init__()
-        self.event = event
+        self.event = [str(element) for element in event]
         self.event_select = list()
         self.setWindowTitle('Channel')
 
@@ -719,6 +719,7 @@ class Select_Event(QMainWindow):
         self.tip_label.setWordWrap(True)
 
         self.list_wid = QListWidget()
+        print(self.event)
         self.list_wid.addItems(self.event)
         self.list_wid.setSelectionMode(QAbstractItemView.ExtendedSelection)
 

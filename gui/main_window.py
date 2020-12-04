@@ -698,9 +698,6 @@ class MainWindow(QMainWindow):
         self.import_epoch_action = QAction('Import Epoch data', self,
                                            statusTip='Import Epoch data',
                                            triggered=self.execute_load_epoched_data)
-        self.import_mni_action = QAction("Load electrodes' MNI coonidates", self,
-                                         statusTip='Load MNI coornidates',
-                                         triggered=self.load_mni)
         self.import_mri_action = QAction("Import MRI / CT", self,
                                          statusTip="Import subject's pre-surhery MRI/post-surery CT",
                                          triggered=self.import_mri_ct)
@@ -761,7 +758,12 @@ class MainWindow(QMainWindow):
                                      triggered=self.select_chan)
         self.select_data_menu.addActions([self.select_time_action,
                                           self.select_chan_action])
-
+        self.set_montage_action = QAction('Set montage', self,
+                                          statusTip='Set SEEG\'s montage',
+                                          triggered=self.get_montage)
+        self.disp_electro_action = QAction('Display depth electrodes', self,
+                                       statusTip='Display depth electrodes',
+                                       triggered=self.display_electrodes)
         self.plot_menu = QMenu('Plot', self)
         self.plot_raw_action = QAction('Plot time-frequency', self,
                                        statusTip='Plot time-frequency',
@@ -839,6 +841,12 @@ class MainWindow(QMainWindow):
         self.apply_baseline_action = QAction('Apply baseline to correct the epochs', self,
                                              statusTip='Correct the epochs with selected baseline',
                                              triggered=self.apply_base_win)
+        self.set_montage_action = QAction('Set montage', self,
+                                          statusTip='Set SEEG\'s montage',
+                                          triggered=self.get_montage)
+        self.disp_electro_action = QAction('Display depth electrodes', self,
+                                       statusTip='Display depth electrodes',
+                                       triggered=self.display_electrodes)
         self.epoch_plot_menu = QMenu('Plot epoch', self)
         self.plot_epoch_action = QAction('Plot time-frequency', self,
                                          statusTip='Plot time-frequency',
@@ -855,8 +863,6 @@ class MainWindow(QMainWindow):
         self.epoch_analysis_menu = QMenu('Analysis', self)
 
         self.t_f_analy_menu = QMenu('Time or frequency analysis', self)
-        self.ep_action = QAction('Evoked potential (EP)', self,
-                                 triggered=self.ep)
         self.erp_action = QAction('Event-related potential (ERP)', self,
                                   triggered=self.erp)
         self.topo_analy_action = QAction('Topo map analysis', self,
@@ -867,8 +873,7 @@ class MainWindow(QMainWindow):
                                          triggered=self.plot_epoch_power_joint)
         self.coher_inter_trial_action = QAction('Inter-trial coherence', self,
                                                     triggered=self.plot_inter_trial_coher)
-        self.t_f_analy_menu.addActions([self.ep_action,
-                                        self.erp_action,
+        self.t_f_analy_menu.addActions([self.erp_action,
                                         self.topo_analy_action,
                                         self.power_topo_action,
                                         self.power_joint_action,
@@ -894,19 +899,6 @@ class MainWindow(QMainWindow):
                                    self.epoch_save_set_action])
 
 
-    def mni_rmenu(self):
-
-        self.show_mni_action = QAction('Open MNI file in NotePad', self,
-                                       statusTip='Open MNI file in NotePad',
-                                       triggered=self.open_mni)
-        self.set_montage_action = QAction('Set montage', self,
-                                          statusTip='Set SEEG\'s montage',
-                                          triggered=self.set_seeg_montage)
-        self.disp_electro_action = QAction('Display depth electrodes', self,
-                                       statusTip='Display depth electrodes',
-                                       triggered=self.display_electrodes)
-
-
     def right_menu(self, point):
 
         try:
@@ -927,12 +919,14 @@ class MainWindow(QMainWindow):
                 self.tree_right_menu.addActions([self.import_action,
                                                  self.import_epoch_action,
                                                  self.import_mri_action,
-                                                 self.import_mni_action])
+                                                 ])
             elif item_parent == 'raw sEEG data':
                 self.raw_data_rmenu()
                 self.tree_right_menu.addActions([self.rename_chan_action,
                                                  self.cal_marker_action,
-                                                 self.rename_chan_action])
+                                                 self.rename_chan_action,
+                                                 self.set_montage_action,
+                                                 self.disp_electro_action])
                 self.tree_right_menu.addMenu(self.re_ref_menu)
                 self.tree_right_menu.addMenu(self.filter_sub_menu)
                 self.tree_right_menu.addMenu(self.select_data_menu)
@@ -944,15 +938,12 @@ class MainWindow(QMainWindow):
                 self.epoch_rmenu()
                 self.tree_right_menu.addActions([self.apply_baseline_action,
                                                  self.select_chan_action,
-                                                 self.select_event_action])
+                                                 self.select_event_action,
+                                                 self.set_montage_action,
+                                                 self.disp_electro_action])
                 self.tree_right_menu.addMenu(self.epoch_plot_menu)
                 self.tree_right_menu.addMenu(self.epoch_analysis_menu)
                 self.tree_right_menu.addMenu(self.epoch_save_menu)
-            elif self.name == 'MNI Coornidates':
-                self.mni_rmenu()
-                self.tree_right_menu.addActions([self.show_mni_action,
-                                                 self.set_montage_action,
-                                                 self.disp_electro_action])
             elif item_parent == 'MRI or CT':
                 pass
             self.tree_right_menu.exec_(QCursor.pos())
@@ -1016,11 +1007,12 @@ class MainWindow(QMainWindow):
             if data['data_mode'] == 'raw':
                 fig = mne.viz.plot_raw(data['data'], n_channels=20, scalings={'eeg':100e-6}, show_scrollbars=False,
                                show_scalebars=False, show=False)
-                plt.close()
+                plt.get_current_fig_manager().window.showMaximized()
                 print('Raw data 绘制完毕')
             elif data['data_mode'] == 'epoch':
                 fig = mne.viz.plot_epochs(data['data'], n_channels=20, scalings={'eeg':100e-6}, show_scrollbars=False,
                                show=False)
+                plt.get_current_fig_manager().window.showMaximized()
                 plt.close()
                 print('Epoch data 绘制完毕')
                 # 如果不添加plt.close(), 会出现
@@ -1054,6 +1046,10 @@ class MainWindow(QMainWindow):
             # seeg_data.set_channel_types({ch_name: 'seeg' for ch_name in seeg_data.ch_names})
             self.key, _ = QInputDialog.getText(self, 'Name this Data', 'Please Name the Data',
                                           QLineEdit.Normal)
+            if self.data_mode == 'raw':
+                self.key += '_raw'
+            elif self.data_mode == 'epoch':
+                self.key += '_epoch'
             if self.key:
                 self.seeg[self.key] = dict()
                 self.seeg[self.key]['data'] =  seeg_data
@@ -1209,72 +1205,6 @@ class MainWindow(QMainWindow):
             self.data_info_signal.connect(self.update_func)
             self.data_info_signal.emit(self.data_info)
             self.create_sub_windows()
-
-
-    def load_mni(self):
-
-        import pandas as pd
-
-        self.mni_path, _ = QFileDialog.getOpenFileName(self, 'Load MNI Coornidates')
-        try:
-            subject_name = self.ptc_cb.currentText()
-            self.elec_df = pd.read_csv(self.mni_path, sep='\t', header=0, index_col=None)
-            ch_names = self.elec_df['name'].tolist()
-            ch_coords = self.elec_df[['x', 'y', 'z']].to_numpy(dtype=float)
-            # the test channel coordinates were in mm, so we convert them to meters
-            ch_coords = ch_coords / 1000.
-            # create dictionary of channels and their xyz coordinates (now in MNI space)
-            self.ch_pos = dict(zip(ch_names, ch_coords))
-            child = self.get_all_items()
-            if 'MNI Coornidates' in child:
-                self.subject_data[subject_name]['MNI'] = self.ch_pos
-            else:
-                subject_name = self.ptc_cb.currentText()
-                self.node_12 = QTreeWidgetItem(self.tree_item[subject_name]['root'])
-                self.node_12.setText(0, 'MNI Coornidates')
-                self.node_12.setIcon(0, QIcon('image/EEG.ico'))
-                self.tree_item[subject_name]['MNI'] = self.node_12
-                self.subject_data[subject_name]['MNI'] = self.ch_pos
-        except Exception as error:
-            self.show_error(error)
-
-
-    def set_seeg_montage(self):
-
-        from mne.datasets import fetch_fsaverage
-        from mne.coreg import get_mni_fiducials
-        from mne.channels import make_dig_montage
-
-        sample_path = 'datasets/'
-        subject = 'fsaverage'
-        subjects_dir = sample_path + '/subjects'
-        data = self.current_data['data'].copy()
-        try:
-            fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)
-            subject_name = self.ptc_cb.currentText()
-            self.ch_coords = self.subject_data[subject_name]['MNI']
-            lpa, nasion, rpa = get_mni_fiducials(
-                subject, subjects_dir=subjects_dir)
-            lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
-
-            montage = make_dig_montage(
-                self.ch_coords, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
-            trans = compute_native_head_t(montage)
-            self.subject_data[subject_name]['montage_trans'] = trans
-            ch_names = []
-            for i in self.ch_coords:
-                ch_names.append(i)
-            ch_names = ch_names[:-1]
-            data.info['bads'].extend([ch for ch in data.ch_names if ch not in ch_names])
-            data.load_data()
-            data.drop_channels(data.info['bads'])
-            data.set_montage(montage)
-            data.set_channel_types(
-                {ch_name: 'seeg' if np.isfinite(self.ch_coords[ch_name]).all() else 'misc'
-                 for ch_name in data.ch_names})
-            self.get_seeg_data(data)
-        except Exception as error:
-            self.show_error(error)
 
 
     def open_mni(self):
@@ -1631,7 +1561,8 @@ class MainWindow(QMainWindow):
 
         event = list(set(self.current_data['event'][:, 2]))
         self.select_event_win = Select_Event(event)
-        self.select_time_win.event_signal.connect(self.get_event)
+        self.select_event_win.event_signal.connect(self.get_event)
+        self.select_event_win.show()
 
 
     def get_event(self, event_select):
@@ -1642,9 +1573,6 @@ class MainWindow(QMainWindow):
     # Time analysis
     #
     # EP
-    def ep(self):
-        pass
-
 
     def erp(self):
 
@@ -1754,7 +1682,7 @@ class MainWindow(QMainWindow):
 
 ############################################ Shared ####################################################
 
-    # the functions shared with Raw data and Epoch data
+    # the functions shared between Raw data and Epoch data
     #
     # select sub-channel
     def select_chan(self):
@@ -1865,9 +1793,11 @@ class MainWindow(QMainWindow):
                 print('画图了')
                 self.canvas = None
                 self.current_data['data'].plot(duration=5.0, n_channels=20, title='Raw sEEG data')
+                plt.get_current_fig_manager().window.showMaximized()
             elif self.current_data['data_mode'] == 'epoch':
                 self.canvas = None
                 self.current_data['data'].plot(n_channels=20, n_epochs=5, scalings={'eeg':100e-6}, title='Epoched sEEG data')
+                plt.get_current_fig_manager().window.showMaximized()
         except Exception as error:
             self.show_error(error)
 
@@ -1889,6 +1819,47 @@ class MainWindow(QMainWindow):
                 self.current_data['data'].plot_psd_topo(picks='seeg',n_jobs=2)
         except Exception as error:
             self.show_error(error)
+
+
+    def get_montage(self):
+
+        import pandas as pd
+        subject = 'fsaverage'
+        subjects_dir = 'D:\SEEG_Cognition\datasets\subjects'
+        raw = self.current_data['data'].copy()
+
+        self.mni_path, _ = QFileDialog.getOpenFileName(self, 'Load MNI Coornidates')
+
+        try:
+            subject_name = self.ptc_cb.currentText()
+            self.elec_df = pd.read_csv(self.mni_path, sep='\t', header=0, index_col=None)
+            ch_names = self.elec_df['name'].tolist()
+            ch_coords = self.elec_df[['x', 'y', 'z']].to_numpy(dtype=float)
+            # the channel coordinates were in mm, so we convert them to meters
+            ch_coords = ch_coords / 1000.
+            # create dictionary of channels and their xyz coordinates (now in MNI space)
+            self.ch_pos = dict(zip(ch_names, ch_coords))
+            self.subject_data[subject_name]['MNI'] = self.ch_pos
+
+
+            lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
+                subject, subjects_dir=subjects_dir)
+            lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
+            montage = mne.channels.make_dig_montage(
+                self.ch_pos, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
+
+            raw.info['bads'].extend([ch for ch in raw.ch_names if ch not in ch_names])
+            raw.drop_channels(raw.info['bads'])
+            raw.set_montage(montage)
+
+        except Exception as error:
+            if error.args[0] == 'No channels match the selection.':
+                raw = self.current_data['data']
+                self.show_error(error)
+            else:
+                self.show_error(error)
+        finally:
+            self.current_data['data'] = raw
 
 
     def display_electrodes(self):
@@ -1929,7 +1900,10 @@ class MainWindow(QMainWindow):
                                  subjects_dir=subjects_dir, show_axes=True, seeg=True)
 
         except Exception as error:
-            self.show_error(error)
+            if error.args[0] == "MNI":
+                QMessageBox.warning(self, 'Mnotage error', 'Please import MNI Coordinates')
+            else:
+                self.show_error(error)
 
 
 
@@ -1954,7 +1928,6 @@ class MainWindow(QMainWindow):
     def send_email(self):
 
         pass
-
 
 
     def update_func(self, data_info):
@@ -1982,3 +1955,12 @@ class MainWindow(QMainWindow):
             self.event_num_cont_label.setText('')
             self.time_point_cont_label.setText('')
             self.data_size_cont_label.setText('')
+
+
+
+
+
+
+
+
+
