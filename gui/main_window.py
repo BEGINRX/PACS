@@ -1008,6 +1008,7 @@ class MainWindow(QMainWindow):
                 fig = mne.viz.plot_raw(data['data'], n_channels=20, scalings={'eeg':100e-6}, show_scrollbars=False,
                                show_scalebars=False, show=False)
                 plt.get_current_fig_manager().window.showMaximized()
+                lt.close()
                 print('Raw data 绘制完毕')
             elif data['data_mode'] == 'epoch':
                 fig = mne.viz.plot_epochs(data['data'], n_channels=20, scalings={'eeg':100e-6}, show_scrollbars=False,
