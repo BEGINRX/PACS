@@ -10,6 +10,8 @@ from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtCore import QThread, pyqtSignal
 from mne import io
 import mne
+from mne.time_frequency import tfr_morlet
+import numpy as np
 
 
 def show_error(error):
@@ -203,3 +205,23 @@ class Filter_Thread(QThread):
             self.notch_freq = None
         except Exception as error:
             show_error(error)
+
+
+class Calculate_Power(QThread):
+
+    power_signal = pyqtSignal(object, object)
+
+    def __init__(self, data, low=1, high=100):
+        super(Calculate_Power, self).__init__()
+        self.data = data
+        self.low = low
+        self.high = high
+
+
+
+    def run(self):
+        freqs = np.logspace(*np.log10([self.low, self.high]), num=8)
+        n_cycles = freqs / 2.  # different number of cycle per frequency
+        power, itc = tfr_morlet(self.data, freqs=freqs, n_cycles=n_cycles, use_fft=True,
+                                return_itc=True, decim=3)
+        self.power_signal.emit(power, itc)

@@ -29,7 +29,7 @@ from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 from mne import Annotations, events_from_annotations, Epochs
 from mne.channels import compute_native_head_t
 from mne.time_frequency import tfr_morlet, psd_multitaper, psd_welch
-from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread
+from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
                            Refer_Window, Baseline_Time, ERP_WIN
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
@@ -1620,14 +1620,23 @@ class MainWindow(QMainWindow):
 
         data = self.current_data['data']
         if self.current_data['data_mode'] == 'epoch':
-
-            self.freqs = np.logspace(*np.log10([0.1, 100]), num=8)
-            self.n_cycles = self.freqs / 2.  # different number of cycle per frequency
-            self.power, self.itc = tfr_morlet(data, freqs=self.freqs, n_cycles=self.n_cycles, use_fft=True,
-                                    return_itc=True, decim=3)
+            self.power_thread = Calculate_Power(data)
+            self.power_thread.power_signal.connect(self.epoch_power_slot)
+            self.power_thread.start()
+            # self.freqs = np.logspace(*np.log10([0.1, 100]), num=8)
+            # self.n_cycles = self.freqs / 2.  # different number of cycle per frequency
+            # self.power, self.itc = tfr_morlet(data, freqs=self.freqs, n_cycles=self.n_cycles, use_fft=True,
+            #                         return_itc=True, decim=3)
             print('YES')
-        self.power.plot_topo(baseline=(-0.5, 0),
-                        mode='logratio', title='Average power')
+        # self.power.plot_topo(baseline=(-0.5, 0),
+        #                 mode='logratio', title='Average power')
+
+    def epoch_power_slot(self, power, itc):
+        print('start power')
+        power.plot_topo(baseline=(-0.5, 0),
+                             mode='logratio', title='Average power')
+
+
 
 
     def plot_epoch_power_joint(self):
