@@ -868,11 +868,11 @@ class MainWindow(QMainWindow):
         self.topo_analy_action = QAction('Topo map analysis', self,
                                          triggered=self.topo_analysis)
         self.power_topo_action = QAction('Power topomap', self,
-                                         triggered=self.plot_epoch_power)
+                                         triggered=self.calcu_epoch_power)
         self.power_joint_action = QAction('Power joint', self,
-                                         triggered=self.plot_epoch_power_joint)
+                                         triggered=self.calcu_epoch_power_joint)
         self.coher_inter_trial_action = QAction('Inter-trial coherence', self,
-                                                    triggered=self.plot_inter_trial_coher)
+                                                    triggered=self.calcu_inter_trial_coher)
         self.t_f_analy_menu.addActions([self.erp_action,
                                         self.topo_analy_action,
                                         self.power_topo_action,
@@ -1603,53 +1603,47 @@ class MainWindow(QMainWindow):
                 self.show_error(error)
 
 
-    def freq_power(self):
-
-        data = self.current_data['data'].copy()
-        if self.current_data['data_mode'] == 'epoch':
-            print('YES')
-            freqs = np.logspace(*np.log10([1, 100]), num=8)
-            n_cycles = freqs / 2.  # different number of cycle per frequency
-            power, itc = tfr_morlet(data, freqs=freqs, n_cycles=n_cycles, use_fft=True,
-                                    return_itc=True, decim=3)
-        # del data
-        return power, itc
-
-
-    def plot_epoch_power(self):
+    def calcu_epoch_power(self):
 
         data = self.current_data['data']
         if self.current_data['data_mode'] == 'epoch':
             self.power_thread = Calculate_Power(data)
-            self.power_thread.power_signal.connect(self.epoch_power_slot)
+            self.power_thread.power_signal.connect(self.plot_epoch_power)
             self.power_thread.start()
-            # self.freqs = np.logspace(*np.log10([0.1, 100]), num=8)
-            # self.n_cycles = self.freqs / 2.  # different number of cycle per frequency
-            # self.power, self.itc = tfr_morlet(data, freqs=self.freqs, n_cycles=self.n_cycles, use_fft=True,
-            #                         return_itc=True, decim=3)
-            print('YES')
-        # self.power.plot_topo(baseline=(-0.5, 0),
-        #                 mode='logratio', title='Average power')
 
-    def epoch_power_slot(self, power, itc):
-        print('start power')
+
+    def plot_epoch_power(self, power, itc):
+        print('start plot power')
         power.plot_topo(baseline=(-0.5, 0),
                              mode='logratio', title='Average power')
 
 
+    def calcu_epoch_power_joint(self):
+
+        data = self.current_data['data']
+        if self.current_data['data_mode'] == 'epoch':
+            self.power_thread = Calculate_Power(data)
+            self.power_thread.power_signal.connect(self.plot_epoch_power_joint)
+            self.power_thread.start()
 
 
-    def plot_epoch_power_joint(self):
-
-        power, _ = self.freq_power()
+    def plot_epoch_power_joint(self, power, itc):
         power.plot_joint(baseline=(-0.5, 0), mode='mean',
                          tmin=-.5, tmax=2,
                          timefreqs=[(.5, 10), (1.3, 8)])
 
 
-    def plot_inter_trial_coher(self):
+    def calcu_inter_trial_coher(self):
 
-        _, itc = self.freq_power()
+        data = self.current_data['data']
+        if self.current_data['data_mode'] == 'epoch':
+            self.power_thread = Calculate_Power(data)
+            self.power_thread.power_signal.connect(self.plot_inter_trial_coher)
+            self.power_thread.start()
+
+
+    def plot_inter_trial_coher(self, power, itc):
+
         itc.plot_topo(title='Inter-Trial coherence',
                       vmin=0., vmax=1., cmap='Reds')
 
