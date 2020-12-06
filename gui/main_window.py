@@ -1820,7 +1820,7 @@ class MainWindow(QMainWindow):
 
         try:
             if self.current_data['data_mode']:
-                self.current_data['data'].plot_psd_topo(picks='seeg',n_jobs=2)
+                self.current_data['data'].plot_psd_topo(n_jobs=2)
         except Exception as error:
             self.show_error(error)
 
@@ -1900,7 +1900,7 @@ class MainWindow(QMainWindow):
             data.set_channel_types(
                 {ch_name: 'seeg' if np.isfinite(self.ch_coords[ch_name]).all() else 'misc'
                  for ch_name in data.ch_names})
-            fig = plot_alignment(data.info, trans, 'fsaverage', surfaces='pial',
+            fig = plot_alignment(data.info, trans, 'fsaverage', surfaces=dict(pial=0.8),
                                  subjects_dir=subjects_dir, show_axes=True, seeg=True)
 
         except Exception as error:
