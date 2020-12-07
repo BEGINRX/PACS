@@ -10,9 +10,8 @@ from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtCore import QThread, pyqtSignal
 from mne import io
 import mne
-from mne.time_frequency import tfr_morlet
+from mne.time_frequency import tfr_morlet, psd_multitaper
 import numpy as np
-
 
 def show_error(error):
     print('*********************************************************************')
@@ -90,7 +89,6 @@ class Load_Epoched_Data_Thread(QThread):
 
 
 
-
 class Resample_Thread(QThread):
 
     resample = pyqtSignal(object)
@@ -112,6 +110,7 @@ class Resample_Thread(QThread):
                 self.resample_data = ''
         except Exception as error:
             show_error(error)
+
 
 
 class Filter_Thread(QThread):
@@ -207,6 +206,7 @@ class Filter_Thread(QThread):
             show_error(error)
 
 
+
 class Calculate_Power(QThread):
 
     power_signal = pyqtSignal(object, object)
@@ -225,3 +225,27 @@ class Calculate_Power(QThread):
         power, itc = tfr_morlet(self.data, freqs=freqs, n_cycles=n_cycles, use_fft=True,
                                 return_itc=True, decim=3)
         self.power_signal.emit(power, itc)
+
+
+
+class Calculate_PSD(QThread):
+
+    psd_signal = pyqtSignal(object, object, object)
+
+    def __init__(self, data, fmin, fmax):
+
+        super(Calculate_PSD, self).__init__()
+
+        self.data = data
+        self.fmin = fmin
+        self.fmax = fmax
+
+
+    def run(self):
+        psds, freqs = psd_multitaper(self.data, fmin=self.fmin,
+                                     fmax=self.fmax, n_jobs=2)
+        psds = 10. * np.log10(psds)
+        psds_mean = psds.mean(0).mean(0)
+        psds_std = psds.mean(0).std(0)
+
+        self.psd_signal.emit(psds_mean, psds_std, freqs)
