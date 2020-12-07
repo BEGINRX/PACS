@@ -13,7 +13,8 @@ matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib import pyplot as plt
 
-import mne as mne
+import mne
+mne.viz.set_3d_backend('mayavi')
 import numpy as np
 import scipy.io as sio
 import gc
@@ -28,7 +29,7 @@ from PyQt5.Qt import QCursor
 from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 from mne import Annotations, events_from_annotations, Epochs
 from mne.channels import compute_native_head_t
-from mne.time_frequency import tfr_morlet, psd_multitaper, psd_welch
+
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
                            Refer_Window, Baseline_Time, ERP_WIN
