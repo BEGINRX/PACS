@@ -32,7 +32,7 @@ from mne.channels import compute_native_head_t
 
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
-                           Refer_Window, Baseline_Time, ERP_WIN
+                           Refer_Window, Baseline_Time, ERP_Win
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
 from gui.data_io import write_edf, write_set
 
@@ -868,6 +868,8 @@ class MainWindow(QMainWindow):
                                   triggered=self.erp)
         self.topo_analy_action = QAction('Topo map analysis', self,
                                          triggered=self.topo_analysis)
+        self.tfr_response_action = QAction('Time-frequency response(TFR)', self,
+                                           triggered=self.tfr_para)
         self.power_topo_action = QAction('Power topomap', self,
                                          triggered=self.calcu_epoch_power)
         self.power_joint_action = QAction('Power joint', self,
@@ -876,6 +878,7 @@ class MainWindow(QMainWindow):
                                                     triggered=self.calcu_inter_trial_coher)
         self.t_f_analy_menu.addActions([self.erp_action,
                                         self.topo_analy_action,
+                                        self.tfr_response_action,
                                         self.power_topo_action,
                                         self.power_joint_action,
                                         self.coher_inter_trial_action])
@@ -1602,6 +1605,11 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, 'Value Error', 'Please set montage first using MNI coornidates')
             else:
                 self.show_error(error)
+
+
+    def tfr_para(self):
+
+        pass
 
 
     def calcu_epoch_power(self):

@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QPushButton,\
     QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, \
     QInputDialog, QLineEdit, QApplication, QScrollArea, QWidget, \
     QMessageBox, QStyleFactory, QListWidget, QAbstractItemView, \
-    QStackedWidget, QGroupBox
+    QStackedWidget, QGroupBox, QComboBox
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont, QDoubleValidator
 import sys
@@ -1195,12 +1195,12 @@ class Notepad(QMainWindow):
 
 
 
-class ERP_WIN(QMainWindow):
+class ERP_Win(QMainWindow):
 
     erp_signal = pyqtSignal(list)
 
     def __init__(self, event):
-        super(ERP_WIN, self).__init__()
+        super(ERP_Win, self).__init__()
 
         self.event = event
         self.event_sel = []
@@ -1290,6 +1290,124 @@ class ERP_WIN(QMainWindow):
                         QListWidget:item{height:28px}
                         QGroupBox{background-color:rgb(242,242,242)}
         ''')
+
+
+
+
+
+class TFR_Win(QMainWindow):
+
+    power_signal = pyqtSignal(str, str, list, tuple)
+
+    def __init__(self, event, ):
+        super(TFR_Win, self).__init__()
+        self.event = event
+
+        self.init_ui()
+
+
+    def init_ui(self):
+
+        self.setFixedWidth(30)
+        self.setWindowModality(Qt.ApplicationModal)
+        self.center()
+        self.set_font()
+        self.create_center_widget()
+        self.create_button()
+        self.create_layout()
+        self.set_style()
+        QApplication.setStyle(QStyleFactory.create('Fusion'))
+
+
+    def center(self):
+        '''set the app window to the center of the displayer of the computer'''
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+
+    def set_font(self):
+        '''set the font'''
+        self.font = QFont()
+        self.font.setFamily('Arial')
+        self.font.setPointSize(12)
+
+
+    def create_center_widget(self):
+        '''create center widget'''
+        self.center_widget = QWidget()
+        self.center_widget.setFont(self.font)
+        self.setCentralWidget(self.center_widget)
+
+
+    def create_combobox(self):
+
+        self.method_combo = QComboBox(self)
+        self.method_combo.addItems(['Multitaper transform',
+                                    'Stockwell transform',
+                                    'Morlet Wavelets'])
+
+        self.event_combo = QComboBox(self)
+        self.event_combo.addItems(self.event)
+
+
+    def create_label(self):
+
+        self.method_label = QLabel('Method', self)
+        self.event_label = QLabel('Event', self)
+        self.freq_label = QLabel('Frequency', self)
+        self.baseline_label = QLabel('Baseline', self)
+        self.line_label_0 = QLabel(' - ', self)
+        self.hz_label = QLabel('Hz', self)
+        self.line_label_1 = QLabel(' - ', self)
+
+
+    def create_button(self):
+
+        self.ok_button = QPushButton(self)
+        self.ok_button.setText('OK')
+        self.ok_button.setFixedWidth(60)
+        self.ok_button.clicked.connect(self.ok_func)
+
+
+
+    def create_layout(self):
+
+        layout_0 = QHBoxLayout()
+        layout_0.addWidget(self.method_label, self.method_combo)
+
+        layout_1 = QHBoxLayout()
+        layout_1.addWidget(self.event_label, self.event_combo)
+
+        layout_2 = QHBoxLayout()
+        layout_2.addWidget(self.line_label_0)
+
+
+    def ok_func(self):
+        self.method_chosen = self.method_combo.currentText()
+        self.event_chosen = self.event_combo.currentText()
+
+        self.close()
+
+
+    def set_style(self):
+        self.setStyleSheet('''
+                        QPushButton{font: 10pt Times New Roman}
+                        QListWidget{background-color:white ;font: 13pt Times New Roman}
+                        QListWidget:item{height:28px}
+                        QGroupBox{background-color:rgb(242,242,242)}
+        ''')
+
+
+
+
+
+
+
+
+
+
 
 
 
