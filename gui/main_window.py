@@ -1052,11 +1052,11 @@ class MainWindow(QMainWindow):
             # seeg_data.set_channel_types({ch_name: 'seeg' for ch_name in seeg_data.ch_names})
             self.key, _ = QInputDialog.getText(self, 'Name this Data', 'Please Name the Data',
                                           QLineEdit.Normal)
-            if self.data_mode == 'raw':
-                self.key += '_raw'
-            elif self.data_mode == 'epoch':
-                self.key += '_epoch'
             if self.key:
+                if self.data_mode == 'raw':
+                    self.key += '_raw'
+                elif self.data_mode == 'epoch':
+                    self.key += '_epoch'
                 self.seeg[self.key] = dict()
                 self.seeg[self.key]['data'] =  seeg_data
                 self.seeg[self.key]['data_path'] = self.data_path
@@ -1100,6 +1100,8 @@ class MainWindow(QMainWindow):
                 del seeg_data
                 gc.collect()
                 print(self.key, type(self.key))
+            else:
+                del seeg_data
         except Exception as error:
             self.show_error(error)
 
@@ -1861,26 +1863,27 @@ class MainWindow(QMainWindow):
         self.mni_path, _ = QFileDialog.getOpenFileName(self, 'Load MNI Coornidates')
 
         try:
-            subject_name = self.ptc_cb.currentText()
-            self.elec_df = pd.read_csv(self.mni_path, sep='\t', header=0, index_col=None)
-            ch_names = self.elec_df['name'].tolist()
-            ch_coords = self.elec_df[['x', 'y', 'z']].to_numpy(dtype=float)
-            # the channel coordinates were in mm, so we convert them to meters
-            ch_coords = ch_coords / 1000.
-            # create dictionary of channels and their xyz coordinates (now in MNI space)
-            self.ch_pos = dict(zip(ch_names, ch_coords))
-            self.subject_data[subject_name]['MNI'] = self.ch_pos
+            if self.mni_path:
+                subject_name = self.ptc_cb.currentText()
+                self.elec_df = pd.read_csv(self.mni_path, sep='\t', header=None, index_col=None)
+                ch_names = self.elec_df[0].tolist()
+                ch_coords = self.elec_df[[1, 2, 3]].to_numpy(dtype=float)
+                # the channel coordinates were in mm, so we convert them to meters
+                ch_coords = ch_coords / 1000.
+                # create dictionary of channels and their xyz coordinates (now in MNI space)
+                self.ch_pos = dict(zip(ch_names, ch_coords))
+                self.subject_data[subject_name]['MNI'] = self.ch_pos
 
 
-            lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
-                subject, subjects_dir=subjects_dir)
-            lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
-            montage = mne.channels.make_dig_montage(
-                self.ch_pos, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
+                lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
+                    subject, subjects_dir=subjects_dir)
+                lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
+                montage = mne.channels.make_dig_montage(
+                    self.ch_pos, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
 
-            raw.info['bads'].extend([ch for ch in raw.ch_names if ch not in ch_names])
-            raw.drop_channels(raw.info['bads'])
-            raw.set_montage(montage)
+                raw.info['bads'].extend([ch for ch in raw.ch_names if ch not in ch_names])
+                raw.drop_channels(raw.info['bads'])
+                raw.set_montage(montage)
 
         except Exception as error:
             if error.args[0] == 'No channels match the selection.':

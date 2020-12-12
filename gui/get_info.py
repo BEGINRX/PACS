@@ -109,6 +109,14 @@ def get_anat_loc(fpath, td_data_path = None):
     return loca_data
 
 
+def get_gray__chan(anatomy):
+
+    pass
+
+
+
+
+
 def get_brain_coord():
 
     pass
