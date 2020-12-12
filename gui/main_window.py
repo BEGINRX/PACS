@@ -30,9 +30,10 @@ from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 from mne import Annotations, events_from_annotations, Epochs
 from mne.channels import compute_native_head_t
 
-from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power
+from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power, \
+                          Calculate_PSD
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
-                           Refer_Window, Baseline_Time, ERP_Win
+                           Refer_Window, Baseline_Time, ERP_WIN, PSD_Para_WIN
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
 from gui.data_io import write_edf, write_set
 
@@ -771,7 +772,7 @@ class MainWindow(QMainWindow):
                                        triggered=self.plot_raw_data)
         self.plot_psd_action = QAction('Plot psd across channels', self,
                                        statusTip='Plot psd across channels',
-                                       triggered=self.plot_raw_psd)
+                                       triggered=self.calcu_psd)
 
         self.plot_menu.addActions([self.plot_raw_action,
                                    self.plot_psd_action])
@@ -854,7 +855,7 @@ class MainWindow(QMainWindow):
                                          triggered=self.plot_raw_data)
         self.epoch_psd_action = QAction('Plot psd across channels', self,
                                         statusTip='Plot psd across channels',
-                                        triggered=self.plot_raw_psd)
+                                        triggered=self.calcu_psd)
         self.epoch_psd_topo_action = QAction('Plot topo psd', self,
                                              statusTip='Plot topo psd',
                                              triggered=self.plot_topo_psd)
@@ -1704,14 +1705,12 @@ class MainWindow(QMainWindow):
         self.select_chan_win.chan_signal.connect(self.get_sel_chan)
         self.select_chan_win.show()
 
-
     def get_sel_chan(self, chan):
 
         self.chan_sel = chan
         self.current_data['data'].load_data()
         sel_chan_data = self.current_data['data'].copy().pick_channels(self.chan_sel)
         self.get_seeg_data(sel_chan_data)
-
 
 
     # rename the channels
@@ -1754,7 +1753,6 @@ class MainWindow(QMainWindow):
 
 
     # filt sEEG data with iir filter
-
     def filter_data_iir(self):
 
         self.filter_worker.filter_mode = 'iir'
@@ -1816,11 +1814,30 @@ class MainWindow(QMainWindow):
 
 
     # plot psd across channels
-    def plot_raw_psd(self):
+    def get_psd_para(self):
+
+        self.psd_win = PSD_Para_WIN()
+        self.psd_win.freq_signal.connect(self.calcu_psd_thread)
+        self.psd_win.show()
+
+
+    def calcu_psd(self, fmin, fmax):
+        data = self.current_data['data']
+        self.calcu_psd_thread = Calculate_PSD(data, fmin, fmax)
+        self.calcu_psd_thread.psd_signal.connect(self.plot_psd)
+
+
+    def plot_psd(self, psds_mean, psds_std, freqs):
 
         try:
             if self.current_data['data_mode']:
-                self.current_data['data'].plot_psd()
+                f, ax = plt.subplots()
+                ax.plot(freqs, psds_mean, color='k')
+                ax.fill_between(freqs, psds_mean - psds_std, psds_mean + psds_std,
+                                color='k', alpha=.5)
+                ax.set(title='Multitaper PSD (gradiometers)', xlabel='Frequency (Hz)',
+                       ylabel='Power Spectral Density (dB)')
+                plt.show()
         except Exception as error:
             self.show_error(error)
 
