@@ -211,7 +211,7 @@ class Calculate_Power(QThread):
 
     power_signal = pyqtSignal(object, object)
 
-    def __init__(self, data, low=1, high=100):
+    def __init__(self, data, low=1., high=100.):
         super(Calculate_Power, self).__init__()
         self.data = data
         self.low = low

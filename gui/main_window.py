@@ -33,7 +33,7 @@ from mne.channels import compute_native_head_t
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power, \
                           Calculate_PSD
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
-                           Refer_Window, Baseline_Time, ERP_WIN, PSD_Para_WIN
+                           Refer_Window, Baseline_Time, ERP_WIN, Power_Para_WIN, PSD_Para_WIN
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
 from gui.data_io import write_edf, write_set
 
@@ -870,9 +870,9 @@ class MainWindow(QMainWindow):
         self.topo_analy_action = QAction('Topo map analysis', self,
                                          triggered=self.topo_analysis)
         self.power_topo_action = QAction('Power topomap', self,
-                                         triggered=self.calcu_epoch_power)
+                                         triggered=self.get_power_para)
         self.power_joint_action = QAction('Power joint', self,
-                                         triggered=self.calcu_epoch_power_joint)
+                                         triggered=self.get_joint_power_para)
         self.coher_inter_trial_action = QAction('Inter-trial coherence', self,
                                                     triggered=self.calcu_inter_trial_coher)
         self.t_f_analy_menu.addActions([self.erp_action,
@@ -1407,7 +1407,7 @@ class MainWindow(QMainWindow):
     # select sub-time
     def select_time(self):
 
-        time_end = round(self.current_data['data']._last_time, 2)
+        time_end = (self.current_data['data']._last_time, 2)
         self.select_time_win = Select_Time(time_end)
         self.select_time_win.time_signal.connect(self.get_time)
         self.select_time_win.show()
@@ -1417,7 +1417,7 @@ class MainWindow(QMainWindow):
 
         self.time_new = time
         print('Time selected', self.time_new)
-        crop_data = self.current_data['data'].copy().crop(self.time_new[0], self.time_new[1])
+        crop_data = self.current_data['data'].copy().crop(np.float(self.time_new[0]), self.time_new[1])
         self.get_seeg_data(crop_data)
 
 
@@ -1576,7 +1576,6 @@ class MainWindow(QMainWindow):
     # Time analysis
     #
     # EP
-
     def erp(self):
 
         data = self.current_data['data'].copy()
@@ -1605,11 +1604,18 @@ class MainWindow(QMainWindow):
                 self.show_error(error)
 
 
-    def calcu_epoch_power(self):
+    def get_power_para(self):
+
+        self.power_para_win = Power_Para_WIN()
+        self.power_para_win.freq_signal.connect(self.calcu_epoch_power)
+        self.power_para_win.show()
+
+
+    def calcu_epoch_power(self, fmin, fmax):
 
         data = self.current_data['data']
         if self.current_data['data_mode'] == 'epoch':
-            self.power_thread = Calculate_Power(data)
+            self.power_thread = Calculate_Power(data, fmin, fmax)
             self.power_thread.power_signal.connect(self.plot_epoch_power)
             self.power_thread.start()
 
@@ -1620,11 +1626,19 @@ class MainWindow(QMainWindow):
                              mode='logratio', title='Average power')
 
 
-    def calcu_epoch_power_joint(self):
+    # plot power joint topo
+    def get_joint_power_para(self):
+
+        self.power_joint_para_win = Power_Para_WIN()
+        self.power_joint_para_win.freq_signal.connect(self.calcu_epoch_power_joint)
+        self.power_joint_para_win.show()
+
+
+    def calcu_epoch_power_joint(self, fmin, fmax):
 
         data = self.current_data['data']
         if self.current_data['data_mode'] == 'epoch':
-            self.power_thread = Calculate_Power(data)
+            self.power_thread = Calculate_Power(data, fmin, fmax)
             self.power_thread.power_signal.connect(self.plot_epoch_power_joint)
             self.power_thread.start()
 
@@ -1635,6 +1649,7 @@ class MainWindow(QMainWindow):
                          timefreqs=[(.5, 10), (1.3, 8)])
 
 
+    # plot inter trail cohernece
     def calcu_inter_trial_coher(self):
 
         data = self.current_data['data']
@@ -1696,6 +1711,7 @@ class MainWindow(QMainWindow):
         self.select_chan_win = Select_Chan(chan_name=self.current_data['data'].ch_names)
         self.select_chan_win.chan_signal.connect(self.get_sel_chan)
         self.select_chan_win.show()
+
 
     def get_sel_chan(self, chan):
 

@@ -1239,6 +1239,121 @@ class ERP_WIN(QMainWindow):
 
 
 
+
+class Power_Para_WIN(QMainWindow):
+
+    freq_signal = pyqtSignal(float, float)
+
+    def __init__(self):
+
+        super(Power_Para_WIN, self).__init__()
+        self.fmin = 0.
+        self.fmax = 0.
+
+        self.init_ui()
+
+
+    def init_ui(self):
+        self.setFixedSize(250, 140)
+        self.setWindowModality(Qt.ApplicationModal)
+        self.center()
+        self.set_font()
+        self.create_center_widget()
+        self.create_label()
+        self.create_qedit()
+        self.create_button()
+        self.create_layout()
+        self.set_style()
+        QApplication.setStyle(QStyleFactory.create('Fusion'))
+
+
+    def center(self):
+        '''set the app window to the center of the displayer of the computer'''
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+
+    def set_font(self):
+        '''set the font'''
+        self.font = QFont()
+        self.font.setFamily('Arial')
+        self.font.setPointSize(12)
+
+
+    def create_center_widget(self):
+        '''create center widget'''
+        self.center_widget = QWidget()
+        self.setCentralWidget(self.center_widget)
+        self.center_widget.setFont(self.font)
+
+
+    def create_label(self):
+
+        self.fmin_label = QLabel('fmin Hz')
+        self.fmax_label = QLabel('fmax Hz')
+
+
+    def create_qedit(self):
+
+        self.fmin_qedit = QLineEdit()
+        self.fmin_qedit.setAlignment(Qt.AlignCenter)
+        self.fmin_qedit.setValidator(QDoubleValidator())
+
+        self.fmax_qedit = QLineEdit()
+        self.fmax_qedit.setAlignment(Qt.AlignCenter)
+        self.fmax_qedit.setValidator(QDoubleValidator())
+
+
+    def create_button(self):
+
+        self.ok_button = QPushButton(self)
+        self.ok_button.setText('OK')
+        self.ok_button.clicked.connect(self.ok_func)
+        self.cancel_button = QPushButton(self)
+        self.cancel_button.setText('Cancel')
+        self.cancel_button.clicked.connect(self.close)
+
+
+    def ok_func(self):
+
+        if not (self.fmin_qedit.text() and self.fmax_qedit.text()):
+            self.fmin = 0.
+            self.fmax = 0.
+        else:
+            self.fmin = float(self.fmin_qedit.text())
+            self.fmax = float(self.fmax_qedit.text())
+        print(self.fmin, self.fmax)
+        self.freq_signal.emit(self.fmin, self.fmax)
+        self.close()
+
+
+    def create_layout(self):
+
+        time_layout = QFormLayout()
+        time_layout.addRow(self.fmin_label, self.fmin_qedit)
+        time_layout.addRow(self.fmax_label, self.fmax_qedit)
+
+        button_layout = QHBoxLayout()
+        button_layout.addStretch(1)
+        button_layout.addWidget(self.ok_button)
+        button_layout.addWidget(self.cancel_button)
+
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(time_layout)
+        main_layout.addLayout(button_layout)
+        self.center_widget.setLayout(main_layout)
+
+
+    def set_style(self):
+
+        self.setStyleSheet('''QLabel{font: 20px Arial}
+                              ''')
+
+
+
+
 class PSD_Para_WIN(QMainWindow):
 
     freq_signal = pyqtSignal(float, float)
