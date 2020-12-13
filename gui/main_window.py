@@ -1660,9 +1660,6 @@ class MainWindow(QMainWindow):
                       vmin=0., vmax=1., cmap='Reds')
 
 
-    def topo_analysis(self):
-        pass
-
 
     # Frequency analysis
     #

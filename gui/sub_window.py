@@ -1531,6 +1531,8 @@ class TFR_Win(QMainWindow):
         self.method_label.setFixedWidth(100)
         self.event_label = QLabel('Event', self)
         self.event_label.setFixedWidth(100)
+        self.chan_label = QLabel('Channel', self)
+        self.chan_label.setFixedWidth(100)
         self.freq_label = QLabel('Frequency', self)
         self.freq_label.setFixedWidth(100)
         self.baseline_label = QLabel('Baseline', self)
@@ -1542,6 +1544,11 @@ class TFR_Win(QMainWindow):
 
 
     def create_line_edit(self):
+        self.chan_edit = QLineEdit()
+        self.chan_edit.setAlignment(Qt.AlignCenter)
+        self.chan_edit.setFixedWidth(93)
+        self.chan_edit.setValidator(QDoubleValidator())
+        
         self.fmin_edit = QLineEdit()
         self.fmin_edit.setAlignment(Qt.AlignCenter)
         self.fmin_edit.setFixedWidth(93)
@@ -1620,7 +1627,15 @@ class TFR_Win(QMainWindow):
     def ok_func(self):
         self.method_chosen = self.method_combo.currentText()
         self.event_chosen = self.event_combo.currentText()
-
+        self.fmin = float(self.fmin_edit.text())
+        self.fmax = float(self.fmax_edit.text())
+        self.tmin = float(self.tmin_edit.text())
+        self.tmax = float(self.tmax_edit.text())
+        # print(self.method_chosen, type(self.method_chosen))
+        # print(self.event_chosen, type(self.event_chosen))
+        # print([self.fmin, self.fmax], type(self.fmin))
+        # print([self.tmin, self.tmax], type(self.tmin))
+        self.power_signal.emit(self.method_chosen, self.event_chosen, [self.fmin, self.fmax], (self.tmin, self.tmax))
         self.close()
 
 
@@ -1779,7 +1794,7 @@ if __name__ == "__main__":
     # GUI = Epoch_Time()
     # GUI = Select_Event(event=['1', '2'])
     # GUI = Refer_Window()
-    GUI = TFR_Win(['a', 'b', 'c'])
+    GUI = TFR_Win(['red', 'blue', 'c'])
     GUI.show()
     app.exec_()
 
