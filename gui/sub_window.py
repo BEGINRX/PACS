@@ -1467,7 +1467,7 @@ class PSD_Para_WIN(QMainWindow):
 
 class TFR_Win(QMainWindow):
 
-    power_signal = pyqtSignal(str, str, list, tuple)
+    power_signal = pyqtSignal(str, str, int, list, tuple)
 
     def __init__(self, event, ):
         super(TFR_Win, self).__init__()
@@ -1544,11 +1544,12 @@ class TFR_Win(QMainWindow):
 
 
     def create_line_edit(self):
-        self.chan_edit = QLineEdit()
+        self.chan_edit = QLineEdit('0')
         self.chan_edit.setAlignment(Qt.AlignCenter)
         self.chan_edit.setFixedWidth(93)
+        # self.chan_edit.set
         self.chan_edit.setValidator(QDoubleValidator())
-        
+
         self.fmin_edit = QLineEdit()
         self.fmin_edit.setAlignment(Qt.AlignCenter)
         self.fmin_edit.setFixedWidth(93)
@@ -1609,6 +1610,11 @@ class TFR_Win(QMainWindow):
         layout_5.addWidget(self.baseline_label)
         layout_5.addLayout(layout_4)
 
+        layout_6 = QHBoxLayout()
+        layout_6.addWidget(self.chan_label)
+        layout_6.addStretch(1)
+        layout_6.addWidget(self.chan_edit)
+
         button_layout = QHBoxLayout()
         button_layout.addStretch(1)
         button_layout.addWidget(self.ok_button)
@@ -1617,6 +1623,7 @@ class TFR_Win(QMainWindow):
         main_layout = QVBoxLayout()
         main_layout.addLayout(layout_0)
         main_layout.addLayout(layout_1)
+        main_layout.addLayout(layout_6)
         main_layout.addLayout(layout_3)
         main_layout.addLayout(layout_5)
         main_layout.addLayout(button_layout)
@@ -1627,6 +1634,7 @@ class TFR_Win(QMainWindow):
     def ok_func(self):
         self.method_chosen = self.method_combo.currentText()
         self.event_chosen = self.event_combo.currentText()
+        self.chan_num = int(self.chan_edit.text())
         self.fmin = float(self.fmin_edit.text())
         self.fmax = float(self.fmax_edit.text())
         self.tmin = float(self.tmin_edit.text())
@@ -1635,7 +1643,7 @@ class TFR_Win(QMainWindow):
         # print(self.event_chosen, type(self.event_chosen))
         # print([self.fmin, self.fmax], type(self.fmin))
         # print([self.tmin, self.tmax], type(self.tmin))
-        self.power_signal.emit(self.method_chosen, self.event_chosen, [self.fmin, self.fmax], (self.tmin, self.tmax))
+        self.power_signal.emit(self.method_chosen, self.event_chosen, self.chan_num, [self.fmin, self.fmax], (self.tmin, self.tmax))
         self.close()
 
 
