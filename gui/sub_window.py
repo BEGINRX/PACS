@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QPushButton,\
     QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, \
     QInputDialog, QLineEdit, QApplication, QScrollArea, QWidget, \
     QMessageBox, QStyleFactory, QListWidget, QAbstractItemView, \
-    QStackedWidget, QGroupBox, QComboBox
+    QStackedWidget, QGroupBox, QComboBox, QCheckBox
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont, QDoubleValidator
 import sys
@@ -1143,24 +1143,26 @@ class Baseline_Time(QMainWindow):
 
 class ERP_WIN(QMainWindow):
 
-    erp_signal = pyqtSignal(list)
+    erp_signal = pyqtSignal(list, str)
 
     def __init__(self, event):
         super(ERP_WIN, self).__init__()
 
         self.event = event
         self.event_sel = []
+        self.mode = 'montage'
 
         self.init_ui()
 
     def init_ui(self):
 
-        self.setFixedWidth(30)
+        self.setFixedWidth(190)
         self.setWindowModality(Qt.ApplicationModal)
         self.center()
         self.set_font()
         self.create_center_widget()
         self.create_list_widget()
+        self.create_check_box()
         self.create_button()
         self.create_layout()
         self.set_style()
@@ -1197,6 +1199,11 @@ class ERP_WIN(QMainWindow):
          for index in range(self.list_wid.count())]
 
 
+    def create_check_box(self):
+        self.standard_layout_button = QCheckBox('Standard layout')
+        self.standard_layout_button.stateChanged.connect(self.choose_layout)
+
+
     def create_button(self):
 
         self.ok_button = QPushButton(self)
@@ -1205,11 +1212,16 @@ class ERP_WIN(QMainWindow):
         self.ok_button.clicked.connect(self.ok_func)
 
 
+    def choose_layout(self):
+        if self.standard_layout_button.isChecked():
+            self.mode = 'standard'
+
+
     def ok_func(self):
         event_sel = self.list_wid.selectedItems()
         self.event_sel.append([item.text() for item in list(event_sel)])
         self.event_sel = self.event_sel[0]
-        self.erp_signal.emit(self.event_sel)
+        self.erp_signal.emit(self.event_sel, self.mode)
         self.close()
 
 
@@ -1221,6 +1233,7 @@ class ERP_WIN(QMainWindow):
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.list_wid)
+        main_layout.addWidget(self.standard_layout_button)
         main_layout.addLayout(button_layout)
 
         self.center_widget.setLayout(main_layout)
@@ -1709,7 +1722,6 @@ class Topo_Win(QMainWindow):
         pass
 
 
-
     def create_button(self):
 
         self.ok_button = QPushButton(self)
@@ -1802,7 +1814,7 @@ if __name__ == "__main__":
     # GUI = Epoch_Time()
     # GUI = Select_Event(event=['1', '2'])
     # GUI = Refer_Window()
-    GUI = TFR_Win(['red', 'blue', 'c'])
+    GUI = ERP_WIN(['red', 'blue', 'c'])
     GUI.show()
     app.exec_()
 

@@ -28,14 +28,13 @@ from PyQt5.QtCore import Qt, pyqtSignal, QUrl
 from PyQt5.Qt import QCursor
 from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 from mne import Annotations, events_from_annotations, Epochs
-from mne.channels import compute_native_head_t
-
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power, \
                           Calculate_PSD
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
                            Refer_Window, Baseline_Time, ERP_WIN, PSD_Para_WIN
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
 from gui.data_io import write_edf, write_set
+from gui.extra_func import new_layout
 
 
 class MainWindow(QMainWindow):
@@ -867,8 +866,6 @@ class MainWindow(QMainWindow):
         self.t_f_analy_menu = QMenu('Time or frequency analysis', self)
         self.erp_action = QAction('Event-related potential (ERP)', self,
                                   triggered=self.erp)
-        self.topo_analy_action = QAction('Topo map analysis', self,
-                                         triggered=self.topo_analysis)
         self.tfr_response_action = QAction('Time-frequency response(TFR)', self,
                                            triggered=self.tfr_para)
         self.power_topo_action = QAction('Power topomap', self,
@@ -878,7 +875,6 @@ class MainWindow(QMainWindow):
         self.coher_inter_trial_action = QAction('Inter-trial coherence', self,
                                                     triggered=self.calcu_inter_trial_coher)
         self.t_f_analy_menu.addActions([self.erp_action,
-                                        self.topo_analy_action,
                                         self.tfr_response_action,
                                         self.power_topo_action,
                                         self.power_joint_action,
@@ -1592,17 +1588,27 @@ class MainWindow(QMainWindow):
         del data
 
 
-    def plot_erp(self, event):
+    def plot_erp(self, event, mode):
 
         try:
             data = self.current_data['data'].copy()
-            if len(event) > 1:
-                evokeds = [data[name].average().pick_types(seeg=True) for name in event]
-                mne.viz.plot_evoked_topo(evokeds, background_color='w')
-            elif len(event) == 1:
-                print('到这')
-                evokeds = data[event].average().pick_types(seeg=True, eeg=True)
-                mne.viz.plot_evoked_topo(evokeds, background_color='w')
+            if mode == 'standard':
+                layout = new_layout(data.ch_names)
+                if len(event) > 1:
+                    evokeds = [data[name].average().pick_types(seeg=True) for name in event]
+                    mne.viz.plot_evoked_topo(evokeds, background_color='w', layout=layout, layout_scale=1)
+                elif len(event) == 1:
+                    print('到这')
+                    evokeds = data[event].average().pick_types(seeg=True, eeg=True)
+                    mne.viz.plot_evoked_topo(evokeds, background_color='w', layout=layout, layout_scale=1)
+            else:
+                if len(event) > 1:
+                    evokeds = [data[name].average().pick_types(seeg=True) for name in event]
+                    mne.viz.plot_evoked_topo(evokeds, background_color='w')
+                elif len(event) == 1:
+                    print('到这')
+                    evokeds = data[event].average().pick_types(seeg=True, eeg=True)
+                    mne.viz.plot_evoked_topo(evokeds, background_color='w')
         except Exception as error:
             if error.args[0] == "Cannot determine location of MEG/EOG/ECG channels using digitization points.":
                 QMessageBox.warning(self, 'Value Error', 'Please set montage first using MNI coornidates')
