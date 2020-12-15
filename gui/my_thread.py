@@ -10,7 +10,8 @@ from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtCore import QThread, pyqtSignal
 from mne import io
 import mne
-from mne.time_frequency import tfr_morlet, psd_multitaper, tfr_stockwell, tfr_multitaper
+from mne.time_frequency import tfr_morlet, psd_multitaper, psd_welch, \
+                            tfr_stockwell, tfr_multitaper
 import numpy as np
 
 def show_error(error):
@@ -244,18 +245,26 @@ class Calculate_PSD(QThread):
 
     psd_signal = pyqtSignal(object, object, object)
 
-    def __init__(self, data, fmin, fmax):
+    def __init__(self, data, method, freq, time, nfft, average):
 
         super(Calculate_PSD, self).__init__()
 
         self.data = data
-        self.fmin = fmin
-        self.fmax = fmax
+        self.method = method
+        self.freq = freq
+        self.time = time
+        self.nfft = nfft
+        self.average = average
 
 
     def run(self):
-        psds, freqs = psd_multitaper(self.data, fmin=self.fmin,
-                                     fmax=self.fmax, n_jobs=2)
+        if self.method == 'Multitaper':
+            psds, freqs = psd_multitaper(self.data, fmin=self.freq[0], fmax=self.freq[1],
+                                    tmin=self.time[0], tmax=self.time[1], n_jobs=2)
+        elif self.method == 'Welch':
+            psds, freqs = psd_welch(self.data, fmin=self.freq[0], fmax=self.freq[1],
+                                    tmin=self.time[0], tmax=self.time[1], nfft=self.nfft,
+                                    average=self.avergae, n_jobs=2)
         psds = 10. * np.log10(psds)
         psds_mean = psds.mean(0).mean(0)
         psds_std = psds.mean(0).std(0)

@@ -1638,6 +1638,15 @@ class MainWindow(QMainWindow):
            title='Time-Frequency Response', cmap='bwr')
 
 
+    def epoch_power_para(self):
+
+        data = self.current_data['data']
+        event_id = data.event_id
+        self.tfr_para_win = TFR_Win(list(event_id.keys()))
+        self.tfr_para_win.power_signal.connect(self.calcu_tfr)
+        self.tfr_para_win.show()
+
+
     def calcu_epoch_power(self):
 
         data = self.current_data['data']
@@ -1647,10 +1656,10 @@ class MainWindow(QMainWindow):
             self.power_thread.start()
 
 
-    def plot_epoch_power(self, power, itc):
+    def plot_epoch_power(self, power, baseline, itc):
         print('start plot power')
-        power.plot_topo(baseline=(-0.5, 0),
-                             mode='logratio', title='Average power')
+        power.plot_topo(baseline=baseline,
+                        mode='logratio', title='Average power')
 
 
     def calcu_epoch_power_joint(self):
@@ -1857,7 +1866,7 @@ class MainWindow(QMainWindow):
                 ax.plot(freqs, psds_mean, color='k')
                 ax.fill_between(freqs, psds_mean - psds_std, psds_mean + psds_std,
                                 color='k', alpha=.5)
-                ax.set(title='Multitaper PSD (gradiometers)', xlabel='Frequency (Hz)',
+                ax.set(title='Multitaper PSD', xlabel='Frequency (Hz)',
                        ylabel='Power Spectral Density (dB)')
                 plt.show()
         except Exception as error:

@@ -1671,7 +1671,195 @@ class TFR_Win(QMainWindow):
 
 
 
+class Topo_Power_Itc_Win(QMainWindow):
 
+    power_signal = pyqtSignal(str, str, int, list, tuple)
+
+    def __init__(self, event, ):
+        super(Topo_Power_Itc_Win, self).__init__()
+        self.event = event
+
+        self.init_ui()
+
+
+    def init_ui(self):
+
+        self.setFixedWidth(350)
+        self.setWindowModality(Qt.ApplicationModal)
+        self.center()
+        self.set_font()
+        self.create_center_widget()
+        self.create_combobox()
+        self.create_label()
+        self.create_line_edit()
+        self.create_button()
+        self.create_layout()
+        self.set_style()
+        QApplication.setStyle(QStyleFactory.create('Fusion'))
+
+
+    def center(self):
+        '''set the app window to the center of the displayer of the computer'''
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+
+    def set_font(self):
+        '''set the font'''
+        self.font = QFont()
+        self.font.setFamily('Arial')
+        self.font.setPointSize(12)
+
+
+    def create_center_widget(self):
+        '''create center widget'''
+        self.center_widget = QWidget()
+        self.center_widget.setFont(self.font)
+        self.setCentralWidget(self.center_widget)
+
+
+    def create_combobox(self):
+
+        self.method_combo = QComboBox(self)
+        self.method_combo.addItems(['Multitaper transform',
+                                    'Stockwell transform',
+                                    'Morlet Wavelets'])
+
+        self.event_combo = QComboBox(self)
+        self.event_combo.addItems(self.event)
+
+
+    def create_label(self):
+
+        self.method_label = QLabel('Method', self)
+        self.method_label.setFixedWidth(100)
+        self.event_label = QLabel('Event', self)
+        self.event_label.setFixedWidth(100)
+        self.chan_label = QLabel('Channel', self)
+        self.chan_label.setFixedWidth(100)
+        self.freq_label = QLabel('Frequency', self)
+        self.freq_label.setFixedWidth(100)
+        self.baseline_label = QLabel('Baseline', self)
+        self.baseline_label.setFixedWidth(100)
+        self.line_label_0 = QLabel(' - ', self)
+        self.line_label_0.setFixedWidth(20)
+        self.line_label_1 = QLabel(' - ', self)
+        self.line_label_1.setFixedWidth(20)
+
+
+    def create_line_edit(self):
+        self.chan_edit = QLineEdit('0')
+        self.chan_edit.setAlignment(Qt.AlignCenter)
+        self.chan_edit.setFixedWidth(93)
+        # self.chan_edit.set
+        self.chan_edit.setValidator(QDoubleValidator())
+
+        self.fmin_edit = QLineEdit()
+        self.fmin_edit.setAlignment(Qt.AlignCenter)
+        self.fmin_edit.setFixedWidth(93)
+        self.fmin_edit.setValidator(QDoubleValidator())
+
+        self.fmax_edit = QLineEdit()
+        self.fmax_edit.setAlignment(Qt.AlignCenter)
+        self.fmax_edit.setFixedWidth(93)
+        self.fmax_edit.setValidator(QDoubleValidator())
+
+        self.tmin_edit = QLineEdit()
+        self.tmin_edit.setAlignment(Qt.AlignCenter)
+        self.tmin_edit.setFixedWidth(93)
+        self.tmin_edit.setValidator(QDoubleValidator())
+
+        self.tmax_edit = QLineEdit()
+        self.tmax_edit.setAlignment(Qt.AlignCenter)
+        self.tmax_edit.setFixedWidth(93)
+        self.tmax_edit.setValidator(QDoubleValidator())
+
+
+    def create_button(self):
+
+        self.ok_button = QPushButton(self)
+        self.ok_button.setText('OK')
+        self.ok_button.setFixedWidth(60)
+        self.ok_button.clicked.connect(self.ok_func)
+        self.cancel_button = QPushButton(self)
+        self.cancel_button.setText('Cancel')
+        self.cancel_button.clicked.connect(self.close)
+
+
+    def create_layout(self):
+
+        layout_0 = QHBoxLayout()
+        layout_0.addWidget(self.method_label)
+        layout_0.addWidget(self.method_combo)
+
+        layout_1 = QHBoxLayout()
+        layout_1.addWidget(self.event_label)
+        layout_1.addWidget(self.event_combo)
+
+        layout_2 = QHBoxLayout()
+        layout_2.addWidget(self.fmin_edit)
+        layout_2.addWidget(self.line_label_0)
+        layout_2.addWidget(self.fmax_edit)
+
+        layout_3 = QHBoxLayout()
+        layout_3.addWidget(self.freq_label)
+        layout_3.addLayout(layout_2)
+
+        layout_4 = QHBoxLayout()
+        layout_4.addWidget(self.tmin_edit)
+        layout_4.addWidget(self.line_label_1)
+        layout_4.addWidget(self.tmax_edit)
+
+        layout_5 = QHBoxLayout()
+        layout_5.addWidget(self.baseline_label)
+        layout_5.addLayout(layout_4)
+
+        layout_6 = QHBoxLayout()
+        layout_6.addWidget(self.chan_label)
+        layout_6.addStretch(1)
+        layout_6.addWidget(self.chan_edit)
+
+        button_layout = QHBoxLayout()
+        button_layout.addStretch(1)
+        button_layout.addWidget(self.ok_button)
+        button_layout.addWidget(self.cancel_button)
+
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(layout_0)
+        main_layout.addLayout(layout_1)
+        main_layout.addLayout(layout_6)
+        main_layout.addLayout(layout_3)
+        main_layout.addLayout(layout_5)
+        main_layout.addLayout(button_layout)
+
+        self.center_widget.setLayout(main_layout)
+
+
+    def ok_func(self):
+        self.method_chosen = self.method_combo.currentText()
+        self.event_chosen = self.event_combo.currentText()
+        self.chan_num = int(self.chan_edit.text())
+        self.fmin = float(self.fmin_edit.text())
+        self.fmax = float(self.fmax_edit.text())
+        self.tmin = float(self.tmin_edit.text())
+        self.tmax = float(self.tmax_edit.text())
+        # print(self.method_chosen, type(self.method_chosen))
+        # print(self.event_chosen, type(self.event_chosen))
+        # print([self.fmin, self.fmax], type(self.fmin))
+        # print([self.tmin, self.tmax], type(self.tmin))
+        self.power_signal.emit(self.method_chosen, self.event_chosen, self.chan_num, [self.fmin, self.fmax], (self.tmin, self.tmax))
+        self.close()
+
+
+    def set_style(self):
+        self.setStyleSheet('''
+                        QPushButton{font: 10pt Times New Roman}
+                        QListWidget{background-color:white ;font: 13pt Times New Roman}
+                        QListWidget:item{height:28px}
+                        QGroupBox{background-color:rgb(242,242,242)}
+        ''')
 
 
 
