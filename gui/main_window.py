@@ -31,7 +31,7 @@ from mne import Annotations, events_from_annotations, Epochs
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power, \
                           Calculate_PSD
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
-                           Refer_Window, Baseline_Time, ERP_WIN, PSD_Para_WIN
+                           Refer_Window, Baseline_Time, ERP_WIN, PSD_Para_WIN, TFR_Win
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
 from gui.data_io import write_edf, write_set
 from gui.extra_func import new_layout
@@ -1618,7 +1618,24 @@ class MainWindow(QMainWindow):
 
     def tfr_para(self):
 
-        pass
+        data = self.current_data['data']
+        event_id = data.event_id
+        self.tfr_para_win = TFR_Win(list(event_id.keys()))
+        self.tfr_para_win.power_signal.connect(self.calcu_tfr)
+        self.tfr_para_win.show()
+
+
+    def calcu_tfr(self, method, event, chan_num, freq, time):
+        data = self.current_data['data'][event]
+        self.calcu_psd_thread = Calculate_PSD(data=data, method=method, chan_num=chan_num, freq=freq, time=time)
+        self.calcu_psd_thread.psd_signal.connect(self.plot_tfr)
+        self.calcu_psd_thread.start()
+
+
+    def plot_tfr(self, power, chan_num, time):
+
+        power.plot(chan_num, baseline=(0., 0.5), mode='mean', vmin=0.,
+           title='Time-Frequency Response', cmap='bwr')
 
 
     def calcu_epoch_power(self):

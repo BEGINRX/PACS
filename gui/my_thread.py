@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtCore import QThread, pyqtSignal
 from mne import io
 import mne
-from mne.time_frequency import tfr_morlet, psd_multitaper
+from mne.time_frequency import tfr_morlet, psd_multitaper, tfr_stockwell, tfr_multitaper
 import numpy as np
 
 def show_error(error):
@@ -209,22 +209,34 @@ class Filter_Thread(QThread):
 
 class Calculate_Power(QThread):
 
-    power_signal = pyqtSignal(object, object)
+    power_signal = pyqtSignal(object, list, list)
 
-    def __init__(self, data, low=1., high=100.):
+    def __init__(self, data, method, freq, time, chan_num):
         super(Calculate_Power, self).__init__()
         self.data = data
-        self.low = low
-        self.high = high
+        self.method = method
+        self.freq = freq
+        self.time = time
+        self.chan_num = chan_num
 
 
 
     def run(self):
-        freqs = np.logspace(*np.log10([self.low, self.high]), num=8)
-        n_cycles = freqs / 2.  # different number of cycle per frequency
-        power, itc = tfr_morlet(self.data, freqs=freqs, n_cycles=n_cycles, use_fft=True,
-                                return_itc=True, decim=3)
-        self.power_signal.emit(power, itc)
+        if self.method == 'Multitaper transform':
+            freqs = np.logspace(*np.log10(self.freq), num=8)
+            n_cycles = freqs / 2.  # different number of cycle per frequency
+            time_bandwidth = 2.0
+            power, itc = tfr_multitaper(self.data, freqs=freqs, n_cycles=n_cycles, use_fft=True,
+                                    time_bandwidth=time_bandwidth, decim=3, return_itc=False)
+        elif self.method == 'Stockwell transform':
+            width = 3.
+            power = tfr_stockwell(self.data, fmin=self.freq[0], fmax=self.freq[1], width=width)
+        elif self.method == 'Morlet Wavelets':
+            freqs = np.logspace(*np.log10(self.freq), num=8)
+            n_cycles = freqs / 2.  # different number of cycle per frequency
+            power, itc = tfr_morlet(self.data, freqs=freqs, n_cycles=n_cycles, use_fft=True,
+                                    decim=3, return_itc=False)
+        self.power_signal.emit(power, self.chan_num, self.time)
 
 
 
