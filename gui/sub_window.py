@@ -13,6 +13,15 @@ from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QPushButton,\
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont, QDoubleValidator
 import sys
+import traceback
+
+
+def show_error(error):
+    print('*********************************************************************')
+    print('Error is: ')
+    traceback.print_exc()
+    print('*********************************************************************')
+
 
 
 class Filter_Window(QMainWindow):
@@ -1364,27 +1373,31 @@ class Power_Para_WIN(QMainWindow):
 
 
 
-class PSD_Para_WIN(QMainWindow):
 
-    freq_signal = pyqtSignal(float, float)
+class PSD_Para_Win(QMainWindow):
 
-    def __init__(self):
+    power_signal = pyqtSignal(str, object, int, list, tuple, str)
 
-        super(PSD_Para_WIN, self).__init__()
-        self.fmin = 0.
-        self.fmax = 0.
+    def __init__(self, event):
+        super(PSD_Para_Win, self).__init__()
+        self.event = event
+        self.method = None
+        self.nfft = None
+        self.average = None
 
         self.init_ui()
 
 
     def init_ui(self):
-        self.setFixedSize(250, 140)
+
+        self.setFixedWidth(350)
         self.setWindowModality(Qt.ApplicationModal)
         self.center()
         self.set_font()
         self.create_center_widget()
+        self.create_combobox()
         self.create_label()
-        self.create_qedit()
+        self.create_line_edit()
         self.create_button()
         self.create_layout()
         self.set_style()
@@ -1409,55 +1422,121 @@ class PSD_Para_WIN(QMainWindow):
     def create_center_widget(self):
         '''create center widget'''
         self.center_widget = QWidget()
-        self.setCentralWidget(self.center_widget)
         self.center_widget.setFont(self.font)
+        self.setCentralWidget(self.center_widget)
+
+
+    def create_combobox(self):
+
+        self.method_combo = QComboBox(self)
+
+        self.method_combo.addItems(['Welch',
+                            'Multitaper'])
+        self.method_combo.currentIndexChanged.connect(self.deactivate_fft)
+
+        self.event_combo = QComboBox(self)
+        if self.event is not None:
+            self.event_combo.addItems(self.event)
+
+        self.average_combo = QComboBox(self)
+        self.average_combo.addItems(['mean',
+                                     'median'])
 
 
     def create_label(self):
 
-        self.fmin_label = QLabel('fmin Hz')
-        self.fmax_label = QLabel('fmax Hz')
+        self.method_label = QLabel('Method', self)
+        self.method_label.setFixedWidth(100)
+        self.event_label = QLabel('Event', self)
+        self.event_label.setFixedWidth(100)
+        self.nfft_label = QLabel('nFFT', self)
+        self.nfft_label.setFixedWidth(100)
+        self.average_label = QLabel('Avergae', self)
+        self.average_label.setFixedWidth(100)
+        self.freq_label = QLabel('Frequency', self)
+        self.freq_label.setFixedWidth(100)
+        self.time_label = QLabel('Time', self)
+        self.time_label.setFixedWidth(100)
+        self.line_label_0 = QLabel(' - ', self)
+        self.line_label_0.setFixedWidth(20)
+        self.line_label_1 = QLabel(' - ', self)
+        self.line_label_1.setFixedWidth(20)
 
 
-    def create_qedit(self):
+    def create_line_edit(self):
+        self.nfft_edit = QLineEdit('256')
+        self.nfft_edit.setAlignment(Qt.AlignCenter)
+        self.nfft_edit.setFixedWidth(93)
+        self.nfft_edit.setValidator(QDoubleValidator())
 
-        self.fmin_qedit = QLineEdit()
-        self.fmin_qedit.setAlignment(Qt.AlignCenter)
-        self.fmin_qedit.setValidator(QDoubleValidator())
+        self.fmin_edit = QLineEdit()
+        self.fmin_edit.setAlignment(Qt.AlignCenter)
+        self.fmin_edit.setFixedWidth(93)
+        self.fmin_edit.setValidator(QDoubleValidator())
 
-        self.fmax_qedit = QLineEdit()
-        self.fmax_qedit.setAlignment(Qt.AlignCenter)
-        self.fmax_qedit.setValidator(QDoubleValidator())
+        self.fmax_edit = QLineEdit()
+        self.fmax_edit.setAlignment(Qt.AlignCenter)
+        self.fmax_edit.setFixedWidth(93)
+        self.fmax_edit.setValidator(QDoubleValidator())
+
+        self.tmin_edit = QLineEdit()
+        self.tmin_edit.setAlignment(Qt.AlignCenter)
+        self.tmin_edit.setFixedWidth(93)
+        self.tmin_edit.setValidator(QDoubleValidator())
+
+        self.tmax_edit = QLineEdit()
+        self.tmax_edit.setAlignment(Qt.AlignCenter)
+        self.tmax_edit.setFixedWidth(93)
+        self.tmax_edit.setValidator(QDoubleValidator())
 
 
     def create_button(self):
 
         self.ok_button = QPushButton(self)
         self.ok_button.setText('OK')
+        self.ok_button.setFixedWidth(60)
         self.ok_button.clicked.connect(self.ok_func)
         self.cancel_button = QPushButton(self)
         self.cancel_button.setText('Cancel')
         self.cancel_button.clicked.connect(self.close)
 
 
-    def ok_func(self):
-
-        if not (self.fmin_qedit.text() and self.fmax_qedit.text()):
-            self.fmin = 0.
-            self.fmax = 0.
-        else:
-            self.fmin = float(self.fmin_qedit.text())
-            self.fmax = float(self.fmax_qedit.text())
-        print(self.fmin, self.fmax)
-        self.freq_signal.emit(self.fmin, self.fmax)
-        self.close()
-
-
     def create_layout(self):
 
-        time_layout = QFormLayout()
-        time_layout.addRow(self.fmin_label, self.fmin_qedit)
-        time_layout.addRow(self.fmax_label, self.fmax_qedit)
+        layout_0 = QHBoxLayout()
+        layout_0.addWidget(self.method_label)
+        layout_0.addWidget(self.method_combo)
+
+        layout_1 = QHBoxLayout()
+        layout_1.addWidget(self.event_label)
+        layout_1.addWidget(self.event_combo)
+
+        layout_2 = QHBoxLayout()
+        layout_2.addWidget(self.nfft_label)
+        layout_2.addStretch(1)
+        layout_2.addWidget(self.nfft_edit)
+
+        layout_3 = QHBoxLayout()
+        layout_3.addWidget(self.average_label)
+        layout_3.addWidget(self.average_combo)
+
+        layout_4 = QHBoxLayout()
+        layout_4.addWidget(self.fmin_edit)
+        layout_4.addWidget(self.line_label_0)
+        layout_4.addWidget(self.fmax_edit)
+
+        layout_5 = QHBoxLayout()
+        layout_5.addWidget(self.freq_label)
+        layout_5.addLayout(layout_4)
+
+        layout_6 = QHBoxLayout()
+        layout_6.addWidget(self.tmin_edit)
+        layout_6.addWidget(self.line_label_1)
+        layout_6.addWidget(self.tmax_edit)
+
+        layout_7 = QHBoxLayout()
+        layout_7.addWidget(self.time_label)
+        layout_7.addLayout(layout_6)
 
         button_layout = QHBoxLayout()
         button_layout.addStretch(1)
@@ -1465,26 +1544,71 @@ class PSD_Para_WIN(QMainWindow):
         button_layout.addWidget(self.cancel_button)
 
         main_layout = QVBoxLayout()
-        main_layout.addLayout(time_layout)
+        main_layout.addLayout(layout_0)
+        main_layout.addLayout(layout_1)
+        main_layout.addLayout(layout_2)
+        main_layout.addLayout(layout_3)
+        main_layout.addLayout(layout_5)
+        main_layout.addLayout(layout_7)
         main_layout.addLayout(button_layout)
+
         self.center_widget.setLayout(main_layout)
 
 
-    def set_style(self):
+    def deactivate_fft(self):
+        if self.method_combo.currentText() == 'Multitaper':
+            self.nfft_edit.setEnabled(False)
+            self.average_combo.setEnabled(False)
+        else:
+            self.nfft_edit.setEnabled(True)
+            self.average_combo.setEnabled(True)
 
-        self.setStyleSheet('''QLabel{font: 20px Arial}
-                              ''')
+
+    def ok_func(self):
+        try:
+            self.method = self.method_combo.currentText()
+            self.event = self.event_combo.currentText()
+            self.nfft = int(self.nfft_edit.text())
+            self.average = self.average_combo.currentText()
+            if self.fmin_edit.text() and self.fmax_edit.text() and \
+               self.tmin_edit.text() and self.tmax_edit.text():
+                self.fmin = float(self.fmin_edit.text())
+                self.fmax = float(self.fmax_edit.text())
+                self.tmin = float(self.tmin_edit.text())
+                self.tmax = float(self.tmax_edit.text())
+                # print(self.method, type(self.method))
+                # print(self.event, type(self.event))
+                # print([self.fmin, self.fmax], type(self.fmin))
+                # print([self.tmin, self.tmax], type(self.tmin))
+                # print(self.nfft, self.average)
+                self.power_signal.emit(self.method, self.event, self.nfft,
+                                   [self.fmin, self.fmax], (self.tmin, self.tmax), self.average)
+            self.close()
+        except Exception as error:
+            show_error(error)
+
+
+    def set_style(self):
+        self.setStyleSheet('''
+                        QPushButton{font: 10pt Times New Roman}
+                        QListWidget{background-color:white ;font: 13pt Times New Roman}
+                        QListWidget:item{height:28px}
+                        QGroupBox{background-color:rgb(242,242,242)}
+        ''')
+
 
 
 
 
 class TFR_Win(QMainWindow):
 
-    power_signal = pyqtSignal(str, str, int, list, tuple)
+    power_signal = pyqtSignal(str, str, int, list, tuple, bool, bool)
 
-    def __init__(self, event, ):
+    def __init__(self, event):
         super(TFR_Win, self).__init__()
         self.event = event
+        self.use_fft = True
+        self.show_itc = False
 
         self.init_ui()
 
@@ -1533,9 +1657,17 @@ class TFR_Win(QMainWindow):
         self.method_combo.addItems(['Multitaper transform',
                                     'Stockwell transform',
                                     'Morlet Wavelets'])
+        self.method_combo.currentIndexChanged.connect(self.deactivate_fft)
 
         self.event_combo = QComboBox(self)
         self.event_combo.addItems(self.event)
+
+        self.itc_check_box = QCheckBox('Show ITC', self)
+        self.itc_check_box.stateChanged.connect(self.change_itc)
+
+        self.fft_check_box = QCheckBox('Use FFT', self)
+        self.fft_check_box.setChecked(True)
+        self.fft_check_box.stateChanged.connect(self.change_fft)
 
 
     def create_label(self):
@@ -1633,30 +1765,62 @@ class TFR_Win(QMainWindow):
         button_layout.addWidget(self.ok_button)
         button_layout.addWidget(self.cancel_button)
 
+        check_layout = QHBoxLayout()
+        check_layout.addWidget(self.fft_check_box)
+        check_layout.addStretch(1)
+        check_layout.addWidget(self.itc_check_box)
+
         main_layout = QVBoxLayout()
         main_layout.addLayout(layout_0)
         main_layout.addLayout(layout_1)
         main_layout.addLayout(layout_6)
         main_layout.addLayout(layout_3)
         main_layout.addLayout(layout_5)
+        main_layout.addLayout(check_layout)
         main_layout.addLayout(button_layout)
 
         self.center_widget.setLayout(main_layout)
+
+
+    def deactivate_fft(self):
+        if self.method_combo.currentText() == 'Stockwell transform':
+            self.fft_check_box.setEnabled(False)
+        else:
+            self.fft_check_box.setEnabled(True)
+
+
+    def change_fft(self):
+        if self.fft_check_box.isChecked():
+            self.use_fft = True
+        else:
+            self.use_fft = False
+
+
+    def change_itc(self):
+
+        if self.itc_check_box.isChecked():
+            self.show_itc = True
+        else:
+            self.show_itc = False
 
 
     def ok_func(self):
         self.method_chosen = self.method_combo.currentText()
         self.event_chosen = self.event_combo.currentText()
         self.chan_num = int(self.chan_edit.text())
-        self.fmin = float(self.fmin_edit.text())
-        self.fmax = float(self.fmax_edit.text())
-        self.tmin = float(self.tmin_edit.text())
-        self.tmax = float(self.tmax_edit.text())
-        # print(self.method_chosen, type(self.method_chosen))
-        # print(self.event_chosen, type(self.event_chosen))
-        # print([self.fmin, self.fmax], type(self.fmin))
-        # print([self.tmin, self.tmax], type(self.tmin))
-        self.power_signal.emit(self.method_chosen, self.event_chosen, self.chan_num, [self.fmin, self.fmax], (self.tmin, self.tmax))
+        if self.fmin_edit.text() and self.fmax_edit.text() and \
+           self.tmin_edit.text() and self.tmax_edit.text():
+            self.fmin = float(self.fmin_edit.text())
+            self.fmax = float(self.fmax_edit.text())
+            self.tmin = float(self.tmin_edit.text())
+            self.tmax = float(self.tmax_edit.text())
+            # print(self.method_chosen, type(self.method_chosen))
+            # print(self.event_chosen, type(self.event_chosen))
+            # print([self.fmin, self.fmax], type(self.fmin))
+            # print([self.tmin, self.tmax], type(self.tmin))
+            # print(self.use_fft, self.show_itc)
+            self.power_signal.emit(self.method_chosen, self.event_chosen, self.chan_num,
+                               [self.fmin, self.fmax], (self.tmin, self.tmax), self.use_fft, self.show_itc)
         self.close()
 
 
@@ -1673,11 +1837,13 @@ class TFR_Win(QMainWindow):
 
 class Topo_Power_Itc_Win(QMainWindow):
 
-    power_signal = pyqtSignal(str, str, int, list, tuple)
+    power_signal = pyqtSignal(str, str, list, tuple, bool, bool)
 
     def __init__(self, event, ):
         super(Topo_Power_Itc_Win, self).__init__()
         self.event = event
+        self.use_fft = True
+        self.show_itc = False
 
         self.init_ui()
 
@@ -1726,9 +1892,17 @@ class Topo_Power_Itc_Win(QMainWindow):
         self.method_combo.addItems(['Multitaper transform',
                                     'Stockwell transform',
                                     'Morlet Wavelets'])
+        self.method_combo.currentIndexChanged.connect(self.deactivate_fft)
 
         self.event_combo = QComboBox(self)
         self.event_combo.addItems(self.event)
+
+        self.itc_check_box = QCheckBox('Show ITC', self)
+        self.itc_check_box.stateChanged.connect(self.change_itc)
+
+        self.fft_check_box = QCheckBox('Use FFT', self)
+        self.fft_check_box.setChecked(True)
+        self.fft_check_box.stateChanged.connect(self.change_fft)
 
 
     def create_label(self):
@@ -1737,8 +1911,6 @@ class Topo_Power_Itc_Win(QMainWindow):
         self.method_label.setFixedWidth(100)
         self.event_label = QLabel('Event', self)
         self.event_label.setFixedWidth(100)
-        self.chan_label = QLabel('Channel', self)
-        self.chan_label.setFixedWidth(100)
         self.freq_label = QLabel('Frequency', self)
         self.freq_label.setFixedWidth(100)
         self.baseline_label = QLabel('Baseline', self)
@@ -1817,9 +1989,9 @@ class Topo_Power_Itc_Win(QMainWindow):
         layout_5.addLayout(layout_4)
 
         layout_6 = QHBoxLayout()
-        layout_6.addWidget(self.chan_label)
+        layout_6.addWidget(self.fft_check_box)
         layout_6.addStretch(1)
-        layout_6.addWidget(self.chan_edit)
+        layout_6.addWidget(self.itc_check_box)
 
         button_layout = QHBoxLayout()
         button_layout.addStretch(1)
@@ -1829,27 +2001,51 @@ class Topo_Power_Itc_Win(QMainWindow):
         main_layout = QVBoxLayout()
         main_layout.addLayout(layout_0)
         main_layout.addLayout(layout_1)
-        main_layout.addLayout(layout_6)
         main_layout.addLayout(layout_3)
         main_layout.addLayout(layout_5)
+        main_layout.addLayout(layout_6)
         main_layout.addLayout(button_layout)
 
         self.center_widget.setLayout(main_layout)
 
 
+    def change_fft(self):
+        if self.fft_check_box.isChecked():
+            self.use_fft = True
+        else:
+            self.use_fft = False
+
+
+    def change_itc(self):
+
+        if self.itc_check_box.isChecked():
+            self.show_itc = True
+        else:
+            self.show_itc = False
+
+
+    def deactivate_fft(self):
+        if self.method_combo.currentText() == 'Stockwell transform':
+            self.fft_check_box.setEnabled(False)
+        else:
+            self.fft_check_box.setEnabled(True)
+
+
     def ok_func(self):
         self.method_chosen = self.method_combo.currentText()
         self.event_chosen = self.event_combo.currentText()
-        self.chan_num = int(self.chan_edit.text())
-        self.fmin = float(self.fmin_edit.text())
-        self.fmax = float(self.fmax_edit.text())
-        self.tmin = float(self.tmin_edit.text())
-        self.tmax = float(self.tmax_edit.text())
+        if self.fmin_edit.text() and self.fmax_edit.text() and \
+           self.tmin_edit.text() and self.tmax_edit.text():
+            self.fmin = float(self.fmin_edit.text())
+            self.fmax = float(self.fmax_edit.text())
+            self.tmin = float(self.tmin_edit.text())
+            self.tmax = float(self.tmax_edit.text())
         # print(self.method_chosen, type(self.method_chosen))
         # print(self.event_chosen, type(self.event_chosen))
         # print([self.fmin, self.fmax], type(self.fmin))
         # print([self.tmin, self.tmax], type(self.tmin))
-        self.power_signal.emit(self.method_chosen, self.event_chosen, self.chan_num, [self.fmin, self.fmax], (self.tmin, self.tmax))
+        self.power_signal.emit(self.method_chosen, self.event_chosen, [self.fmin, self.fmax],
+                               (self.tmin, self.tmax), self.use_fft, self.show_itc)
         self.close()
 
 
@@ -1878,7 +2074,7 @@ if __name__ == "__main__":
     # GUI = Epoch_Time()
     # GUI = Select_Event(event=['1', '2'])
     # GUI = Refer_Window()
-    GUI = ERP_WIN(['red', 'blue', 'c'])
+    GUI = PSD_Para_Win(['blue', 'red'])
     GUI.show()
     app.exec_()
 

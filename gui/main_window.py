@@ -31,7 +31,7 @@ from mne import Annotations, events_from_annotations, Epochs
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power, \
                           Calculate_PSD
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
-                           Refer_Window, Baseline_Time, ERP_WIN, PSD_Para_WIN, TFR_Win
+                           Refer_Window, Baseline_Time, ERP_WIN, PSD_Para_Win, TFR_Win, Topo_Power_Itc_Win
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
 from gui.data_io import write_edf, write_set
 from gui.extra_func import new_layout
@@ -771,7 +771,7 @@ class MainWindow(QMainWindow):
                                        triggered=self.plot_raw_data)
         self.plot_psd_action = QAction('Plot psd across channels', self,
                                        statusTip='Plot psd across channels',
-                                       triggered=self.calcu_psd)
+                                       triggered=self.get_psd_para)
 
         self.plot_menu.addActions([self.plot_raw_action,
                                    self.plot_psd_action])
@@ -854,7 +854,7 @@ class MainWindow(QMainWindow):
                                          triggered=self.plot_raw_data)
         self.epoch_psd_action = QAction('Plot psd across channels', self,
                                         statusTip='Plot psd across channels',
-                                        triggered=self.calcu_psd)
+                                        triggered=self.get_psd_para)
         self.epoch_psd_topo_action = QAction('Plot topo psd', self,
                                              statusTip='Plot topo psd',
                                              triggered=self.plot_topo_psd)
@@ -869,19 +869,35 @@ class MainWindow(QMainWindow):
         self.tfr_response_action = QAction('Time-frequency response(TFR)', self,
                                            triggered=self.tfr_para)
         self.power_topo_action = QAction('Power topomap', self,
-                                         triggered=self.calcu_epoch_power)
+                                         triggered=self.epoch_power_para)
         self.power_joint_action = QAction('Power joint', self,
                                          triggered=self.calcu_epoch_power_joint)
-        self.coher_inter_trial_action = QAction('Inter-trial coherence', self,
-                                                    triggered=self.calcu_inter_trial_coher)
         self.t_f_analy_menu.addActions([self.erp_action,
                                         self.tfr_response_action,
                                         self.power_topo_action,
-                                        self.power_joint_action,
-                                        self.coher_inter_trial_action])
+                                        self.power_joint_action,])
 
+        self.connect_analy_epoch_menu = QMenu('Connectivity analysis', self)
+        self.pcc_epoch_action = QAction('Pearson correlation coefficient', self,
+                                  triggered=self.pcc)
+        self.coherence_epoch_action = QAction('Coherence analysis', self,
+                                        triggered=self.coherence)
+        self.gc_epoch_action = QAction('Granger Causality', self,
+                                 triggered=self.gc)
+        self.dtf_epoch_action = QAction('Directed transfer function', self,
+                                  triggered=self.dtf)
+        self.pdc_epoch_action = QAction('Partial directed coherence', self,
+                                  triggered=self.pdc)
+        self.plv_epoch_action = QAction('Phase lock value', self,
+                                  triggered=self.plv)
+        self.connect_analy_epoch_menu.addActions([self.pcc_epoch_action,
+                                                 self.coherence_epoch_action,
+                                                 self.gc_epoch_action,
+                                                 self.dtf_epoch_action,
+                                                 self.pdc_epoch_action,
+                                                 self.plv_epoch_action])
         self.epoch_analysis_menu.addMenu(self.t_f_analy_menu)
-
+        self.epoch_analysis_menu.addMenu(self.connect_analy_epoch_menu)
 
         self.epoch_save_menu = QMenu('Export data', self)
         self.epoch_save_fif_action = QAction('Save sEEG data as .fif data', self,
@@ -1625,41 +1641,47 @@ class MainWindow(QMainWindow):
         self.tfr_para_win.show()
 
 
-    def calcu_tfr(self, method, event, chan_num, freq, time):
+    def calcu_tfr(self, method, event, chan_num, freq, time, use_fft, show_itc):
         data = self.current_data['data'][event]
-        self.calcu_psd_thread = Calculate_PSD(data=data, method=method, chan_num=chan_num, freq=freq, time=time)
-        self.calcu_psd_thread.psd_signal.connect(self.plot_tfr)
+        self.calcu_psd_thread = Calculate_Power(data=data, method=method, chan_num=chan_num, freq=freq, time=time,
+                                              use_fft=use_fft, show_itc=show_itc)
+        self.calcu_psd_thread.power_signal.connect(self.plot_tfr)
         self.calcu_psd_thread.start()
 
 
-    def plot_tfr(self, power, chan_num, time):
+    def plot_tfr(self, power, chan_num, time, itc):
 
-        power.plot(chan_num, baseline=(0., 0.5), mode='mean', vmin=0.,
+        power.plot([chan_num], baseline=time, mode='mean', vmin=0.,
            title='Time-Frequency Response', cmap='bwr')
+        if itc is not None:
+            itc.plot([chan_num], title='Inter-Trial coherence', vmin=0., vmax=1., cmap='Reds')
 
 
     def epoch_power_para(self):
 
         data = self.current_data['data']
         event_id = data.event_id
-        self.tfr_para_win = TFR_Win(list(event_id.keys()))
-        self.tfr_para_win.power_signal.connect(self.calcu_tfr)
+        self.tfr_para_win = Topo_Power_Itc_Win(list(event_id.keys()))
+        self.tfr_para_win.power_signal.connect(self.calcu_epoch_power)
         self.tfr_para_win.show()
 
 
-    def calcu_epoch_power(self):
+    def calcu_epoch_power(self, method, event, freq, time, use_fft, show_itc):
 
         data = self.current_data['data']
         if self.current_data['data_mode'] == 'epoch':
-            self.power_thread = Calculate_Power(data)
+            self.power_thread = Calculate_Power(data=data, method=method, chan_num=None, freq=freq,
+                                                time=time, use_fft=use_fft, show_itc=show_itc)
             self.power_thread.power_signal.connect(self.plot_epoch_power)
             self.power_thread.start()
 
 
-    def plot_epoch_power(self, power, baseline, itc):
-        print('start plot power')
+    def plot_epoch_power(self, power, chan_num, baseline, itc):
+        print('start plotting power')
         power.plot_topo(baseline=baseline,
                         mode='logratio', title='Average power')
+        if itc is not None:
+            itc.plot_topo(title='Inter-Trial coherence', vmin=0., vmax=1., cmap='Reds')
 
 
     def calcu_epoch_power_joint(self):
@@ -1675,22 +1697,6 @@ class MainWindow(QMainWindow):
         power.plot_joint(baseline=(-0.5, 0), mode='mean',
                          tmin=-.5, tmax=2,
                          timefreqs=[(.5, 10), (1.3, 8)])
-
-
-    def calcu_inter_trial_coher(self):
-
-        data = self.current_data['data']
-        if self.current_data['data_mode'] == 'epoch':
-            self.power_thread = Calculate_Power(data)
-            self.power_thread.power_signal.connect(self.plot_inter_trial_coher)
-            self.power_thread.start()
-
-
-    def plot_inter_trial_coher(self, power, itc):
-
-        itc.plot_topo(title='Inter-Trial coherence',
-                      vmin=0., vmax=1., cmap='Reds')
-
 
 
     # Frequency analysis
@@ -1846,29 +1852,34 @@ class MainWindow(QMainWindow):
 
     # plot psd across channels
     def get_psd_para(self):
-
-        self.psd_win = PSD_Para_WIN()
-        self.psd_win.freq_signal.connect(self.calcu_psd_thread)
+        if self.current_data['data_mode'] == 'raw':
+            self.psd_win = PSD_Para_Win(None)
+        elif self.current_data['data_mode'] == 'epoch':
+            self.psd_win = PSD_Para_Win(list(self.current_data['data'].event_id.keys()))
+        self.psd_win.power_signal.connect(self.calcu_psd)
         self.psd_win.show()
 
 
-    def calcu_psd(self, fmin, fmax):
+    def calcu_psd(self, method, event, nfft, freq, time, average):
         data = self.current_data['data']
-        self.calcu_psd_thread = Calculate_PSD(data, fmin, fmax)
+        self.calcu_psd_thread = Calculate_PSD(data, method, freq, time, nfft, average)
         self.calcu_psd_thread.psd_signal.connect(self.plot_psd)
+        self.calcu_psd_thread.start()
 
 
-    def plot_psd(self, psds_mean, psds_std, freqs):
-
+    def plot_psd(self, method, psds_mean, psds_std, freqs):
         try:
-            if self.current_data['data_mode']:
-                f, ax = plt.subplots()
-                ax.plot(freqs, psds_mean, color='k')
-                ax.fill_between(freqs, psds_mean - psds_std, psds_mean + psds_std,
-                                color='k', alpha=.5)
+            f, ax = plt.subplots()
+            ax.plot(freqs, psds_mean, color='k')
+            ax.fill_between(freqs, psds_mean - psds_std, psds_mean + psds_std,
+                            color='k', alpha=.5)
+            if method == 'Multitaper':
                 ax.set(title='Multitaper PSD', xlabel='Frequency (Hz)',
                        ylabel='Power Spectral Density (dB)')
-                plt.show()
+            elif method == 'Welch':
+                ax.set(title='Welch PSD', xlabel='Frequency (Hz)',
+                       ylabel='Power Spectral Density (dB)')
+            plt.show()
         except Exception as error:
             self.show_error(error)
 

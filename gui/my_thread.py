@@ -210,15 +210,18 @@ class Filter_Thread(QThread):
 
 class Calculate_Power(QThread):
 
-    power_signal = pyqtSignal(object, list, list)
+    power_signal = pyqtSignal(object, int, tuple, object)
 
-    def __init__(self, data, method, freq, time, chan_num):
+    def __init__(self, data, method, chan_num, freq, time, use_fft, show_itc):
         super(Calculate_Power, self).__init__()
         self.data = data
         self.method = method
+        self.chan_num = chan_num
         self.freq = freq
         self.time = time
-        self.chan_num = chan_num
+        self.use_fft = use_fft
+        self.show_itc = show_itc
+        self.itc = None
 
 
 
@@ -227,23 +230,34 @@ class Calculate_Power(QThread):
             freqs = np.logspace(*np.log10(self.freq), num=8)
             n_cycles = freqs / 2.  # different number of cycle per frequency
             time_bandwidth = 2.0
-            power, itc = tfr_multitaper(self.data, freqs=freqs, n_cycles=n_cycles, use_fft=True,
-                                    time_bandwidth=time_bandwidth, decim=3, return_itc=False)
+            if self.show_itc:
+                power, self.itc = tfr_multitaper(self.data, freqs=freqs, n_cycles=n_cycles, use_fft=self.use_fft,
+                                    time_bandwidth=time_bandwidth, decim=3)
+            else:
+                power = tfr_multitaper(self.data, freqs=freqs, n_cycles=n_cycles, use_fft=self.use_fft,
+                                       time_bandwidth=time_bandwidth, decim=3, return_itc=False)
         elif self.method == 'Stockwell transform':
             width = 3.
-            power = tfr_stockwell(self.data, fmin=self.freq[0], fmax=self.freq[1], width=width)
+            if self.show_itc:
+                power, self.itc = tfr_stockwell(self.data, fmin=self.freq[0], fmax=self.freq[1], width=width, return_itc=True)
+            else:
+                power = tfr_stockwell(self.data, fmin=self.freq[0], fmax=self.freq[1], width=width)
         elif self.method == 'Morlet Wavelets':
             freqs = np.logspace(*np.log10(self.freq), num=8)
             n_cycles = freqs / 2.  # different number of cycle per frequency
-            power, itc = tfr_morlet(self.data, freqs=freqs, n_cycles=n_cycles, use_fft=True,
-                                    decim=3, return_itc=False)
-        self.power_signal.emit(power, self.chan_num, self.time)
+            if self.show_itc:
+                power, self.itc = tfr_morlet(self.data, freqs=freqs, n_cycles=n_cycles, use_fft=self.use_fft,
+                                        decim=3)
+            else:
+                power = tfr_morlet(self.data, freqs=freqs, n_cycles=n_cycles, use_fft=self.use_fft,
+                                   decim=3, return_itc=False)
+        self.power_signal.emit(power, self.chan_num, self.time, self.itc)
 
 
 
 class Calculate_PSD(QThread):
 
-    psd_signal = pyqtSignal(object, object, object)
+    psd_signal = pyqtSignal(str, object, object, object)
 
     def __init__(self, data, method, freq, time, nfft, average):
 
@@ -263,10 +277,10 @@ class Calculate_PSD(QThread):
                                     tmin=self.time[0], tmax=self.time[1], n_jobs=2)
         elif self.method == 'Welch':
             psds, freqs = psd_welch(self.data, fmin=self.freq[0], fmax=self.freq[1],
-                                    tmin=self.time[0], tmax=self.time[1], nfft=self.nfft,
-                                    average=self.avergae, n_jobs=2)
+                                    tmin=self.time[0], tmax=self.time[1], n_fft=self.nfft,
+                                    average=self.average, n_jobs=2)
         psds = 10. * np.log10(psds)
-        psds_mean = psds.mean(0).mean(0)
-        psds_std = psds.mean(0).std(0)
+        psds_mean = psds.mean(0)
+        psds_std = psds.std(0)
 
-        self.psd_signal.emit(psds_mean, psds_std, freqs)
+        self.psd_signal.emit(self.method, psds_mean, psds_std, freqs)
