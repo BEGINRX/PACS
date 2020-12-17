@@ -29,9 +29,10 @@ from PyQt5.Qt import QCursor
 from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 from mne import Annotations, events_from_annotations, Epochs
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power, \
-                          Calculate_PSD
+                          Calculate_PSD, Calculate_CSD
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
-                           Refer_Window, Baseline_Time, ERP_WIN, PSD_Para_Win, TFR_Win, Topo_Power_Itc_Win
+                           Refer_Window, Baseline_Time, ERP_WIN, PSD_Para_Win, TFR_Win, Topo_Power_Itc_Win, \
+                           CSD_Win
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
 from gui.data_io import write_edf, write_set
 from gui.extra_func import new_layout
@@ -866,6 +867,8 @@ class MainWindow(QMainWindow):
         self.t_f_analy_menu = QMenu('Time or frequency analysis', self)
         self.erp_action = QAction('Event-related potential (ERP)', self,
                                   triggered=self.erp)
+        self.csd_action = QAction('Plot cross-spectral density(CSD)', self,
+                                  triggered=self.csd_para)
         self.tfr_response_action = QAction('Time-frequency response(TFR)', self,
                                            triggered=self.tfr_para)
         self.power_topo_action = QAction('Power topomap', self,
@@ -873,6 +876,7 @@ class MainWindow(QMainWindow):
         self.power_joint_action = QAction('Power joint', self,
                                          triggered=self.calcu_epoch_power_joint)
         self.t_f_analy_menu.addActions([self.erp_action,
+                                        self.csd_action,
                                         self.tfr_response_action,
                                         self.power_topo_action,
                                         self.power_joint_action,])
@@ -1630,6 +1634,33 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, 'Value Error', 'Please set montage first using MNI coornidates')
             else:
                 self.show_error(error)
+
+
+    def csd_para(self):
+        data = self.current_data['data']
+        self.csd_para_win = CSD_Win(list(data.event_id.keys()))
+        self.csd_para_win.csd_signal.connect(self.calculate_csd)
+        self.csd_para_win.show()
+
+
+    def calculate_csd(self, method, event, freq, n_fft, use_fft):
+        data = self.current_data['data']
+        self.calcu_csd_thread = Calculate_CSD(data, method=method, event=event, freq=freq,
+                                              n_fft=n_fft, use_fft=use_fft)
+        self.calcu_csd_thread.csd_signal.connect(self.plot_csd)
+        self.calcu_csd_thread.start()
+
+
+    def plot_csd(self, csd, method):
+        if method == 'Short-term Fourier':
+            csd.mean().plot()
+            plt.suptitle('short-term Fourier transform')
+        elif method == 'Multitaper':
+            csd.mean().plot()
+            plt.suptitle('adaptive multitapers')
+        elif method == 'Morlet Wavelets':
+            csd.mean().plot()
+            plt.suptitle('Morlet wavelet transform')
 
 
     def tfr_para(self):

@@ -6,13 +6,15 @@
 """
 
 import traceback
+import numpy as np
+from mne import io
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtCore import QThread, pyqtSignal
-from mne import io
 import mne
 from mne.time_frequency import tfr_morlet, psd_multitaper, psd_welch, \
-                            tfr_stockwell, tfr_multitaper
-import numpy as np
+                            tfr_stockwell, tfr_multitaper, csd_fourier, \
+                            csd_multitaper, csd_morlet
+
 
 def show_error(error):
     print('*********************************************************************')
@@ -284,3 +286,31 @@ class Calculate_PSD(QThread):
         psds_std = psds.std(0)
 
         self.psd_signal.emit(self.method, psds_mean, psds_std, freqs)
+
+
+
+class Calculate_CSD(QThread):
+
+    csd_signal = pyqtSignal(object, str)
+
+    def __init__(self, data, method, event, freq, n_fft,  use_fft):
+        super(Calculate_CSD, self).__init__()
+        self.data = data
+        self.method = method
+        self.event = event
+        self.n_fft = n_fft
+        self.freq = freq
+        self.use_fft = use_fft
+
+
+    def run(self):
+        if self.method == 'Short-term Fourier':
+            csd = csd_fourier(self.data, fmin=self.freq[0], fmax=self.freq[1],
+                                 n_fft=self.n_fft, n_jobs=2)
+        elif self.method == 'Multitaper':
+            csd = csd_multitaper(self.data, fmin=self.freq[0], fmax=self.freq[1],
+                                 n_fft=self.n_fft, n_jobs=2, adaptive=True)
+        elif self.method == 'Morlet Wavelets':
+            csd = csd_morlet(self.data, frequencies=self.freq, decim=10, n_jobs=2,
+                             use_fft=self.use_fft)
+        self.csd_signal.emit(csd, self.method)
