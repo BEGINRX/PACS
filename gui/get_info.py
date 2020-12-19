@@ -109,22 +109,21 @@ def get_anat_loc(fpath, td_data_path = None):
     return loca_data
 
 
-def get_gray__chan(anatomy):
+def get_gchan_wchan(anatomy):
+    '''
+    :param anatomy: ndarray of anatomy
+    :return: list chan list of gray matter and white matter
+    '''
+    chan_matter = anatomy[:, [0, 7]]
+    chan_gm, chan_wm = [], []
+    for index in range(len(chan_matter)):
+        if chan_matter[index, 1] == 'Gray Matter':
+            chan_gm.append(chan_matter[index, 0])
+        elif chan_matter[index, 1] == 'White Matter':
+            chan_wm.append(chan_matter[index, 0])
 
-    pass
+    return chan_gm, chan_wm
 
-
-
-
-
-def get_brain_coord():
-
-    pass
-
-
-def stat_struct():
-
-    pass
 
 
 

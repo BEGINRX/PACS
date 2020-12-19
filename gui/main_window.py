@@ -777,6 +777,11 @@ class MainWindow(QMainWindow):
         self.plot_menu.addActions([self.plot_raw_action,
                                    self.plot_psd_action])
 
+        self.remove_bad_action = QAction('Remove bad channels', self,
+                                         triggered=self.drop_bad)
+        self. interpolate_bad_action = QAction('Interpolate bad channels', self,
+                                               triggered=self.interpolate_bad)
+
         self.get_epoch_menu = QMenu('Get epoch of raw sEEG data', self)
         self.set_name_action = QAction('Set event name', self,
                                         statusTip='Set event name corresponding to its event id',
@@ -801,35 +806,30 @@ class MainWindow(QMainWindow):
                                    self.save_set_action])
 
         self.raw_analysis_menu = QMenu('Analysis', self)
-
-        self.connect_analy_menu = QMenu('Connectivity analysis', self)
-        self.func_connect_menu = QMenu('Functional connectivity', self)
-        self.pcc_action = QAction('Pearson correlation coefficient', self,
+        self.connect_analy_raw_menu = QMenu('Connectivity analysis', self)
+        self.pcc_raw_action = QAction('Pearson correlation coefficient', self,
                                   triggered=self.pcc)
-        self.coherence_action = QAction('Coherence analysis', self,
+        self.coherence_raw_action = QAction('Coherence analysis', self,
                                         triggered=self.coherence)
-        self.func_connect_menu.addActions([self.pcc_action,
-                                           self.coherence_action])
-        self.eff_connect_menu = QMenu('Effective connectivity', self)
-        self.gc_action = QAction('Granger Causality', self,
+        self.gc_raw_action = QAction('Granger Causality', self,
                                  triggered=self.gc)
-        self.dtf_action = QAction('Directed transfer function', self,
+        self.dtf_raw_action = QAction('Directed transfer function', self,
                                   triggered=self.dtf)
-        self.pdc_action = QAction('Partial directed coherence', self,
+        self.pdc_raw_action = QAction('Partial directed coherence', self,
                                   triggered=self.pdc)
-        self.plv_action = QAction('Phase lock value', self,
+        self.plv_raw_action = QAction('Phase lock value', self,
                                   triggered=self.plv)
-        self.eff_connect_menu.addActions([self.gc_action,
-                                          self.dtf_action,
-                                          self.pdc_action,
-                                          self.plv_action])
-        self.connect_analy_menu.addMenu(self.func_connect_menu)
-        self.connect_analy_menu.addMenu(self.eff_connect_menu)
+        self.connect_analy_raw_menu.addActions([self.pcc_raw_action,
+                                                 self.coherence_raw_action,
+                                                 self.gc_raw_action,
+                                                 self.dtf_raw_action,
+                                                 self.pdc_raw_action,
+                                                 self.plv_raw_action])
+        self.raw_analysis_menu.addMenu(self.connect_analy_raw_menu)
 
         self.statistic_analy_menu = QMenu('Statistic analysis', self)
 
-        # self.raw_analysis_menu.addMenu(self.t_f_analy_menu)
-        self.raw_analysis_menu.addMenu(self.connect_analy_menu)
+        self.raw_analysis_menu.addMenu(self.statistic_analy_menu)
 
 
     def epoch_rmenu(self):
@@ -952,6 +952,8 @@ class MainWindow(QMainWindow):
                 self.tree_right_menu.addMenu(self.filter_sub_menu)
                 self.tree_right_menu.addMenu(self.select_data_menu)
                 self.tree_right_menu.addMenu(self.plot_menu)
+                self.tree_right_menu.addActions([self.remove_bad_action,
+                                                 self.interpolate_bad_action])
                 self.tree_right_menu.addMenu(self.get_epoch_menu)
                 self.tree_right_menu.addMenu(self.save_menu)
                 self.tree_right_menu.addMenu(self.raw_analysis_menu)
@@ -1879,6 +1881,20 @@ class MainWindow(QMainWindow):
                 plt.get_current_fig_manager().window.showMaximized()
         except Exception as error:
             self.show_error(error)
+
+
+    def drop_bad(self):
+        data = self.current_data['data'].copy()
+        data.drop_channels(data.info['bads'])
+        data.info['bads'] = []
+        self.get_seeg_data(data)
+
+
+    def interpolate_bad(self):
+        data = self.current_data['data'].copy()
+        data.load_data()
+        data.interpolate_bads()
+        self.get_seeg_data(data)
 
 
     # plot psd across channels

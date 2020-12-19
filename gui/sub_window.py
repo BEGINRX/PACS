@@ -1258,7 +1258,6 @@ class ERP_WIN(QMainWindow):
 
 
 
-
 class Power_Para_WIN(QMainWindow):
 
     freq_signal = pyqtSignal(float, float)
@@ -1369,8 +1368,6 @@ class Power_Para_WIN(QMainWindow):
 
         self.setStyleSheet('''QLabel{font: 20px Arial}
                               ''')
-
-
 
 
 
@@ -1595,8 +1592,6 @@ class PSD_Para_Win(QMainWindow):
                         QListWidget:item{height:28px}
                         QGroupBox{background-color:rgb(242,242,242)}
         ''')
-
-
 
 
 
@@ -1834,7 +1829,6 @@ class TFR_Win(QMainWindow):
 
 
 
-
 class Topo_Power_Itc_Win(QMainWindow):
 
     power_signal = pyqtSignal(str, str, list, tuple, bool, bool)
@@ -2056,9 +2050,6 @@ class Topo_Power_Itc_Win(QMainWindow):
                         QListWidget:item{height:28px}
                         QGroupBox{background-color:rgb(242,242,242)}
         ''')
-
-
-
 
 
 

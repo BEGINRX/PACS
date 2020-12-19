@@ -3,6 +3,12 @@ import traceback
 
 
 def get_group_chan(raw):
+    '''
+    :param raw: instance of Raw
+                raw data
+    :return: dict
+             electrodes in the same shaft
+    '''
     ch_names = raw.ch_names
     ch_group = []
     for ch_name in ch_names:
@@ -52,24 +58,37 @@ def get_group_chan(raw):
 
 
 def car_ref(raw):
-    '''Reference sEEG data using Common Average Reference(CAR)'''
-    data = raw._data * 1e6
+    '''
+    Reference sEEG data using Common Average Reference(CAR)
+    :param raw: instance of Raw
+                raw data
+    :return: instance of Raw
+             re-referenced data
+    '''
+    new_raw = raw.copy()
+    data = new_raw._data * 1e6
     data_mean = np.mean(data, axis=0)
     data_ref = (data - data_mean) * 1e-6
-    raw._data = data_ref
+    new_raw._data = data_ref
 
-    return raw
+    return new_raw
 
 
-def gwr_ref(raw, chan_gm, chan_wm):
+def gwr_ref(raw, coord_path):
     '''
     Reference sEEG data using Gray-white Matter Reference(GWR)
-    :param raw: raw data
-    :param gm: channels in gray matter
-    :param wm: channels in white matter
+    :param raw: instance of Raw
+                raw data
+    :param gm: list
+               channels in gray matter
+    :param wm: list
+               channels in white matter
     :return: instance of raw
+             re-referenced data
     '''
-    ch_names = raw.ch_names
+    from gui.get_info import get_anat_loc, get_gchan_wchan
+    loca_data = get_anat_loc(coord_path)
+    chan_gm, chan_wm = get_gchan_wchan(loca_data)
 
     raw_gm = raw.copy().pick_channels(chan_gm)
     raw_wm = raw.copy().pick_channels(chan_wm)
@@ -88,7 +107,13 @@ def gwr_ref(raw, chan_gm, chan_wm):
 
 
 def esr_ref(raw):
-    '''Reference sEEG data using Electrode Shaft Reference(ESR)'''
+    '''
+    Reference sEEG data using Electrode Shaft Reference(ESR)
+    :param raw: instance of Raw
+                raw data
+    :return: instance of raw
+             re-referenced data
+    '''
     # 获取分组
     group_chan = get_group_chan(raw)
 
@@ -111,11 +136,13 @@ def esr_ref(raw):
 def bipolar_ref(raw, mode='auto'):
     '''
     Reference sEEG data using Bipolar Reference
-    :param raw: raw data
-    :param mode:
+    :param raw: instance of Raw
+                raw data
+    :param mode: str
         if mode = 'auto' then don't show the first contact in each shafts
         if mode ='keep' then show
-    :return: data and raw data of the first contact in each shafts
+    :return: instance of raw
+             data and raw data of the first contact in each shafts
     '''
     group_chan = get_group_chan(raw)
     group_data = {group: raw.copy().pick_channels(group_chan[group]).reorder_channels(group_chan[group])
@@ -142,26 +169,38 @@ def bipolar_ref(raw, mode='auto'):
     return raw_new, miss_data
 
 
-def monopolar_ref(raw, chan):
-    '''Reference sEEG data using Monopolar Reference'''
-    raw_ref = raw.copy().pick_channels(chan)
-    data = raw.drop_channels(chan)._data
-    ref_data = raw_ref._data * 1e3
-    ref_mean = np.mean(ref_data, axis=0)
-    data = data - ref_mean
-    raw._data = data * 1e-3
+def monopolar_ref(raw, ref_chan):
+    '''
+    :param raw: instance of Raw
+                raw data
+    :param ref_chan: list
+                     the channels' name chosen as ref channel
+    :return: instance of raw
+             the re-ref raw data
+    '''
+    chan = raw.ch_names
 
-    return raw
+    ref_raw = raw.copy().pick_channels(ref_chan)
+    ref_data = ref_raw._data
+    ref_mean = np.mean(ref_data, axis=0)
+
+    new_raw = raw.copy()
+    data = new_raw._data - ref_mean
+    new_raw._data = data
+
+    return new_raw
 
 
 def laplacian_ref(raw, mode='auto'):
     '''
     Reference sEEG data using Laplacian Reference
-    :param raw: raw data
-    :param mode:
+    :param raw: instance of Raw
+                raw data
+    :param mode: str
         if mode = 'auto' then don't show the first contact in each shafts
         if mode ='keep' then show
-    :return: data and raw data of the first contact in each shafts
+    :return: instance of raw
+             data and raw data of the first contact in each shafts
     '''
     group_chan = get_group_chan(raw)
     group_len = {group: len(group_chan[group]) for group in group_chan}
@@ -195,5 +234,7 @@ def laplacian_ref(raw, mode='auto'):
             raw_new.add_channels([group_data[name]])
 
     return raw_new, miss_data
+
+
 
 
