@@ -1252,7 +1252,7 @@ class MainWindow(QMainWindow):
 
         self.save_path, _ = QFileDialog.getSaveFileName(self, 'Save data to EDF')
         try:
-            write_edf(self.save_path, self.current_data['data'])
+            write_raw_edf(self.save_path, self.current_data['data'])
         except Exception as error:
             self.show_error(error)
 
@@ -1261,7 +1261,7 @@ class MainWindow(QMainWindow):
 
         self.save_path, _ = QFileDialog.getSaveFileName(self, 'Save data to EDF')
         try:
-            write_set(self.save_path + '.set', self.current_data['data'])
+            write_raw_set(self.save_path + '.set', self.current_data['data'])
         except Exception as error:
             self.show_error(error)
 
