@@ -7,7 +7,7 @@
 '''
 import scipy.io as sio
 
-def write_edf(fname, raw):
+def write_raw_edf(fname, raw):
     """Export raw to EDF/BDF file (requires pyEDFlib)."""
     from pathlib import Path
     import pyedflib
@@ -54,7 +54,7 @@ def write_edf(fname, raw):
         f.writeAnnotation(ann["onset"], ann["duration"], ann["description"])
 
 
-def write_set(fname, raw):
+def write_raw_set(fname, raw):
         """Export raw to EEGLAB .set file."""
         from numpy.core.records import fromarrays
         data = raw.get_data() * 1e6  # convert to microvolts

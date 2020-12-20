@@ -34,7 +34,7 @@ from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan
                            Refer_Window, Baseline_Time, ERP_WIN, PSD_Para_Win, TFR_Win, Topo_Power_Itc_Win, \
                            CSD_Win
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
-from gui.data_io import write_edf, write_set
+from gui.data_io import write_raw_edf, write_raw_set
 from gui.extra_func import new_layout
 
 
