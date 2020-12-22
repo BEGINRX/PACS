@@ -42,7 +42,7 @@ class Import_Thread(QThread):
         elif self.data_path[-3:] == 'edf':
             self.seeg_data = io.read_raw_edf(self.data_path, preload=True)
         elif self.data_path[-3:] == 'fif':
-            self.seeg_data = io.read_raw_fif(self.data_path)
+            self.seeg_data = io.read_raw_fif(self.data_path, preload=True)
 
 
     def run(self):
@@ -282,8 +282,8 @@ class Calculate_PSD(QThread):
                                     tmin=self.time[0], tmax=self.time[1], n_fft=self.nfft,
                                     average=self.average, n_jobs=2)
         psds = 10. * np.log10(psds)
-        psds_mean = psds.mean(0)
-        psds_std = psds.std(0)
+        psds_mean = psds.mean(0).mean(0)
+        psds_std = psds.mean(0).std(0)
 
         self.psd_signal.emit(self.method, psds_mean, psds_std, freqs)
 
@@ -304,6 +304,7 @@ class Calculate_CSD(QThread):
 
 
     def run(self):
+        self.data.load_data()
         if self.method == 'Short-term Fourier':
             csd = csd_fourier(self.data, fmin=self.freq[0], fmax=self.freq[1],
                                  n_fft=self.n_fft, n_jobs=2)

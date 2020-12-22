@@ -1373,6 +1373,7 @@ class MainWindow(QMainWindow):
     def car_reref(self):
         '''Reference sEEG data using Common Average Reference(CAR)'''
         data = self.current_data['data'].copy()
+        print(data)
         raw = car_ref(data)
         self.get_seeg_data(raw)
 
@@ -1408,10 +1409,17 @@ class MainWindow(QMainWindow):
 
 
     def monopolar_reref(self):
+
+        self.chan_win = Select_Chan(chan_name=self.current_data['data'].ch_names)
+        self.chan_win.chan_signal.connect(self.start_monopolar)
+        self.chan_win.show()
+
+
+    def start_monopolar(self, ref_chan):
         '''Reference sEEG data using Monopolar Reference'''
         data = self.current_data['data'].copy()
         try:
-            raw = monopolar_ref(data)
+            raw = monopolar_ref(data, ref_chan)
             self.get_seeg_data(raw)
         except Exception as error:
             self.show_error(error)
@@ -1774,6 +1782,7 @@ class MainWindow(QMainWindow):
         self.select_chan_win = Select_Chan(chan_name=self.current_data['data'].ch_names)
         self.select_chan_win.chan_signal.connect(self.get_sel_chan)
         self.select_chan_win.show()
+
 
     def get_sel_chan(self, chan):
 
