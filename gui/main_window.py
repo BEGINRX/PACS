@@ -1374,7 +1374,7 @@ class MainWindow(QMainWindow):
         '''Reference sEEG data using Common Average Reference(CAR)'''
         data = self.current_data['data'].copy()
         print(data)
-        raw = car_ref(data)
+        raw = car_ref(data, data_class=self.data_mode)
         self.get_seeg_data(raw)
 
 
@@ -1382,7 +1382,7 @@ class MainWindow(QMainWindow):
         '''Reference sEEG data using Gray-white Matter Reference(GWR)'''
         data = self.current_data['data'].copy()
         try:
-            raw = gwr_ref(data)
+            raw = gwr_ref(data, data_class=self.data_mode)
             self.get_seeg_data(raw)
         except Exception as error:
             self.show_error(error)

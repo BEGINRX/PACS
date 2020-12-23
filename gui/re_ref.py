@@ -1,5 +1,6 @@
 import numpy as np
 import traceback
+import mne
 
 
 def get_group_chan(raw):
@@ -48,16 +49,36 @@ def get_group_chan(raw):
         for group in ch_group_cont:
             [ch_group_cont[group].remove(chan) for chan in chan_del[group]]
             if '\'' in group:
-                ch_group_cont[group].sort(key=lambda chan: (chan[0], int(chan[2:])))
+                tip = None
+                for index in range(len(ch_group_cont[group])):
+                    if ch_group_cont[group][index] == group:
+                        tip = [index, group]
+                    break
+                if tip:
+                    ch_group_cont[group].remove(tip[1])
+                    ch_group_cont[group].sort(key=lambda chan: (chan[0], int(chan[2:])))
+                    ch_group_cont[group].insert(0, tip[1])
+                else:
+                    ch_group_cont[group].sort(key=lambda chan: (chan[0], int(chan[2:])))
             else:
-                ch_group_cont[group].sort(key=lambda chan: (chan[0], int(chan[1:])))
+                tip = None
+                for index in range(len(ch_group_cont[group])):
+                    if ch_group_cont[group][index] == group:
+                        tip = [index, group]
+                    break
+                if tip:
+                    ch_group_cont[group].remove(tip[1])
+                    ch_group_cont[group].sort(key=lambda chan: (chan[0], int(chan[1:])))
+                    ch_group_cont[group].insert(0, tip[1])
+                else:
+                    ch_group_cont[group].sort(key=lambda chan: (chan[0], int(chan[1:])))
     except:
         traceback.print_exc()
 
     return ch_group_cont
 
 
-def car_ref(raw):
+def car_ref(raw, data_class):
     '''
     Reference sEEG data using Common Average Reference(CAR)
     :param raw: instance of Raw
@@ -67,14 +88,17 @@ def car_ref(raw):
     '''
     new_raw = raw.copy()
     data = new_raw._data * 1e6
-    data_mean = np.mean(data, axis=0)
+    if data_class == 'raw':
+        data_mean = np.mean(data, axis=0)
+    elif data_class == 'epoch':
+        data_mean = np.mean(data, axis=1).reshape(data.shape[0], 1, data.shape[2])
     data_ref = (data - data_mean) * 1e-6
     new_raw._data = data_ref
 
     return new_raw
 
 
-def gwr_ref(raw, coord_path):
+def gwr_ref(raw, data_class, coord_path):
     '''
     Reference sEEG data using Gray-white Matter Reference(GWR)
     :param raw: instance of Raw
@@ -94,11 +118,17 @@ def gwr_ref(raw, coord_path):
     raw_wm = raw.copy().pick_channels(chan_wm)
 
     data_gm = raw_gm._data
-    data_gm_mean = np.mean(data_gm, axis=0)
+    if data_class == 'raw':
+        data_gm_mean = np.mean(data_gm, axis=0)
+    elif data_class == 'epoch':
+        data_gm_mean = np.mean(data_gm, axis=1).reshape(data_gm.shape[0], 1, data_gm[1])
     raw_gm._data = data_gm - data_gm_mean
 
     data_wm = raw_wm._data
-    data_wm_mean = np.mean(data_wm, axis=0)
+    if data_class == 'raw':
+        data_wm_mean = np.mean(data_wm, axis=0)
+    elif data_class == 'epoch':
+        data_wm_mean = np.mean(data_wm, axis=1).reshape(data_wm.shape[0], 1, data_wm[1])
     raw_wm._data = data_wm - data_wm_mean
 
     raw_ref = raw_gm.copy().add_channels([raw_wm])
@@ -106,7 +136,7 @@ def gwr_ref(raw, coord_path):
     return raw_ref
 
 
-def esr_ref(raw):
+def esr_ref(raw, data_class):
     '''
     Reference sEEG data using Electrode Shaft Reference(ESR)
     :param raw: instance of Raw
@@ -119,21 +149,24 @@ def esr_ref(raw):
 
     ch_data = {group: raw.copy().pick_channels(group_chan[group]) for group in group_chan}
     for group in ch_data:
-        data = ch_data[group]._data * 1e3
-        data_mean = np.mean(data, axis=0)
-        ch_data[group]._data = (data - data_mean) * 1e-3
+        data = ch_data[group]._data * 1e6
+        if data_class == 'raw':
+            data_mean = np.mean(data, axis=0)
+        elif data_class == 'epoch':
+            data_mean = np.mean(data, axis=1).reshape(data.shape[0], 1, data.shape[2])
+        ch_data[group]._data = (data - data_mean) * 1e-6
 
     group_0 = list(group_chan.keys())[0]
     raw_new = ch_data[group_0]
     ch_data.pop(group_0)
     for name in ch_data:
-        if not (name == 'DC') or not (name == 'E'):
+        if not (name == 'DC'):
             raw_new.add_channels([ch_data[name]])
 
     return raw_new
 
 
-def bipolar_ref(raw, mode='auto'):
+def bipolar_ref(raw, data_class, mode='auto'):
     '''
     Reference sEEG data using Bipolar Reference
     :param raw: instance of Raw
@@ -147,29 +180,35 @@ def bipolar_ref(raw, mode='auto'):
     group_chan = get_group_chan(raw)
     group_data = {group: raw.copy().pick_channels(group_chan[group]).reorder_channels(group_chan[group])
                   for group in group_chan}
-
-    group_data_new = {group: np.diff(group_data[group]._data, axis=0) for group in group_chan}
+    if data_class == 'raw':
+        group_data_new = {group: np.diff(group_data[group]._data, axis=0) for group in group_chan}
+    elif data_class =='epoch':
+        group_data_new = {group: np.diff(group_data[group]._data, axis=1) for group in group_chan}
 
     # 保留最后一个没东西减的通道，但是不显示
     miss_data = dict()
     for group in group_data:
-        print(group_chan[group][0])
+        ch_name = group_data[group].ch_names
         miss_data[group] = group_data[group].copy().pick_channels([group_chan[group][0]])
         group_data[group].drop_channels(group_chan[group][0])._data = group_data_new[group]
         if mode == 'keep':
-            group_data[group].add_channels([miss_data[group]])
+            if data_class == 'raw':
+                group_data[group].add_channels([miss_data[group]]).reorder_channels(group_chan[group])
+            elif data_class == 'epoch':
+                group_data[group] = mne.epochs.add_channels_epochs([group_data[group], miss_data[group]])
+                group_data[group].reorder_channels(ch_name)
 
     group_0 = list(group_chan.keys())[0]
     raw_new = group_data[group_0]
     group_data.pop(group_0)
     for name in group_data:
-        if not (name == 'DC') or not (name == 'E'):
+        if not (name == 'DC'):
             raw_new.add_channels([group_data[name]])
 
     return raw_new, miss_data
 
 
-def monopolar_ref(raw, ref_chan):
+def monopolar_ref(raw, data_class, ref_chan):
     '''
     :param raw: instance of Raw
                 raw data
@@ -178,11 +217,13 @@ def monopolar_ref(raw, ref_chan):
     :return: instance of raw
              the re-ref raw data
     '''
-    chan = raw.ch_names
-
     ref_raw = raw.copy().pick_channels(ref_chan)
     ref_data = ref_raw._data
-    ref_mean = np.mean(ref_data, axis=0)
+    if data_class == 'raw':
+        ref_mean = np.mean(ref_data, axis=0)
+    elif data_class == 'epoch':
+        ref_mean = np.mean(ref_data, axis=1).reshape(ref_data.shape[0],
+                                                     1, ref_data.shape[2])
 
     new_raw = raw.copy()
     data = new_raw._data - ref_mean
@@ -191,7 +232,7 @@ def monopolar_ref(raw, ref_chan):
     return new_raw
 
 
-def laplacian_ref(raw, mode='auto'):
+def laplacian_ref(raw, data_class, mode='auto'):
     '''
     Reference sEEG data using Laplacian Reference
     :param raw: instance of Raw
@@ -207,30 +248,43 @@ def laplacian_ref(raw, mode='auto'):
     group_data = {group: raw.copy().pick_channels(group_chan[group]) for group in group_chan}
     group_data = {group: group_data[group].reorder_channels(group_chan[group])
                   for group in group_chan}
-    group_data_only = {group: group_data[group]._data * 1e3 for group in group_data}
-
+    group_data_only = {group: group_data[group]._data * 1e6 for group in group_data}
+    group_data_new = {group: np.zeros(group_data[group].copy()._data.shape) for group in group_data}
     for group in group_data_only:
         for index in range(1, group_len[group] - 1):
-            group_data_only[group][index] = group_data_only[group][index] - \
+            if data_class == 'raw':
+                group_data_new[group][index] = group_data_only[group][index] - \
                                             np.divide(group_data_only[group][index - 1] +
                                                       group_data_only[group][index + 1], 2)
-        group_data_only[group] = np.delete(group_data_only[group], 0, axis=0)
-        group_data_only[group] = np.delete(group_data_only[group], group_len[group] - 2, axis=0)
+            elif data_class == 'epoch':
+                group_data_new[group][:, index, :] = group_data_only[group][:, index, :] - \
+                                                      np.divide(group_data_only[group][:, index - 1, :] +
+                                                      group_data_only[group][:, index + 1, :], 2)
+        if data_class == 'raw':
+            group_data_new[group] = np.delete(group_data_new[group], 0, axis=0)
+            group_data_new[group] = np.delete(group_data_new[group], group_len[group] - 2, axis=0)
+        elif data_class == 'epoch':
+            group_data_new[group] = np.delete(group_data_new[group], 0, axis=1)
+            group_data_new[group] = np.delete(group_data_new[group], group_len[group] - 2, axis=1)
 
     miss_data = dict()
     for group in group_chan:
         ch_name = group_data[group].ch_names
         miss_data[group] = group_data[group].copy().pick_channels([ch_name[0], ch_name[-1]])
         group_data[group].drop_channels([ch_name[0], ch_name[-1]])
-        group_data[group]._data = group_data_only[group] * 1e-3
+        group_data[group]._data = group_data_new[group] * 1e-6
         if mode == 'keep':
-            group_data[group].add_channels([miss_data[group]]).reorder_channels(group_chan[group])
+            if data_class == 'raw':
+                group_data[group].add_channels([miss_data[group]]).reorder_channels(group_chan[group])
+            elif data_class == 'epoch':
+                group_data[group] = mne.epochs.add_channels_epochs([group_data[group], miss_data[group]])
+                group_data[group].reorder_channels(ch_name)
 
     group_0 = list(group_chan.keys())[0]
     raw_new = group_data[group_0]
     group_data.pop(group_0)
     for name in group_data:
-        if not (name == 'DC') or not (name == 'E'):
+        if not (name == 'DC'):
             raw_new.add_channels([group_data[name]])
 
     return raw_new, miss_data
