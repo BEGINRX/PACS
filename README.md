@@ -16,15 +16,11 @@ sEEG信号分析与处理软件
 - pyvistaqt  
 - scikit-learn 
 - scipy  
-## Installation
-- __Firstly, open a terminal in the folder then type__
+## Environment and Run
+- __Open a terminal in the folder then type__
 ```pip install -r requirements.txt``` __to install the dependencies.__
-- __Secondly, type__
-```
-python -i main.py
-```   
-- __Warning__  
-To get the latest version of mne which is necessary, type this   
+- __Then type__
 ```
 pip install -U https://github.com/mne-tools/mne-python/archive/master.zip
-```  
+python -i main.py
+```   
