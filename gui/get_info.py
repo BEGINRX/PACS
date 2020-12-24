@@ -32,26 +32,26 @@ def get_coord(filename, start_row = 1, end_row = 'auto'):
     return ch_name, ch_coord
 
 
-def mni2cor(mni, T='auto'):
+def mni2cor(mni, T = 'auto'):
 
     n = mni.shape[0]
-    if T == 'auto':
+    if T is 'auto':
         T = np.array([
             [-4, 0, 0, 84],
             [0, 4, 0, -116],
             [0, 0, 4, -56],
             [0, 0, 0, 1]])
     coord = np.array([
-        [mni[:, 0], mni[:, 1], mni[:, 2], np.ones((n))]]).T
+        [mni[:, 0], mni[:, 1], mni[:, 2], np.ones((n))]
+    ]).T
     coord = coord.reshape(coord.shape[0], coord.shape[1])
     coord = coord.dot(np.linalg.inv(T).T)
-    coord = np.round(np.delete(coord, -1, axis=1))
+    coord = np.round(np.delete(coord, -1, axis=1)).astype(np.int64)
 
     return coord
 
 
 def get_mni_struct(coord, db = 'auto'):
-
     td_data_base = np.load('D:\SEEG_Cognition\datasets\TDDataBase.npy').item()
     db_default = td_data_base['DB']
     if db == 'auto':
@@ -83,10 +83,13 @@ def get_mni_struct(coord, db = 'auto'):
 
 
 def get_anat_loc(fpath, td_data_path = None):
-
+    '''
+    get anatomy information for every electrodes
+    :param fpath:
+    :param td_data_path:
+    :return:
+    '''
     ch_name, ch_coord = get_coord(filename=fpath)
-    if td_data_path == None:
-        td_data_path = 'datasets\\TDDataBase.npy'
     td_data_base = np.load(td_data_path).item()
     db = td_data_base['DB']
 
@@ -112,7 +115,8 @@ def get_anat_loc(fpath, td_data_path = None):
 def get_gchan_wchan(anatomy):
     '''
     :param anatomy: ndarray of anatomy
-    :return: list chan list of gray matter and white matter
+    :return: list
+             chan list of gray matter and white matter
     '''
     chan_matter = anatomy[:, [0, 7]]
     chan_gm, chan_wm = [], []

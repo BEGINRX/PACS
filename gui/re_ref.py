@@ -111,24 +111,27 @@ def gwr_ref(raw, data_class, coord_path):
              re-referenced data
     '''
     from gui.get_info import get_anat_loc, get_gchan_wchan
-    loca_data = get_anat_loc(coord_path)
+    print(coord_path)
+    loca_data = get_anat_loc(coord_path, td_data_path='gui/TDDataBase.npy')
     chan_gm, chan_wm = get_gchan_wchan(loca_data)
 
     raw_gm = raw.copy().pick_channels(chan_gm)
     raw_wm = raw.copy().pick_channels(chan_wm)
 
+    raw_gm.load_data()
     data_gm = raw_gm._data
     if data_class == 'raw':
         data_gm_mean = np.mean(data_gm, axis=0)
     elif data_class == 'epoch':
-        data_gm_mean = np.mean(data_gm, axis=1).reshape(data_gm.shape[0], 1, data_gm[1])
+        data_gm_mean = np.mean(data_gm, axis=1).reshape(data_gm.shape[0], 1, data_gm.shape[2])
     raw_gm._data = data_gm - data_gm_mean
 
+    raw_wm.load_data()
     data_wm = raw_wm._data
     if data_class == 'raw':
         data_wm_mean = np.mean(data_wm, axis=0)
     elif data_class == 'epoch':
-        data_wm_mean = np.mean(data_wm, axis=1).reshape(data_wm.shape[0], 1, data_wm[1])
+        data_wm_mean = np.mean(data_wm, axis=1).reshape(data_wm.shape[0], 1, data_wm.shape[2])
     raw_wm._data = data_wm - data_wm_mean
 
     raw_ref = raw_gm.copy().add_channels([raw_wm])

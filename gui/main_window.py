@@ -1381,8 +1381,10 @@ class MainWindow(QMainWindow):
     def gwr_reref(self):
         '''Reference sEEG data using Gray-white Matter Reference(GWR)'''
         data = self.current_data['data'].copy()
+        self.coord_path, _ = QFileDialog.getOpenFileName(self, 'Load MNI Coornidates')
+        print(self.coord_path)
         try:
-            raw = gwr_ref(data, data_class=self.data_mode)
+            raw = gwr_ref(data, data_class=self.data_mode, coord_path=self.coord_path)
             self.get_seeg_data(raw)
         except Exception as error:
             self.show_error(error)
@@ -1392,7 +1394,7 @@ class MainWindow(QMainWindow):
         '''Reference sEEG data using Electrode Shaft Reference(ESR)'''
         data = self.current_data['data'].copy()
         try:
-            raw = esr_ref(data)
+            raw = esr_ref(data, data_class=self.data_mode)
             self.get_seeg_data(raw)
         except Exception as error:
             self.show_error(error)
@@ -1402,7 +1404,7 @@ class MainWindow(QMainWindow):
         '''Reference sEEG data using Bipolar Reference'''
         data = self.current_data['data'].copy()
         try:
-            raw, _ = bipolar_ref(data)
+            raw, _ = bipolar_ref(data, data_class=self.data_mode)
             self.get_seeg_data(raw)
         except Exception as error:
             self.show_error(error)
@@ -1419,7 +1421,7 @@ class MainWindow(QMainWindow):
         '''Reference sEEG data using Monopolar Reference'''
         data = self.current_data['data'].copy()
         try:
-            raw = monopolar_ref(data, ref_chan)
+            raw = monopolar_ref(data, data_class=self.data_mode, ref_chan=ref_chan)
             self.get_seeg_data(raw)
         except Exception as error:
             self.show_error(error)
@@ -1429,7 +1431,7 @@ class MainWindow(QMainWindow):
         '''Reference sEEG data using Laplacian Reference'''
         data = self.current_data['data'].copy()
         try:
-            raw, _ = laplacian_ref(data)
+            raw, _ = laplacian_ref(data, data_class=self.data_mode)
             self.get_seeg_data(raw)
         except Exception as error:
             self.show_error(error)
