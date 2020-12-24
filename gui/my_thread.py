@@ -27,8 +27,8 @@ class Import_Thread(QThread):
 
     trigger = pyqtSignal(object)
 
-    def __init__(self):
-        super(Import_Thread, self).__init__()
+    def __init__(self, parent=None):
+        super(Import_Thread, self).__init__(parent)
         # 数据路径
         self.data_path = ''
         self.seeg_data = ''
@@ -65,8 +65,8 @@ class Load_Epoched_Data_Thread(QThread):
 
     load = pyqtSignal(object)
 
-    def __init__(self):
-        super(Load_Epoched_Data_Thread, self).__init__()
+    def __init__(self, parent=None):
+        super(Load_Epoched_Data_Thread, self).__init__(parent)
         self.data_path = ''
         self.seeg_data = ''
 
@@ -96,8 +96,8 @@ class Resample_Thread(QThread):
 
     resample = pyqtSignal(object)
 
-    def __init__(self):
-        super(Resample_Thread, self).__init__()
+    def __init__(self, parent=None):
+        super(Resample_Thread, self).__init__(parent)
         self.data = ''
         self.resampling_rate = ''
 
@@ -121,8 +121,8 @@ class Filter_Thread(QThread):
 
     filter_signal = pyqtSignal(object)
 
-    def __init__(self):
-        super(Filter_Thread, self).__init__()
+    def __init__(self, parent=None):
+        super(Filter_Thread, self).__init__(parent)
 
         self.seeg_data = None
         self.filter_mode = None
@@ -214,8 +214,8 @@ class Calculate_Power(QThread):
 
     power_signal = pyqtSignal(object, int, tuple, object)
 
-    def __init__(self, data, method, chan_num, freq, time, use_fft, show_itc):
-        super(Calculate_Power, self).__init__()
+    def __init__(self, data, method, chan_num, freq, time, use_fft, show_itc, parent=None):
+        super(Calculate_Power, self).__init__(parent)
         self.data = data
         self.method = method
         self.chan_num = chan_num
@@ -261,9 +261,9 @@ class Calculate_PSD(QThread):
 
     psd_signal = pyqtSignal(str, object, object, object)
 
-    def __init__(self, data, method, freq, time, nfft, average):
+    def __init__(self, data, method, freq, time, nfft, average, parent=None):
 
-        super(Calculate_PSD, self).__init__()
+        super(Calculate_PSD, self).__init__(parent)
 
         self.data = data
         self.method = method
@@ -293,8 +293,8 @@ class Calculate_CSD(QThread):
 
     csd_signal = pyqtSignal(object, str)
 
-    def __init__(self, data, method, event, freq, n_fft,  use_fft):
-        super(Calculate_CSD, self).__init__()
+    def __init__(self, data, method, event, freq, n_fft, use_fft, parent=None):
+        super(Calculate_CSD, self).__init__(parent)
         self.data = data
         self.method = method
         self.event = event
