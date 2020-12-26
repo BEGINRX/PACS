@@ -28,6 +28,7 @@ from PyQt5.QtCore import Qt, pyqtSignal, QUrl
 from PyQt5.Qt import QCursor
 from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 from mne import Annotations, events_from_annotations, Epochs
+from mne.viz import plot_sensors_connectivity
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power, \
                           Calculate_PSD, Calculate_CSD
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
@@ -1773,6 +1774,30 @@ class MainWindow(QMainWindow):
 
     def plv(self):
         pass
+
+
+
+
+
+
+    def plot_ciplv(self, con, dim):
+        '''
+        ciplv : corrected imaginary PLV (icPLV) given by::
+
+                             |E[Im(Sxy/|Sxy|)]|
+            ciPLV = ------------------------------------
+                     sqrt(1 - |E[real(Sxy/|Sxy|)]| ** 2)
+        '''
+        data = self.current_data['data']
+        if dim == 2:
+            fig, ax = plt.subplots()
+            image = ax.matshow(con[:, :])
+            fig.colorbar(image)
+            fig.tight_layout()
+            plt.title('Phase Lag Index(PLI)')
+        elif dim == 3:
+            plot_sensors_connectivity(data.info, con[:, :])
+
 
 ############################################ Shared ####################################################
 

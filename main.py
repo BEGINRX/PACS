@@ -14,7 +14,7 @@ from gui.main_window import MainWindow
 if __name__ == "__main__":
 
     app = QApplication(sys.argv)
-    app.setApplicationName('sEEG_Cognition')
+    app.setApplicationName('SEEG_Cognition')
     GUI = MainWindow()
     # sys.exit(app.exec_())
     app.exec_()

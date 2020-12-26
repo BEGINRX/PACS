@@ -8,12 +8,12 @@
 import traceback
 import numpy as np
 from mne import io
-from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtCore import QThread, pyqtSignal
 import mne
 from mne.time_frequency import tfr_morlet, psd_multitaper, psd_welch, \
                             tfr_stockwell, tfr_multitaper, csd_fourier, \
                             csd_multitaper, csd_morlet
+from mne.connectivity import spectral_connectivity
 
 
 def show_error(error):
@@ -315,3 +315,37 @@ class Calculate_CSD(QThread):
             csd = csd_morlet(self.data, frequencies=self.freq, decim=10, n_jobs=2,
                              use_fft=self.use_fft)
         self.csd_signal.emit(csd, self.method)
+
+
+
+class Calculate_Spectral_Connect(QThread):
+
+    spectral_connect_signal = pyqtSignal(object)
+
+    def __init__(self, data, method, mode, freq, ):
+        super(Calculate_Spectral_Connect, self).__init__()
+
+        self.data = data
+        self.method = method
+        self.mode = mode
+        self.freq = freq
+        self.sfreq = self.data.info['sfreq']
+
+    def run(self):
+
+        self.data.load_data()
+        if self.mode == 'multitaper':
+            con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
+                self.data, method=self.method, mode='multitaper', sfreq=self.sfreq, fmin=self.freq[0], fmax=self.freq[1],
+                faverage=True, tmin=0., mt_adaptive=False, n_jobs=1)
+        elif self.mode == 'fourier':
+            con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
+                self.data, method=self.method, mode='fourier', sfreq=self.sfreq, fmin=self.freq[0],
+                fmax=self.freq[1], faverage=True, tmin=0., mt_adaptive=False, n_jobs=1)
+        elif self.mode == 'cwt_morlet':
+            con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
+                self.data, method=self.method, mode='cwt_morlet', sfreq=self.sfreq, fmin=self.freq[0],
+                fmax=self.freq[1], faverage=True, tmin=0., mt_adaptive=False, n_jobs=1)
+        con = con[:, :, 0]
+        con += con.T - np.diag(con.diagonal())
+        self.spectral_connect_signal.emit(con)
