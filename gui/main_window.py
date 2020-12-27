@@ -1646,7 +1646,7 @@ class MainWindow(QMainWindow):
 
         evoke = self.current_data['data'][event].average()
 
-        subjects_dir = 'gui/subjects'
+        subjects_dir = 'datasets/subjects'
         subject = 'fsaverage'
         fname_src = os.path.join(subjects_dir, 'fsaverage', 'bem',
                     'fsaverage-vol-5-src.fif')
