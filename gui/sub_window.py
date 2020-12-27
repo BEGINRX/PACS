@@ -679,7 +679,7 @@ class Select_Event(QMainWindow):
         super(Select_Event, self).__init__()
         self.event = [str(element) for element in event]
         self.event_select = list()
-        self.setWindowTitle('Channel')
+        self.setWindowTitle('Event')
 
         self.init_ui()
 

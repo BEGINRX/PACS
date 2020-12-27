@@ -14,7 +14,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib import pyplot as plt
 
 import mne
-mne.viz.set_3d_backend('mayavi')
+mne.viz.set_3d_backend('pyvista')
 import numpy as np
 import scipy.io as sio
 import gc
@@ -849,6 +849,8 @@ class MainWindow(QMainWindow):
         self.disp_electro_action = QAction('Display depth electrodes', self,
                                        statusTip='Display depth electrodes',
                                        triggered=self.display_electrodes)
+        self.visual_evoke_brain_action = QAction('Visualize Evoke data on a MNI brain', self,
+                                                 triggered=self.choose_evoke)
         self.epoch_plot_menu = QMenu('Plot epoch', self)
         self.plot_epoch_action = QAction('Plot time-frequency', self,
                                          statusTip='Plot time-frequency',
@@ -980,7 +982,8 @@ class MainWindow(QMainWindow):
                                                  self.select_chan_action,
                                                  self.select_event_action,
                                                  self.set_montage_action,
-                                                 self.disp_electro_action])
+                                                 self.disp_electro_action,
+                                                 self.visual_evoke_brain_action])
                 self.tree_right_menu.addMenu(self.epoch_plot_menu)
                 self.tree_right_menu.addMenu(self.epoch_analysis_menu)
                 self.tree_right_menu.addMenu(self.epoch_save_menu)
@@ -1626,6 +1629,51 @@ class MainWindow(QMainWindow):
     # Time analysis
     #
     # EP
+    def choose_evoke(self):
+        data = self.current_data['data'].copy()
+        self.event = data.event_id
+        del data
+        self.choose_evoke_win = Select_Event(list(self.event.keys()))
+        self.choose_evoke_win.event_signal.connect(self.visual_evoke_brain)
+        self.choose_evoke_win.show()
+
+
+    def visual_evoke_brain(self, event):
+
+        from mne.channels import compute_native_head_t
+        from mne.coreg import get_mni_fiducials
+        from mne.channels import make_dig_montage
+
+        evoke = self.current_data['data'][event].average()
+
+        subjects_dir = 'gui/subjects'
+        subject = 'fsaverage'
+        fname_src = os.path.join(subjects_dir, 'fsaverage', 'bem',
+                    'fsaverage-vol-5-src.fif')
+
+        subject_name = self.ptc_cb.currentText()
+        self.ch_coords = self.subject_data[subject_name]['MNI']
+        lpa, nasion, rpa = get_mni_fiducials(
+            subject, subjects_dir=subjects_dir)
+        lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
+        montage = make_dig_montage(
+            self.ch_coords, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
+        trans = compute_native_head_t(montage)
+
+        vol_src = mne.read_source_spaces(fname_src)
+        stc = mne.stc_near_sensors(
+            evoke, trans, subject, subjects_dir=subjects_dir, src=vol_src,
+            verbose='error')
+        stc = abs(stc)  # just look at magnitude
+        clim = dict(kind='value', lims=np.percentile(abs(evoke.data), [10, 50, 75]))
+        brain = stc.plot_3d(
+            src=vol_src, subjects_dir=subjects_dir,
+            view_layout='horizontal', views=['axial', 'coronal', 'sagittal'],
+            size=(800, 300), show_traces=0.4, clim=clim,
+            add_data_kwargs=dict(colorbar_kwargs=dict(label_font_size=8)))
+
+
+
 
     def erp(self):
 
