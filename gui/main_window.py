@@ -30,14 +30,13 @@ from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 from mne import Annotations, events_from_annotations, Epochs
 from mne.viz import plot_sensors_connectivity
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power, \
-                          Calculate_PSD, Calculate_CSD
+                          Calculate_PSD, Calculate_CSD, Calculate_Spectral_Connect
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
                            Refer_Window, Baseline_Time, ERP_WIN, PSD_Para_Win, TFR_Win, Topo_Power_Itc_Win, \
-                           CSD_Win
+                           CSD_Win, Spectral_Connect_Win
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
 from gui.data_io import write_raw_edf, write_raw_set
 from gui.extra_func import new_layout
-
 
 class MainWindow(QMainWindow):
     '''
@@ -868,9 +867,9 @@ class MainWindow(QMainWindow):
         self.t_f_analy_menu = QMenu('Time or frequency analysis', self)
         self.erp_action = QAction('Event-related potential (ERP)', self,
                                   triggered=self.erp)
-        self.csd_action = QAction('Plot cross-spectral density(CSD)', self,
+        self.csd_action = QAction('Plot cross-spectral density (CSD)', self,
                                   triggered=self.csd_para)
-        self.tfr_response_action = QAction('Time-frequency response(TFR)', self,
+        self.tfr_response_action = QAction('Time-frequency response (TFR)', self,
                                            triggered=self.tfr_para)
         self.power_topo_action = QAction('Power topomap', self,
                                          triggered=self.epoch_power_para)
@@ -883,24 +882,41 @@ class MainWindow(QMainWindow):
                                         self.power_joint_action,])
 
         self.connect_analy_epoch_menu = QMenu('Connectivity analysis', self)
-        self.pcc_epoch_action = QAction('Pearson correlation coefficient', self,
-                                  triggered=self.pcc)
-        self.coherence_epoch_action = QAction('Coherence analysis', self,
-                                        triggered=self.coherence)
-        self.gc_epoch_action = QAction('Granger Causality', self,
-                                 triggered=self.gc)
-        self.dtf_epoch_action = QAction('Directed transfer function', self,
-                                  triggered=self.dtf)
-        self.pdc_epoch_action = QAction('Partial directed coherence', self,
-                                  triggered=self.pdc)
-        self.plv_epoch_action = QAction('Phase lock value', self,
-                                  triggered=self.plv)
-        self.connect_analy_epoch_menu.addActions([self.pcc_epoch_action,
-                                                 self.coherence_epoch_action,
-                                                 self.gc_epoch_action,
-                                                 self.dtf_epoch_action,
-                                                 self.pdc_epoch_action,
-                                                 self.plv_epoch_action])
+        self.coherence_epoch_action = QAction('Coherence', self,
+                                        triggered=self.use_coherence)
+        self.imcoh_epoch_action = QAction('Imaginary Coherence', self,
+                                          triggered=self.use_imaginary_coh)
+        self.plv_epoch_action = QAction('Phase-Locking Value (PLV)', self,
+                                  triggered=self.use_plv)
+        self.ciplv_epoch_action = QAction('Corrected Imaginary PLV', self,
+                                  triggered=self.use_ciplv)
+        self.ppc_epoch_action = QAction('Pairwise Phase Consistency (PPC)', self,
+                                        triggered=self.use_ppc)
+        self.pli_epoch_action = QAction('Phase Lag Index(PLI)', self,
+                                        triggered=self.use_pli)
+        self.pli2_epoch_action = QAction('Unbiased estimator of squared PLI', self,
+                                         triggered=self.use_unbiased_pli)
+        self.wpli_epoch_action = QAction('Weighted Phase Lag Index (WPLI)', self,
+                                         triggered=self.use_wpli)
+        self.wpli2_epoch_action = QAction('Debiased estimator of squared WPLI', self,
+                                          triggered=self.use_debiased_wpli)
+        # self.pcc_epoch_action = QAction('Pearson correlation coefficient', self,
+        #                           triggered=self.pcc)
+        # self.gc_epoch_action = QAction('Granger Causality', self,
+        #                          triggered=self.gc)
+        # self.dtf_epoch_action = QAction('Directed transfer function', self,
+        #                           triggered=self.dtf)
+        # self.pdc_epoch_action = QAction('Partial directed coherence', self,
+        #                           triggered=self.pdc)
+        self.connect_analy_epoch_menu.addActions([self.coherence_epoch_action,
+                                                  self.imcoh_epoch_action,
+                                                  self.plv_epoch_action,
+                                                  self.ciplv_epoch_action,
+                                                  self.ppc_epoch_action,
+                                                  self.pli_epoch_action,
+                                                  self.pli2_epoch_action,
+                                                  self.wpli_epoch_action,
+                                                  self.wpli2_epoch_action])
         self.epoch_analysis_menu.addMenu(self.t_f_analy_menu)
         self.epoch_analysis_menu.addMenu(self.connect_analy_epoch_menu)
 
@@ -1743,13 +1759,9 @@ class MainWindow(QMainWindow):
                          timefreqs=[(.5, 10), (1.3, 8)])
 
 
-    # Frequency analysis
-    #
-    #
-
     # Connecivity analysis
     #
-    # Functional connecivity
+    # Time domain connecivity
     def pcc(self):
         pass
 
@@ -1758,7 +1770,169 @@ class MainWindow(QMainWindow):
         pass
 
 
-    # Effective connectivity
+    # Frequency domain connectivity (Spectral)
+    '''
+        'coh' : Coherence given by::
+    
+                 | E[Sxy] |
+        C = ---------------------
+            sqrt(E[Sxx] * E[Syy])
+    '''
+    def use_coherence(self):
+        self.method = 'coh'
+        data = self.current_data['data']
+        event_id = list(data.event_id.keys())
+        del data
+        self.connect_win = Spectral_Connect_Win(event_id, self.method)
+        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
+        self.connect_win.show()
+
+
+    '''
+        'imcoh' : Imaginary coherence [1]_ given by::
+
+                  Im(E[Sxy])
+        C = ----------------------
+            sqrt(E[Sxx] * E[Syy])
+    '''
+    def use_imaginary_coh(self):
+        self.method = 'imcoh'
+        data = self.current_data['data']
+        event_id = list(data.event_id.keys())
+        del data
+        self.connect_win = Spectral_Connect_Win(event_id, self.method)
+        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
+        self.connect_win.show()
+
+
+    '''
+        'plv' : Phase-Locking Value (PLV) [2]_ given by::
+
+         PLV = |E[Sxy/|Sxy|]|
+    '''
+    def use_plv(self):
+        self.method = 'plv'
+        data = self.current_data['data']
+        event_id = list(data.event_id.keys())
+        del data
+        self.connect_win = Spectral_Connect_Win(event_id, self.method)
+        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
+        self.connect_win.show()
+
+
+
+    '''
+        'ciplv' : corrected imaginary PLV (icPLV) [3]_ given by::
+
+                         |E[Im(Sxy/|Sxy|)]|
+        ciPLV = ------------------------------------
+                 sqrt(1 - |E[real(Sxy/|Sxy|)]| ** 2)
+    '''
+    def use_ciplv(self):
+        self.method = 'ciplv'
+        data = self.current_data['data']
+        event_id = list(data.event_id.keys())
+        del data
+        self.connect_win = Spectral_Connect_Win(event_id, self.method)
+        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
+        self.connect_win.show()
+
+
+    '''
+       'ppc' : Pairwise Phase Consistency (PPC), an unbiased estimator
+        of squared PLV
+    '''
+    def use_ppc(self):
+        self.method = 'ppc'
+        data = self.current_data['data']
+        event_id = list(data.event_id.keys())
+        del data
+        self.connect_win = Spectral_Connect_Win(event_id, self.method)
+        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
+        self.connect_win.show()
+
+
+    '''
+        'pli' : Phase Lag Index (PLI) [5]_ given by::
+
+         PLI = |E[sign(Im(Sxy))]|
+    '''
+    def use_pli(self):
+        self.method = 'pli'
+        data = self.current_data['data']
+        event_id = list(data.event_id.keys())
+        del data
+        self.connect_win = Spectral_Connect_Win(event_id, self.method)
+        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
+        self.connect_win.show()
+
+
+    # 'pli2_unbiased' : Unbiased estimator of squared PLI
+    def use_unbiased_pli(self):
+        self.method = 'pli2_unbiased'
+        data = self.current_data['data']
+        event_id = list(data.event_id.keys())
+        del data
+        self.connect_win = Spectral_Connect_Win(event_id, self.method)
+        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
+        self.connect_win.show()
+
+
+    def use_wpli(self):
+        self.method = 'wpli'
+        data = self.current_data['data']
+        event_id = list(data.event_id.keys())
+        del data
+        self.connect_win = Spectral_Connect_Win(event_id, self.method)
+        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
+        self.connect_win.show()
+
+
+    def use_debiased_wpli(self):
+        self.method = 'wpli2_debiased'
+        data = self.current_data['data']
+        event_id = list(data.event_id.keys())
+        del data
+        self.connect_win = Spectral_Connect_Win(event_id, self.method)
+        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
+        self.connect_win.show()
+
+
+    def calculate_con(self, method, mode, event, freq):
+        data = self.current_data['data']
+        evoke = data[event]
+        self.calcu_con = Calculate_Spectral_Connect(evoke, method=method, mode=mode, freq=freq)
+        self.calcu_con.spectral_connect_signal.connect(self.plot_spectral_connectivity)
+        self.calcu_con.start()
+
+
+
+    def plot_spectral_connectivity(self, con):
+
+        fig, ax = plt.subplots()
+        image = ax.matshow(con[:, :])
+        fig.colorbar(image)
+        fig.tight_layout()
+        plt.show()
+        if self.method == 'coh':
+            plt.title('Coherence')
+        elif self.method == 'imcoh':
+            plt.title('Imaginary Coherence')
+        elif self.method == 'plv':
+            plt.title('Phase-Locking Value (PLV)')
+        elif self.method == 'ciplv':
+            plt.title('corrected imaginary PLV')
+        elif self.method == 'ppc':
+            plt.title('Pairwise Phase Consistency (PPC)')
+        elif self.method == 'pli':
+            plt.title('Phase Lag Index (PLI)')
+        elif self.method == 'pli2_unbiased':
+            plt.title('Unbiased estimator of squared PLI')
+        elif self.method == 'wpli':
+            plt.title('Weighted Phase Lag Index (WPLI)')
+        elif self.method == 'wpli2_debiased':
+            plt.title('Debiased estimator of squared WPLI')
+
 
     def gc(self):
         pass
@@ -1770,33 +1944,6 @@ class MainWindow(QMainWindow):
 
     def pdc(self):
         pass
-
-
-    def plv(self):
-        pass
-
-
-
-
-
-
-    def plot_ciplv(self, con, dim):
-        '''
-        ciplv : corrected imaginary PLV (icPLV) given by::
-
-                             |E[Im(Sxy/|Sxy|)]|
-            ciPLV = ------------------------------------
-                     sqrt(1 - |E[real(Sxy/|Sxy|)]| ** 2)
-        '''
-        data = self.current_data['data']
-        if dim == 2:
-            fig, ax = plt.subplots()
-            image = ax.matshow(con[:, :])
-            fig.colorbar(image)
-            fig.tight_layout()
-            plt.title('Phase Lag Index(PLI)')
-        elif dim == 3:
-            plot_sensors_connectivity(data.info, con[:, :])
 
 
 ############################################ Shared ####################################################

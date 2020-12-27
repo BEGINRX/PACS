@@ -322,7 +322,7 @@ class Calculate_Spectral_Connect(QThread):
 
     spectral_connect_signal = pyqtSignal(object)
 
-    def __init__(self, data, method, mode, freq, ):
+    def __init__(self, data, method, mode, freq):
         super(Calculate_Spectral_Connect, self).__init__()
 
         self.data = data
@@ -334,17 +334,13 @@ class Calculate_Spectral_Connect(QThread):
     def run(self):
 
         self.data.load_data()
-        if self.mode == 'multitaper':
+        if self.mode == 'Multitaper':
             con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
                 self.data, method=self.method, mode='multitaper', sfreq=self.sfreq, fmin=self.freq[0], fmax=self.freq[1],
                 faverage=True, tmin=0., mt_adaptive=False, n_jobs=1)
-        elif self.mode == 'fourier':
+        elif self.mode == 'Fourier':
             con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
                 self.data, method=self.method, mode='fourier', sfreq=self.sfreq, fmin=self.freq[0],
-                fmax=self.freq[1], faverage=True, tmin=0., mt_adaptive=False, n_jobs=1)
-        elif self.mode == 'cwt_morlet':
-            con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
-                self.data, method=self.method, mode='cwt_morlet', sfreq=self.sfreq, fmin=self.freq[0],
                 fmax=self.freq[1], faverage=True, tmin=0., mt_adaptive=False, n_jobs=1)
         con = con[:, :, 0]
         con += con.T - np.diag(con.diagonal())
