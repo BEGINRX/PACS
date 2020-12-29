@@ -11,7 +11,8 @@ from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QPushButton,\
     QMessageBox, QStyleFactory, QListWidget, QAbstractItemView, \
     QStackedWidget, QGroupBox, QComboBox, QCheckBox
 from PyQt5.QtCore import pyqtSignal, Qt
-from PyQt5.QtGui import QFont, QDoubleValidator
+from PyQt5.QtGui import QFont, QDoubleValidator, QIntValidator, QRegExpValidator
+import numpy as np
 import sys
 import traceback
 
@@ -2401,20 +2402,216 @@ class Spectral_Connect_Win(QMainWindow):
                         QListWidget:item{height:28px}
                         QGroupBox{background-color:rgb(242,242,242)}
         ''')
+        
+        
+        
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas, \
+                                               NavigationToolbar2QT as NavigationToolbar
+from matplotlib.figure import Figure
+class My_Figure(FigureCanvas):
+    def __init__(self):
+        self.fig = Figure()
+        super(My_Figure, self).__init__(self.fig)
+        self.ax = self.fig.add_subplot(111)
+
+
+
+class Morlet_Connectivity_Win(QMainWindow):
+    
+    def __init__(self, matrix, title, n_times):
+        
+        super(Morlet_Connectivity_Win, self).__init__()
+        self.num = 0
+        if isinstance(matrix, np.ndarray):
+            self.matrix = matrix
+        self.matrix_plot = self.matrix[:, :, self.num]
+        # self.matrix_plot += self.matrix_plot.T - np.diag(self.matrix_plot.diagonal())
+        self.title = title
+        self.n_times = n_times
+        self.init_ui()
+    
+    def init_ui(self):
+        
+        self.setMinimumWidth(800)
+        self.setMinimumHeight(600)
+        self.center()
+        self.set_font()
+        self.create_center_widget()
+        self.create_widget()
+        self.create_layout()
+        self.set_style()
+        
+        
+    def center(self):
+        '''set the app window to the center of the displayer of the computer'''
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+
+    def set_font(self):
+        '''set the font'''
+        self.font = QFont()
+        self.font.setFamily('Arial')
+        self.font.setPointSize(12)
+
+
+    def create_center_widget(self):
+        '''create center widget'''
+        self.center_widget = QWidget()
+        self.center_widget.setFont(self.font)
+        self.setCentralWidget(self.center_widget)
+
+
+    def create_widget(self):
+
+        self.num_line_edit = QLineEdit()
+        self.num_line_edit.setAlignment(Qt.AlignCenter)
+        self.num_line_edit.setFixedWidth(120)
+        self.num_line_edit.setValidator(QIntValidator())
+        self.num_line_edit.setPlaceholderText(str(self.matrix.shape[2]))
+
+        self.left_button = QPushButton(self)
+        self.left_button.setText('Previous')
+        self.left_button.setFixedWidth(100)
+        self.left_button.clicked.connect(self.left_move)
+        self.go_button = QPushButton(self)
+        self.go_button.setText('Go')
+        self.go_button.setFixedWidth(80)
+        self.go_button.clicked.connect(self.go_move)
+        self.right_button = QPushButton(self)
+        self.right_button.setText('Next')
+        self.right_button.setFixedWidth(100)
+        self.right_button.clicked.connect(self.right_move)
+
+        self.canvas = My_Figure()
+        self.ax = self.canvas.ax
+        image = self.ax.matshow(self.matrix_plot)
+        self.canvas.fig.colorbar(image)
+        self.ax.set_title(self.title + ' ' + '(' + str(self.n_times[self.num].astype(np.float16)) + ')')
+
+        self.toolbar = NavigationToolbar(self.canvas, self)
+
+        self.canvas_stack = QStackedWidget()
+        self.canvas_stack.addWidget(self.canvas)
+        self.toolbar_stack = QStackedWidget()
+        self.toolbar_stack.addWidget(self.toolbar)
+        self.toolbar_stack.setFixedHeight(38)
+
+
+    def change_canvas(self, num):
+        self.matrix_plot = self.matrix[:, :, num]
+        # self.matrix_plot += self.matrix_plot.T - np.diag(self.matrix_plot.diagonal())
+        self.canvas = My_Figure()
+        self.ax = self.canvas.ax
+        image = self.ax.matshow(self.matrix_plot)
+        self.canvas.fig.colorbar(image)
+        self.ax.set_title(self.title + ' ' + '(' + 'time:' + '' +str(self.n_times[num].astype(np.float16)) + 's' + ')')
+        self.toolbar = NavigationToolbar(self.canvas, self)
+        self.canvas_stack.addWidget(self.canvas)
+        self.toolbar_stack.addWidget(self.toolbar)
+
+
+
+    def go_move(self):
+        if self.num_line_edit.text() == '':
+            self.num = self.matrix.shape[2] - 1
+        else:
+            self.num = int(self.num_line_edit.text())
+        if self.num >= self.matrix.shape[2]:
+            self.num = self.matrix.shape[2] - 1
+        self.canvas_stack.removeWidget(self.canvas)
+        self.toolbar_stack.removeWidget(self.toolbar)
+        self.change_canvas(self.num)
+
+
+    def left_move(self):
+
+        if self.num == 0:
+            pass
+        else:
+            self.canvas_stack.removeWidget(self.canvas)
+            self.toolbar_stack.removeWidget(self.toolbar)
+            self.num -= 1
+            self.change_canvas(self.num)
+
+
+    def right_move(self):
+        self.canvas_stack.removeWidget(self.canvas)
+        self.toolbar_stack.removeWidget(self.toolbar)
+        if self.num == self.matrix.shape[2] - 1:
+            self.num = 0
+            self.change_canvas(self.num)
+        else:
+            self.num += 1
+            self.change_canvas(self.num)
+
+
+    def create_layout(self):
+        layout_0 = QHBoxLayout()
+        layout_0.addSpacing(140)
+        layout_0.addWidget(self.left_button, stretch=1)
+        layout_0.setSpacing(3)
+        layout_0.addWidget(self.num_line_edit, stretch=3)
+        layout_0.setSpacing(3)
+        layout_0.addWidget(self.go_button, stretch=1)
+        layout_0.setSpacing(3)
+        layout_0.addWidget(self.right_button, stretch=1)
+        layout_0.addSpacing(180)
+
+        layout_main = QVBoxLayout()
+        layout_main.addWidget(self.toolbar_stack)
+        layout_main.addWidget(self.canvas_stack)
+        layout_main.addLayout(layout_0)
+
+        self.center_widget.setLayout(layout_main)
+
+
+    def keyPressEvent(self, event):
+        print(str(event.key()))
+        if event.key() == Qt.Key_Up:
+            self.right_move()
+        elif event.key() == Qt.Key_Down:
+            self.left_move()
+        elif event.key() == Qt.Key_Enter:
+            print('here')
+            self.go_move()
+
+
+    def set_style(self):
+        pass
 
 
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    chan = ['EEG A1-Ref', 'EEG A2-Ref', 'POL A3', 'POL A4', 'POL A5', 'POL A6', 'POL A7', 'POL A8', 'POL A9',
+    chan = ['POL A5', 'POL A6', 'POL A7', 'POL A8', 'POL A9',
                     'POL A10', 'POL A13', 'POL A14', 'POL H1', 'POL H2', 'POL H3', 'POL H4', 'POL H5', 'POL H6']
     # GUI = Select_Chan(chan_name=chan)
     # GUI = Event_Window([1, 2, 3, 4, 5, 6])
     # GUI = Epoch_Time()
     # GUI = Select_Event(event=['1', '2'])
     # GUI = Refer_Window()
-    GUI = Spectral_Connect_Win(['blue', 'red'], 'pli')
+    # GUI = Spectral_Connect_Win(['blue', 'red'], 'pli')
+    con = np.arange(12000).reshape((30, 40, 10))
+    times = np.arange(10).reshape(10, 1)
+    # import mne
+    # from mne.connectivity import spectral_connectivity
+    # import numpy as np
+    # fpath = 'D:\SEEG_Cognition\data\color_epoch.fif'
+    # epoch = mne.read_epochs(fpath, preload=True)
+    # epoch = epoch['blue']
+    # fmin, fmax = 3., 9.
+    # freqs = np.arange(fmin, fmax, 2)
+    # sfreq = epoch.info['sfreq']  # the sampling frequency
+    # epoch.load_data()
+    # con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
+    #     epoch, method='pli', mode='cwt_morlet', sfreq=sfreq,
+    #     faverage=True, tmin=0., mt_adaptive=False, n_jobs=1, cwt_freqs=freqs, cwt_n_cycles=freqs / 2)
+    # con = con[:, :, 0, :]
+    GUI = Morlet_Connectivity_Win(con, 'Phase Lag Index', times)
     GUI.show()
     app.exec_()
 
