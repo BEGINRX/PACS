@@ -23,8 +23,8 @@ from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QAction, QMenu, \
     QFileDialog, QLabel, QGroupBox, QVBoxLayout, QHBoxLayout,  \
     QMessageBox, QInputDialog, QLineEdit, QWidget, QPushButton, QStyleFactory, \
     QApplication, QTreeWidget, QComboBox, QStackedWidget, QTreeWidgetItem, \
-    QTreeWidgetItemIterator
-from PyQt5.QtCore import Qt, pyqtSignal, QUrl
+    QTreeWidgetItemIterator, QProgressBar
+from PyQt5.QtCore import Qt, pyqtSignal, QUrl, QBasicTimer
 from PyQt5.Qt import QCursor
 from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 from mne import Annotations, events_from_annotations, Epochs
@@ -33,7 +33,7 @@ from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thre
                           Calculate_PSD, Calculate_CSD, Calculate_Spectral_Connect
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
                            Refer_Window, Baseline_Time, ERP_WIN, PSD_Para_Win, TFR_Win, Topo_Power_Itc_Win, \
-                           CSD_Win, Spectral_Connect_Win
+                           CSD_Win, Spectral_Connect_Win, My_Progress
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
 from gui.data_io import write_raw_edf, write_raw_set
 from gui.extra_func import new_layout
@@ -1012,6 +1012,11 @@ class MainWindow(QMainWindow):
 
 
     # import sEEG data
+    def show_pbar(self):
+        self.pbar = My_Progress()
+        self.pbar.show()
+
+
     def execute_import_data(self):
         '''execute import data worker'''
         self.data_path, _ = QFileDialog.getOpenFileName(self, 'Import data')
@@ -1022,6 +1027,7 @@ class MainWindow(QMainWindow):
             self.import_worker.start()
             self.flag += 1
             self.data_mode = 'raw'
+            self.show_pbar()
         elif self.flag == 0 and self.data_path:
             QMessageBox.warning(self, 'Data Format Error',
                                 'Please select the right file!')
@@ -1038,6 +1044,7 @@ class MainWindow(QMainWindow):
                 self.load_epoched_data_worker.start()
                 self.flag += 1
                 self.data_mode = 'epoch'
+                self.show_pbar()
         except Exception as error:
             self.show_error(error)
             QMessageBox.warning(self, 'Data Format Error',
@@ -1086,6 +1093,7 @@ class MainWindow(QMainWindow):
 
     def get_seeg_data(self, seeg_data):
         '''get seeg data'''
+        self.pbar.step = 100
         try:
             # seeg_data.set_channel_types({ch_name: 'seeg' for ch_name in seeg_data.ch_names})
             self.key, _ = QInputDialog.getText(self, 'Name this Data', 'Please Name the Data',
@@ -2306,6 +2314,8 @@ class MainWindow(QMainWindow):
             self.event_num_cont_label.setText('')
             self.time_point_cont_label.setText('')
             self.data_size_cont_label.setText('')
+
+
 
 
 

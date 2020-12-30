@@ -4,17 +4,17 @@
 @Time: 2020/9/21 22:58
 @Desc: sub windows
 """
-
+import numpy as np
+import sys
+import traceback
 from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QPushButton,\
     QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, \
     QInputDialog, QLineEdit, QApplication, QScrollArea, QWidget, \
     QMessageBox, QStyleFactory, QListWidget, QAbstractItemView, \
-    QStackedWidget, QGroupBox, QComboBox, QCheckBox
-from PyQt5.QtCore import pyqtSignal, Qt
+    QStackedWidget, QGroupBox, QComboBox, QCheckBox, QProgressBar
+from PyQt5.QtCore import pyqtSignal, Qt, QBasicTimer
 from PyQt5.QtGui import QFont, QDoubleValidator, QIntValidator, QRegExpValidator
-import numpy as np
-import sys
-import traceback
+from mne import BaseEpochs
 
 
 def show_error(error):
@@ -2550,7 +2550,7 @@ class Morlet_Connectivity_Win(QMainWindow):
 
     def create_layout(self):
         layout_0 = QHBoxLayout()
-        layout_0.addSpacing(140)
+        layout_0.addStretch(1000)
         layout_0.addWidget(self.left_button, stretch=1)
         layout_0.setSpacing(3)
         layout_0.addWidget(self.num_line_edit, stretch=3)
@@ -2558,7 +2558,7 @@ class Morlet_Connectivity_Win(QMainWindow):
         layout_0.addWidget(self.go_button, stretch=1)
         layout_0.setSpacing(3)
         layout_0.addWidget(self.right_button, stretch=1)
-        layout_0.addSpacing(180)
+        layout_0.addStretch(1000)
 
         layout_main = QVBoxLayout()
         layout_main.addWidget(self.toolbar_stack)
@@ -2581,6 +2581,139 @@ class Morlet_Connectivity_Win(QMainWindow):
 
     def set_style(self):
         pass
+
+
+
+class Connectivity_Win(QMainWindow):
+
+    def __init(self, data, subject):
+        if isinstance(data, BaseEpochs):
+            self.data = data
+        else:
+            raise TypeError('This is not an epoch data')
+        self.subject = subject
+
+        self.init_ui()
+
+    def init_ui(self):
+        self.center()
+        self.set_font()
+        self.create_center_widget()
+        self.create_widget()
+
+
+    def center(self):
+        '''set the app window to the center of the displayer of the computer'''
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+
+    def set_font(self):
+        '''set the font'''
+        self.font = QFont()
+        self.font.setFamily('Arial')
+        self.font.setPointSize(12)
+
+
+    def create_center_widget(self):
+        '''create center widget'''
+        self.center_widget = QWidget()
+        self.center_widget.setFont(self.font)
+        self.setCentralWidget(self.center_widget)
+
+
+
+    def create_widget(self):
+
+        self.time_box = QGroupBox('Data')
+        self.connect_box = QGroupBox('Connectivity Measures')
+
+
+
+
+class My_Progress(QMainWindow):
+
+    def __init__(self):
+        
+        super(My_Progress, self).__init__()
+        self.step = 0
+        self.init_ui()
+
+
+    def init_ui(self):
+
+        self.setFixedHeight(50)
+        self.setFixedWidth(500)
+        self.setStyleSheet("background-color:gray")
+        self.setWindowFlags(Qt.WindowStaysOnTopHint |
+                            Qt.FramelessWindowHint)
+        self.center()
+        self.set_font()
+        self.create_center_widget()
+        self.create_widget()
+        self.create_layout()
+
+
+    def center(self):
+        '''set the app window to the center of the displayer of the computer'''
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+
+    def set_font(self):
+        '''set the font'''
+        self.font = QFont()
+        self.font.setFamily('Arial')
+        self.font.setPointSize(12)
+
+
+    def create_center_widget(self):
+        '''create center widget'''
+        self.center_widget = QWidget()
+        self.center_widget.setFont(self.font)
+        self.setCentralWidget(self.center_widget)
+
+
+    def create_widget(self):
+
+        self.pbar = QProgressBar()
+        self.pbar.setValue(0)
+        self.pbar.setMinimum(0)
+        self.pbar.setMaximum(100)
+
+        self.wait_label = QLabel('Running: ')
+
+        self.timer = QBasicTimer()
+        self.timer.start(100, self)
+
+
+    def create_layout(self):
+
+        layout_0 = QHBoxLayout()
+        layout_0.addWidget(self.wait_label)
+        layout_0.addWidget(self.pbar)
+
+        self.center_widget.setLayout(layout_0)
+
+
+    def timerEvent(self, event):
+
+        self.pbar.setValue(self.step)
+        if self.step >= 100:
+            self.timer.stop()
+            self.step = 0
+            self.close()
+        if self.step < 90:
+            self.step += 1
+
+
+
+
+
 
 
 
@@ -2611,7 +2744,8 @@ if __name__ == "__main__":
     #     epoch, method='pli', mode='cwt_morlet', sfreq=sfreq,
     #     faverage=True, tmin=0., mt_adaptive=False, n_jobs=1, cwt_freqs=freqs, cwt_n_cycles=freqs / 2)
     # con = con[:, :, 0, :]
-    GUI = Morlet_Connectivity_Win(con, 'Phase Lag Index', times)
+    # GUI = Morlet_Connectivity_Win(con, 'Phase Lag Index', times)
+    GUI = My_Progress()
     GUI.show()
     app.exec_()
 
