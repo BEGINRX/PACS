@@ -27,7 +27,7 @@ class SplashPanel(QSplashScreen):
         self.show()
         for i in range(1, 5):
             self.showMessage('软件初始化{}'.format('.' * i), alignment=Qt.AlignBottom, color=Qt.black)
-            time.sleep(0.15)
+            time.sleep(0.2)
 
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
