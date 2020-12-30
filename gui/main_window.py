@@ -547,7 +547,7 @@ class MainWindow(QMainWindow):
         self.seeg_info_box.setLayout(data_info_layout)
 
         # layout for basic visualization of topomap of sEEG
-        vis_layout = QVBoxLayout(self)
+        vis_layout = QVBoxLayout()
         vis_layout.setSpacing(4)
         vis_layout.setContentsMargins(0, 0, 0, 0)
         vis_layout.addWidget(self.electro_title_label)
@@ -805,32 +805,6 @@ class MainWindow(QMainWindow):
                                    self.save_edf_action,
                                    self.save_set_action])
 
-        self.raw_analysis_menu = QMenu('Analysis', self)
-        self.connect_analy_raw_menu = QMenu('Connectivity analysis', self)
-        self.pcc_raw_action = QAction('Pearson correlation coefficient', self,
-                                  triggered=self.pcc)
-        self.coherence_raw_action = QAction('Coherence analysis', self,
-                                        triggered=self.coherence)
-        self.gc_raw_action = QAction('Granger Causality', self,
-                                 triggered=self.gc)
-        self.dtf_raw_action = QAction('Directed transfer function', self,
-                                  triggered=self.dtf)
-        self.pdc_raw_action = QAction('Partial directed coherence', self,
-                                  triggered=self.pdc)
-        self.plv_raw_action = QAction('Phase lock value', self,
-                                  triggered=self.plv)
-        self.connect_analy_raw_menu.addActions([self.pcc_raw_action,
-                                                 self.coherence_raw_action,
-                                                 self.gc_raw_action,
-                                                 self.dtf_raw_action,
-                                                 self.pdc_raw_action,
-                                                 self.plv_raw_action])
-        self.raw_analysis_menu.addMenu(self.connect_analy_raw_menu)
-
-        self.statistic_analy_menu = QMenu('Statistic analysis', self)
-
-        self.raw_analysis_menu.addMenu(self.statistic_analy_menu)
-
 
     def epoch_rmenu(self):
 
@@ -866,61 +840,11 @@ class MainWindow(QMainWindow):
                                          self.epoch_psd_topo_action])
         self.epoch_analysis_menu = QMenu('Analysis', self)
 
-        self.t_f_analy_menu = QMenu('Time or frequency analysis', self)
-        self.erp_action = QAction('Event-related potential (ERP)', self,
-                                  triggered=self.erp)
-        self.csd_action = QAction('Plot cross-spectral density (CSD)', self,
-                                  triggered=self.csd_para)
-        self.tfr_response_action = QAction('Time-frequency response (TFR)', self,
-                                           triggered=self.tfr_para)
-        self.power_topo_action = QAction('Power topomap', self,
-                                         triggered=self.epoch_power_para)
-        self.power_joint_action = QAction('Power joint', self,
-                                         triggered=self.calcu_epoch_power_joint)
-        self.t_f_analy_menu.addActions([self.erp_action,
-                                        self.csd_action,
-                                        self.tfr_response_action,
-                                        self.power_topo_action,
-                                        self.power_joint_action,])
+        self.t_f_analy_action = QAction('Time frequency analysis', self,
+                                        triggered=self.show_tf_win)
 
-        self.connect_analy_epoch_menu = QMenu('Connectivity analysis', self)
-        self.coherence_epoch_action = QAction('Coherence', self,
-                                        triggered=self.use_coherence)
-        self.imcoh_epoch_action = QAction('Imaginary Coherence', self,
-                                          triggered=self.use_imaginary_coh)
-        self.plv_epoch_action = QAction('Phase-Locking Value (PLV)', self,
-                                  triggered=self.use_plv)
-        self.ciplv_epoch_action = QAction('Corrected Imaginary PLV', self,
-                                  triggered=self.use_ciplv)
-        self.ppc_epoch_action = QAction('Pairwise Phase Consistency (PPC)', self,
-                                        triggered=self.use_ppc)
-        self.pli_epoch_action = QAction('Phase Lag Index(PLI)', self,
-                                        triggered=self.use_pli)
-        self.pli2_epoch_action = QAction('Unbiased estimator of squared PLI', self,
-                                         triggered=self.use_unbiased_pli)
-        self.wpli_epoch_action = QAction('Weighted Phase Lag Index (WPLI)', self,
-                                         triggered=self.use_wpli)
-        self.wpli2_epoch_action = QAction('Debiased estimator of squared WPLI', self,
-                                          triggered=self.use_debiased_wpli)
-        # self.pcc_epoch_action = QAction('Pearson correlation coefficient', self,
-        #                           triggered=self.pcc)
-        # self.gc_epoch_action = QAction('Granger Causality', self,
-        #                          triggered=self.gc)
-        # self.dtf_epoch_action = QAction('Directed transfer function', self,
-        #                           triggered=self.dtf)
-        # self.pdc_epoch_action = QAction('Partial directed coherence', self,
-        #                           triggered=self.pdc)
-        self.connect_analy_epoch_menu.addActions([self.coherence_epoch_action,
-                                                  self.imcoh_epoch_action,
-                                                  self.plv_epoch_action,
-                                                  self.ciplv_epoch_action,
-                                                  self.ppc_epoch_action,
-                                                  self.pli_epoch_action,
-                                                  self.pli2_epoch_action,
-                                                  self.wpli_epoch_action,
-                                                  self.wpli2_epoch_action])
-        self.epoch_analysis_menu.addMenu(self.t_f_analy_menu)
-        self.epoch_analysis_menu.addMenu(self.connect_analy_epoch_menu)
+        self.connect_analy_action = QAction('Connectivity analysis', self,
+                                            triggered=self.show_con_win)
 
         self.epoch_save_menu = QMenu('Export data', self)
         self.epoch_save_fif_action = QAction('Save sEEG data as .fif data', self,
@@ -1757,7 +1681,9 @@ class MainWindow(QMainWindow):
         self.tfr_para_win.show()
 
 
+
     def calcu_tfr(self, method, event, chan_num, freq, time, use_fft, show_itc):
+        self.show_pbar()
         data = self.current_data['data'][event]
         self.calcu_psd_thread = Calculate_Power(data=data, method=method, chan_num=chan_num, freq=freq, time=time,
                                               use_fft=use_fft, show_itc=show_itc)
@@ -1765,8 +1691,9 @@ class MainWindow(QMainWindow):
         self.calcu_psd_thread.start()
 
 
-    def plot_tfr(self, power, chan_num, time, itc):
 
+    def plot_tfr(self, power, chan_num, time, itc):
+        self.pbar.step = 100
         power.plot([chan_num], baseline=time, mode='mean', vmin=0.,
            title='Time-Frequency Response', cmap='bwr')
         if itc is not None:
@@ -1783,7 +1710,7 @@ class MainWindow(QMainWindow):
 
 
     def calcu_epoch_power(self, method, event, freq, time, use_fft, show_itc):
-
+        self.show_pbar()
         data = self.current_data['data']
         if self.current_data['data_mode'] == 'epoch':
             self.power_thread = Calculate_Power(data=data, method=method, chan_num=None, freq=freq,
@@ -1793,7 +1720,7 @@ class MainWindow(QMainWindow):
 
 
     def plot_epoch_power(self, power, chan_num, baseline, itc):
-        print('start plotting power')
+        self.pbar.step = 100
         power.plot_topo(baseline=baseline,
                         mode='logratio', title='Average power')
         if itc is not None:
@@ -1801,7 +1728,7 @@ class MainWindow(QMainWindow):
 
 
     def calcu_epoch_power_joint(self):
-
+        self.show_pbar()
         data = self.current_data['data']
         if self.current_data['data_mode'] == 'epoch':
             self.power_thread = Calculate_Power(data)
@@ -1810,6 +1737,7 @@ class MainWindow(QMainWindow):
 
 
     def plot_epoch_power_joint(self, power, itc):
+        self.pbar.step = 100
         power.plot_joint(baseline=(-0.5, 0), mode='mean',
                          tmin=-.5, tmax=2,
                          timefreqs=[(.5, 10), (1.3, 8)])
