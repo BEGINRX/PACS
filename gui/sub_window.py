@@ -7,6 +7,7 @@
 import numpy as np
 import sys
 import traceback
+import time
 from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QPushButton,\
     QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, \
     QInputDialog, QLineEdit, QApplication, QScrollArea, QWidget, \
@@ -2584,55 +2585,6 @@ class Morlet_Connectivity_Win(QMainWindow):
 
 
 
-class Connectivity_Win(QMainWindow):
-
-    def __init(self, data, subject):
-        if isinstance(data, BaseEpochs):
-            self.data = data
-        else:
-            raise TypeError('This is not an epoch data')
-        self.subject = subject
-
-        self.init_ui()
-
-    def init_ui(self):
-        self.center()
-        self.set_font()
-        self.create_center_widget()
-        self.create_widget()
-
-
-    def center(self):
-        '''set the app window to the center of the displayer of the computer'''
-        qr = self.frameGeometry()
-        cp = QDesktopWidget().availableGeometry().center()
-        qr.moveCenter(cp)
-        self.move(qr.topLeft())
-
-
-    def set_font(self):
-        '''set the font'''
-        self.font = QFont()
-        self.font.setFamily('Arial')
-        self.font.setPointSize(12)
-
-
-    def create_center_widget(self):
-        '''create center widget'''
-        self.center_widget = QWidget()
-        self.center_widget.setFont(self.font)
-        self.setCentralWidget(self.center_widget)
-
-
-
-    def create_widget(self):
-
-        self.time_box = QGroupBox('Data')
-        self.connect_box = QGroupBox('Connectivity Measures')
-
-
-
-
 class My_Progress(QMainWindow):
 
     def __init__(self):
@@ -2714,6 +2666,91 @@ class My_Progress(QMainWindow):
 
 
 
+class Time_Freq_Win(QMainWindow):
+
+    def __init__(self, data):
+        super(Time_Freq_Win, self).__init__()
+        self.data = data
+        self.init_ui()
+
+
+    def init_ui(self):
+        self.center()
+        self.set_font()
+        self.create_center_widget()
+        self.create_widget()
+
+
+    def center(self):
+        '''set the app window to the center of the displayer of the computer'''
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+
+    def set_font(self):
+        '''set the font'''
+        self.font = QFont()
+        self.font.setFamily('Arial')
+        self.font.setPointSize(12)
+
+
+    def create_center_widget(self):
+        '''create center widget'''
+        self.center_widget = QWidget()
+        self.center_widget.setFont(self.font)
+        self.setCentralWidget(self.center_widget)
+
+
+
+
+
+class Connectivity_Win(QMainWindow):
+
+    def __init(self, data, subject):
+        if isinstance(data, BaseEpochs):
+            self.data = data
+        else:
+            raise TypeError('This is not an epoch data')
+        self.subject = subject
+
+        self.init_ui()
+
+    def init_ui(self):
+        self.center()
+        self.set_font()
+        self.create_center_widget()
+        self.create_widget()
+
+
+    def center(self):
+        '''set the app window to the center of the displayer of the computer'''
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+
+    def set_font(self):
+        '''set the font'''
+        self.font = QFont()
+        self.font.setFamily('Arial')
+        self.font.setPointSize(12)
+
+
+    def create_center_widget(self):
+        '''create center widget'''
+        self.center_widget = QWidget()
+        self.center_widget.setFont(self.font)
+        self.setCentralWidget(self.center_widget)
+
+
+
+    def create_widget(self):
+
+        self.time_box = QGroupBox('Data')
+        self.connect_box = QGroupBox('Connectivity Measures')
 
 
 

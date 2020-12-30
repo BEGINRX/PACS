@@ -18,22 +18,22 @@ mne.viz.set_3d_backend('pyvista')
 import numpy as np
 import scipy.io as sio
 import gc
+import time
 
 from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QAction, QMenu, \
     QFileDialog, QLabel, QGroupBox, QVBoxLayout, QHBoxLayout,  \
     QMessageBox, QInputDialog, QLineEdit, QWidget, QPushButton, QStyleFactory, \
     QApplication, QTreeWidget, QComboBox, QStackedWidget, QTreeWidgetItem, \
-    QTreeWidgetItemIterator, QProgressBar
-from PyQt5.QtCore import Qt, pyqtSignal, QUrl, QBasicTimer
+    QTreeWidgetItemIterator
+from PyQt5.QtCore import Qt, pyqtSignal, QUrl
 from PyQt5.Qt import QCursor
 from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 from mne import Annotations, events_from_annotations, Epochs
-from mne.viz import plot_sensors_connectivity
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power, \
                           Calculate_PSD, Calculate_CSD, Calculate_Spectral_Connect
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
                            Refer_Window, Baseline_Time, ERP_WIN, PSD_Para_Win, TFR_Win, Topo_Power_Itc_Win, \
-                           CSD_Win, Spectral_Connect_Win, My_Progress
+                           CSD_Win, Spectral_Connect_Win, My_Progress, Time_Freq_Win, Connectivity_Win
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
 from gui.data_io import write_raw_edf, write_raw_set
 from gui.extra_func import new_layout
@@ -111,10 +111,9 @@ class MainWindow(QMainWindow):
         cp = self.rect.center()
         fg.moveCenter(cp)
         desktop =  QApplication.desktop()
-        # self.move(desktop.width()*0.9, desktop.height()*0.7)
         self.setGeometry(self.rect)  # 可避免遮挡任务栏
         self.showMaximized()
-        # self.show()
+
 
 
     def create_central_widget(self):
@@ -782,7 +781,7 @@ class MainWindow(QMainWindow):
         self. interpolate_bad_action = QAction('Interpolate bad channels', self,
                                                triggered=self.interpolate_bad)
 
-        self.get_epoch_menu = QMenu('Get epoch of raw sEEG data', self)
+        self.get_epoch_menu = QMenu('Extract epoch', self)
         self.set_name_action = QAction('Set event name', self,
                                         statusTip='Set event name corresponding to its event id',
                                         triggered=self.get_event_name)
@@ -838,7 +837,6 @@ class MainWindow(QMainWindow):
         self.epoch_plot_menu.addActions([self.plot_epoch_action,
                                          self.epoch_psd_action,
                                          self.epoch_psd_topo_action])
-        self.epoch_analysis_menu = QMenu('Analysis', self)
 
         self.t_f_analy_action = QAction('Time frequency analysis', self,
                                         triggered=self.show_tf_win)
@@ -899,7 +897,6 @@ class MainWindow(QMainWindow):
                                                  self.interpolate_bad_action])
                 self.tree_right_menu.addMenu(self.get_epoch_menu)
                 self.tree_right_menu.addMenu(self.save_menu)
-                self.tree_right_menu.addMenu(self.raw_analysis_menu)
             elif item_parent == 'Epoch sEEG data':
                 self.epoch_rmenu()
                 self.tree_right_menu.addActions([self.apply_baseline_action,
@@ -909,7 +906,8 @@ class MainWindow(QMainWindow):
                                                  self.disp_electro_action,
                                                  self.visual_evoke_brain_action])
                 self.tree_right_menu.addMenu(self.epoch_plot_menu)
-                self.tree_right_menu.addMenu(self.epoch_analysis_menu)
+                self.tree_right_menu.addActions([self.t_f_analy_action,
+                                                self.connect_analy_action])
                 self.tree_right_menu.addMenu(self.epoch_save_menu)
             elif item_parent == 'MRI or CT':
                 pass
@@ -1018,8 +1016,8 @@ class MainWindow(QMainWindow):
     def get_seeg_data(self, seeg_data):
         '''get seeg data'''
         self.pbar.step = 100
+        self.pbar.close()
         try:
-            # seeg_data.set_channel_types({ch_name: 'seeg' for ch_name in seeg_data.ch_names})
             self.key, _ = QInputDialog.getText(self, 'Name this Data', 'Please Name the Data',
                                           QLineEdit.Normal)
             if self.key:
@@ -1069,7 +1067,6 @@ class MainWindow(QMainWindow):
                 self.set_current_data(key=self.key)
                 del seeg_data
                 gc.collect()
-                print(self.key, type(self.key))
             else:
                 del seeg_data
         except Exception as error:
@@ -1082,7 +1079,6 @@ class MainWindow(QMainWindow):
         self.data_mode = self.current_data['data_mode']
         print('----------------------------')
         print("current data\'s key:", key)
-        print('current data: ', self.current_data)
         print('----------------------------')
         if self.current_data['data_mode'] == 'raw':
             self.re_ref_button.setEnabled(True)
@@ -1183,14 +1179,6 @@ class MainWindow(QMainWindow):
             self.data_info_signal.connect(self.update_func)
             self.data_info_signal.emit(self.data_info)
             self.create_sub_windows()
-
-
-    def open_mni(self):
-
-        try:
-            os.system('notepad ' + self.mni_path)
-        except Exception as error:
-            self.show(error)
 
 
     def import_mri_ct(self):
@@ -1605,8 +1593,6 @@ class MainWindow(QMainWindow):
             add_data_kwargs=dict(colorbar_kwargs=dict(label_font_size=8)))
 
 
-
-
     def erp(self):
 
         data = self.current_data['data'].copy()
@@ -1670,6 +1656,16 @@ class MainWindow(QMainWindow):
         elif method == 'Morlet Wavelets':
             csd.mean().plot()
             plt.suptitle('Morlet wavelet transform')
+
+
+    def show_tf_win(self):
+        self.tf_win = Time_Freq_Win(self.current_data['data'])
+        self.tf_win.show()
+
+
+    def show_con_win(self):
+        self.con_win = Connectivity_Win(self.current_data['data'])
+        self.connect_win.show()
 
 
     def tfr_para(self):
