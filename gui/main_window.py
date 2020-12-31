@@ -1399,7 +1399,7 @@ class MainWindow(QMainWindow):
         try:
             chans = data.ch_names
             useless_chan = [chan for chan in chans if 'DC' in chan or 'BP' in chan
-                            or 'EKG' in chan or 'EMG' in chan or 'POL E' == chan or 'E' == chan]
+                            or 'EKG' in chan or 'EMG' in chan]
             del_useless_data = data.copy().drop_channels(useless_chan)
             print('----------------------------')
             print('useless channles detected: ', useless_chan)

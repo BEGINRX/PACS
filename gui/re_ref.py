@@ -3,7 +3,7 @@ import traceback
 import mne
 
 
-def get_group_chan(raw):
+def get_chan_group_old(raw):
     '''
     :param raw: instance of Raw
                 raw data
@@ -40,7 +40,6 @@ def get_group_chan(raw):
         i += 1
 
     try:
-        del ch_group_cont['E']
         del ch_group_cont['DC']
     except Exception as error:
         if error.args[0] == "KeyError: 'E'":
@@ -76,6 +75,63 @@ def get_group_chan(raw):
         traceback.print_exc()
 
     return ch_group_cont
+
+
+
+def get_chan_group(raw):
+    '''
+    :param raw: instance of Raw
+                raw data
+    :return: dict
+             electrodes in the same shaft
+    '''
+    chans = raw.ch_names
+    try:
+        raw.rename_channels({chan: chan[4:] for chan in raw.ch_names
+                             if 'POL' in chan})
+        raw.rename_channels({chan: chan[4:6] for chan in raw.ch_names
+                             if 'Ref' in chan})
+        useless_chan = [chan for chan in raw.ch_names if 'DC' in chan or 'BP' in chan
+                        or 'EKG' in chan or 'EMG' in chan]
+        raw.drop_channels(useless_chan)
+    except:
+        traceback.print_exc()
+
+    key = list(set([ch[0] for ch in chans]))
+    key += [k + '\'' for k in key]
+    chan_group = {k: [] for k in key}
+    for ch in chans:
+        for k in key:
+            if ch.startswith(k):
+                if not k.endswith('\'') and ('\'' in ch):
+                    continue
+                else:
+                    chan_group[k].append(ch)
+
+    # delete no-element group(s)
+    chan_del = []
+    for group in chan_group:
+        if not len(chan_group[group]):
+            chan_del.append(group)
+    [chan_group.pop(ch) for ch in chan_del]
+
+    # sort the channels in its group for reference
+    for group in chan_group:
+        if group.endswith('\''):
+            if group in chan_group[group]:
+                chan_group[group].remove(group)
+                chan_group[group].sort(key=lambda ch: (ch[0], int(ch[2:])))
+                chan_group[group].insert(0, group)
+            else:
+                chan_group[group].sort(key=lambda ch: (ch[0], int(ch[2:])))
+        else:
+            if group in chan_group[group]:
+                chan_group[group].remove(group)
+                chan_group[group].sort(key=lambda ch: (ch[0], int(ch[1:])))
+                chan_group[group].insert(0, group)
+            else:
+                chan_group[group].sort(key=lambda ch: (ch[0], int(ch[1:])))
+    return chan_group
 
 
 def car_ref(raw, data_class):
@@ -148,7 +204,7 @@ def esr_ref(raw, data_class):
              re-referenced data
     '''
     # 获取分组
-    group_chan = get_group_chan(raw)
+    group_chan = get_chan_group(raw)
 
     ch_data = {group: raw.copy().pick_channels(group_chan[group]) for group in group_chan}
     for group in ch_data:
@@ -180,7 +236,7 @@ def bipolar_ref(raw, data_class, mode='auto'):
     :return: instance of raw
              data and raw data of the first contact in each shafts
     '''
-    group_chan = get_group_chan(raw)
+    group_chan = get_chan_group(raw)
     group_data = {group: raw.copy().pick_channels(group_chan[group]).reorder_channels(group_chan[group])
                   for group in group_chan}
     if data_class == 'raw':
@@ -246,7 +302,7 @@ def laplacian_ref(raw, data_class, mode='auto'):
     :return: instance of raw
              data and raw data of the first contact in each shafts
     '''
-    group_chan = get_group_chan(raw)
+    group_chan = get_chan_group(raw)
     group_len = {group: len(group_chan[group]) for group in group_chan}
     group_data = {group: raw.copy().pick_channels(group_chan[group]) for group in group_chan}
     group_data = {group: group_data[group].reorder_channels(group_chan[group])
