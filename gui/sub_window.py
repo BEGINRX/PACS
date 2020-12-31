@@ -2411,7 +2411,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 class My_Figure(FigureCanvas):
     def __init__(self):
-        self.fig = Figure()
+        self.fig = Figure(constrained_layout=True)
         super(My_Figure, self).__init__(self.fig)
         self.ax = self.fig.add_subplot(111)
 
@@ -2472,6 +2472,8 @@ class Morlet_Connectivity_Win(QMainWindow):
         self.num_line_edit.setFixedWidth(120)
         self.num_line_edit.setValidator(QIntValidator())
         self.num_line_edit.setPlaceholderText(str(self.matrix.shape[2]))
+        self.num_line_edit.returnPressed.connect(self.go_move)
+        self.num_line_edit.clearFocus()
 
         self.left_button = QPushButton(self)
         self.left_button.setText('Previous')
@@ -2488,9 +2490,12 @@ class Morlet_Connectivity_Win(QMainWindow):
 
         self.canvas = My_Figure()
         self.ax = self.canvas.ax
-        image = self.ax.matshow(self.matrix_plot)
-        self.canvas.fig.colorbar(image)
+        self.image = self.ax.matshow(self.matrix_plot)
+        self.canvas.fig.colorbar(self.image)
+        self.canvas.mpl_connect('key_press_event', self.on_move)
         self.ax.set_title(self.title + ' ' + '(' + str(self.n_times[self.num].astype(np.float16)) + ')')
+        self.canvas.setFocusPolicy(Qt.StrongFocus)
+        self.canvas.setFocus()
 
         self.toolbar = NavigationToolbar(self.canvas, self)
 
@@ -2501,18 +2506,14 @@ class Morlet_Connectivity_Win(QMainWindow):
         self.toolbar_stack.setFixedHeight(38)
 
 
-    def change_canvas(self, num):
-        self.matrix_plot = self.matrix[:, :, num]
+    def change_canvas(self):
+        self.matrix_plot = self.matrix[:, :, self.num]
         # self.matrix_plot += self.matrix_plot.T - np.diag(self.matrix_plot.diagonal())
-        self.canvas = My_Figure()
-        self.ax = self.canvas.ax
-        image = self.ax.matshow(self.matrix_plot)
-        self.canvas.fig.colorbar(image)
-        self.ax.set_title(self.title + ' ' + '(' + 'time:' + '' +str(self.n_times[num].astype(np.float16)) + 's' + ')')
-        self.toolbar = NavigationToolbar(self.canvas, self)
-        self.canvas_stack.addWidget(self.canvas)
-        self.toolbar_stack.addWidget(self.toolbar)
-
+        self.image.set_data(self.matrix_plot)
+        self.ax.set_title(self.title + ' ' + '(' + 'time:' + '' +
+                          str(self.n_times[self.num].astype(np.float16)) + 's' + ')')
+        self.canvas.draw_idle()
+        self.num_line_edit.setText(str(self.num))
 
 
     def go_move(self):
@@ -2522,9 +2523,26 @@ class Morlet_Connectivity_Win(QMainWindow):
             self.num = int(self.num_line_edit.text())
         if self.num >= self.matrix.shape[2]:
             self.num = self.matrix.shape[2] - 1
-        self.canvas_stack.removeWidget(self.canvas)
-        self.toolbar_stack.removeWidget(self.toolbar)
-        self.change_canvas(self.num)
+            self.num_line_edit.setText(str(self.matrix.shape[2]))
+        self.change_canvas()
+
+
+    def on_move(self, event):
+        print('activcate this')
+        if event.key is 'down':
+            if self.num == 0:
+                self.num = 0
+            else:
+                self.num -= 1
+        elif event.key is 'up':
+            if self.num == self.matrix.shape[2] - 1:
+                self.num = 0
+            else:
+                self.num += 1
+        # self.matrix_plot += self.matrix_plot.T - np.diag(self.matrix_plot.diagonal())
+        self.change_canvas()
+
+
 
 
     def left_move(self):
@@ -2532,21 +2550,17 @@ class Morlet_Connectivity_Win(QMainWindow):
         if self.num == 0:
             pass
         else:
-            self.canvas_stack.removeWidget(self.canvas)
-            self.toolbar_stack.removeWidget(self.toolbar)
             self.num -= 1
-            self.change_canvas(self.num)
+        self.change_canvas()
 
 
     def right_move(self):
-        self.canvas_stack.removeWidget(self.canvas)
-        self.toolbar_stack.removeWidget(self.toolbar)
         if self.num == self.matrix.shape[2] - 1:
             self.num = 0
-            self.change_canvas(self.num)
+
         else:
             self.num += 1
-            self.change_canvas(self.num)
+        self.change_canvas()
 
 
     def create_layout(self):
@@ -2570,7 +2584,8 @@ class Morlet_Connectivity_Win(QMainWindow):
 
 
     def keyPressEvent(self, event):
-        print(str(event.key()))
+        pass
+        '''
         if event.key() == Qt.Key_Up:
             self.right_move()
         elif event.key() == Qt.Key_Down:
@@ -2578,10 +2593,12 @@ class Morlet_Connectivity_Win(QMainWindow):
         elif event.key() == Qt.Key_Enter:
             print('here')
             self.go_move()
+        '''
 
 
     def set_style(self):
         pass
+
 
 
 
@@ -2665,7 +2682,6 @@ class My_Progress(QMainWindow):
 
 
 
-
 class Time_Freq_Win(QMainWindow):
 
     def __init__(self, data):
@@ -2717,6 +2733,7 @@ class Connectivity_Win(QMainWindow):
 
         self.init_ui()
 
+
     def init_ui(self):
         self.center()
         self.set_font()
@@ -2765,7 +2782,7 @@ if __name__ == "__main__":
     # GUI = Select_Event(event=['1', '2'])
     # GUI = Refer_Window()
     # GUI = Spectral_Connect_Win(['blue', 'red'], 'pli')
-    con = np.arange(12000).reshape((30, 40, 10))
+    con = np.random.random((30, 40, 10))
     times = np.arange(10).reshape(10, 1)
     # import mne
     # from mne.connectivity import spectral_connectivity
@@ -2781,8 +2798,8 @@ if __name__ == "__main__":
     #     epoch, method='pli', mode='cwt_morlet', sfreq=sfreq,
     #     faverage=True, tmin=0., mt_adaptive=False, n_jobs=1, cwt_freqs=freqs, cwt_n_cycles=freqs / 2)
     # con = con[:, :, 0, :]
-    # GUI = Morlet_Connectivity_Win(con, 'Phase Lag Index', times)
-    GUI = My_Progress()
+    GUI = Morlet_Connectivity_Win(con, 'Phase Lag Index', times)
+    # GUI = My_Progress()
     GUI.show()
     app.exec_()
 

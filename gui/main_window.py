@@ -977,14 +977,14 @@ class MainWindow(QMainWindow):
 
         try:
             if data['data_mode'] == 'raw':
-                fig = mne.viz.plot_raw(data['data'], n_channels=20, scalings={'eeg':100e-6}, show_scrollbars=False,
-                               show_scalebars=False, show=False)
+                self.fig = mne.viz.plot_raw(data['data'], n_channels=20, scalings={'eeg':100e-6}, title='',
+                                       show=False)
                 plt.get_current_fig_manager().window.showMaximized()
                 plt.close()
                 print('Raw data 绘制完毕')
             elif data['data_mode'] == 'epoch':
-                fig = mne.viz.plot_epochs(data['data'], n_channels=20, scalings={'eeg':100e-6}, show_scrollbars=False,
-                               show=False)
+                self.fig = mne.viz.plot_epochs(data['data'], n_channels=20, scalings={'eeg':100e-6}, title='',
+                                          show=False)
                 plt.get_current_fig_manager().window.showMaximized()
                 plt.close()
                 print('Epoch data 绘制完毕')
@@ -995,7 +995,9 @@ class MainWindow(QMainWindow):
                 # https://www.jb51.net/article/188756.htm 浅谈matplotlib中FigureCanvasXAgg的用法
                 # https://github.com/matplotlib/matplotlib/issues/1219/
                 # https://github.com/matplotlib/matplotlib/pull/1220
-            self.canvas = FigureCanvas(fig)
+            self.canvas = FigureCanvas(self.fig)
+            self.canvas.setFocusPolicy(Qt.StrongFocus)
+            self.canvas.setFocus()
             try:
                 self.fig_stack.removeWidget(self.empty_label_1)
             except:
@@ -1005,6 +1007,8 @@ class MainWindow(QMainWindow):
             except:
                 pass
             self.canvas_tmp = self.canvas
+            self.canvas_tmp.setFocusPolicy(Qt.StrongFocus)
+            self.canvas_tmp.setFocus()
             self.fig_stack.addWidget(self.canvas_tmp)
         except Exception as error:
             if error.args[0] == "'RawEEGLAB' object has no attribute 'drop_bad'":

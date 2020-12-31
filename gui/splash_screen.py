@@ -21,7 +21,7 @@ class SplashPanel(QSplashScreen):
         message_font.setBold(True)
         message_font.setPointSize(10)
         self.setFont(message_font)
-        pixmap = QPixmap(".\image\\EEG.ico").scaled(QSize(200, 200), Qt.KeepAspectRatio)
+        pixmap = QPixmap("image/EEG.ico").scaled(QSize(200, 200), Qt.KeepAspectRatio)
         self.setPixmap(pixmap)
         self.center()
         self.show()
