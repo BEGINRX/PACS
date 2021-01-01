@@ -765,16 +765,9 @@ class MainWindow(QMainWindow):
         self.disp_electro_action = QAction('Display depth electrodes', self,
                                        statusTip='Display depth electrodes',
                                        triggered=self.display_electrodes)
-        self.plot_menu = QMenu('Plot', self)
-        self.plot_raw_action = QAction('Plot time-frequency', self,
-                                       statusTip='Plot time-frequency',
-                                       triggered=self.plot_raw_data)
-        self.plot_psd_action = QAction('Plot psd across channels', self,
-                                       statusTip='Plot psd across channels',
-                                       triggered=self.get_psd_para)
 
-        self.plot_menu.addActions([self.plot_raw_action,
-                                   self.plot_psd_action])
+        self.plot_raw_action = QAction('Plot raw data', self,
+                                       triggered=self.plot_raw_data)
 
         self.remove_bad_action = QAction('Remove bad channels', self,
                                          triggered=self.drop_bad)
@@ -824,19 +817,10 @@ class MainWindow(QMainWindow):
                                        triggered=self.display_electrodes)
         self.visual_evoke_brain_action = QAction('Visualize Evoke data on a MNI brain', self,
                                                  triggered=self.choose_evoke)
-        self.epoch_plot_menu = QMenu('Plot epoch', self)
-        self.plot_epoch_action = QAction('Plot time-frequency', self,
-                                         statusTip='Plot time-frequency',
+
+        self.plot_epoch_action = QAction('Plot epoch', self,
                                          triggered=self.plot_raw_data)
-        self.epoch_psd_action = QAction('Plot psd across channels', self,
-                                        statusTip='Plot psd across channels',
-                                        triggered=self.get_psd_para)
-        self.epoch_psd_topo_action = QAction('Plot topo psd', self,
-                                             statusTip='Plot topo psd',
-                                             triggered=self.plot_topo_psd)
-        self.epoch_plot_menu.addActions([self.plot_epoch_action,
-                                         self.epoch_psd_action,
-                                         self.epoch_psd_topo_action])
+
 
         self.t_f_analy_action = QAction('Time frequency analysis', self,
                                         triggered=self.show_tf_win)
@@ -892,8 +876,8 @@ class MainWindow(QMainWindow):
                 self.tree_right_menu.addMenu(self.re_ref_menu)
                 self.tree_right_menu.addMenu(self.filter_sub_menu)
                 self.tree_right_menu.addMenu(self.select_data_menu)
-                self.tree_right_menu.addMenu(self.plot_menu)
-                self.tree_right_menu.addActions([self.remove_bad_action,
+                self.tree_right_menu.addActions([self.plot_raw_action,
+                                                 self.remove_bad_action,
                                                  self.interpolate_bad_action])
                 self.tree_right_menu.addMenu(self.get_epoch_menu)
                 self.tree_right_menu.addMenu(self.save_menu)
@@ -905,8 +889,8 @@ class MainWindow(QMainWindow):
                                                  self.set_montage_action,
                                                  self.disp_electro_action,
                                                  self.visual_evoke_brain_action])
-                self.tree_right_menu.addMenu(self.epoch_plot_menu)
-                self.tree_right_menu.addActions([self.t_f_analy_action,
+                self.tree_right_menu.addActions([self.plot_epoch_action,
+                                                 self.t_f_analy_action,
                                                 self.connect_analy_action])
                 self.tree_right_menu.addMenu(self.epoch_save_menu)
             elif item_parent == 'MRI or CT':
@@ -1576,25 +1560,32 @@ class MainWindow(QMainWindow):
                     'fsaverage-vol-5-src.fif')
 
         subject_name = self.ptc_cb.currentText()
-        self.ch_coords = self.subject_data[subject_name]['MNI']
-        lpa, nasion, rpa = get_mni_fiducials(
-            subject, subjects_dir=subjects_dir)
-        lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
-        montage = make_dig_montage(
-            self.ch_coords, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
-        trans = compute_native_head_t(montage)
+        try:
+            self.ch_coords = self.subject_data[subject_name]['MNI']
 
-        vol_src = mne.read_source_spaces(fname_src)
-        stc = mne.stc_near_sensors(
-            evoke, trans, subject, subjects_dir=subjects_dir, src=vol_src,
-            verbose='error')
-        stc = abs(stc)  # just look at magnitude
-        clim = dict(kind='value', lims=np.percentile(abs(evoke.data), [10, 50, 75]))
-        brain = stc.plot_3d(
-            src=vol_src, subjects_dir=subjects_dir,
-            view_layout='horizontal', views=['axial', 'coronal', 'sagittal'],
-            size=(800, 300), show_traces=0.4, clim=clim,
-            add_data_kwargs=dict(colorbar_kwargs=dict(label_font_size=8)))
+            lpa, nasion, rpa = get_mni_fiducials(
+                subject, subjects_dir=subjects_dir)
+            lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
+            montage = make_dig_montage(
+                self.ch_coords, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
+            trans = compute_native_head_t(montage)
+
+            vol_src = mne.read_source_spaces(fname_src)
+            stc = mne.stc_near_sensors(
+                evoke, trans, subject, subjects_dir=subjects_dir, src=vol_src,
+                verbose='error')
+            stc = abs(stc)  # just look at magnitude
+            clim = dict(kind='value', lims=np.percentile(abs(evoke.data), [10, 50, 75]))
+            brain = stc.plot_3d(
+                src=vol_src, subjects_dir=subjects_dir,
+                view_layout='horizontal', views=['axial', 'coronal', 'sagittal'],
+                size=(800, 300), show_traces=0.4, clim=clim,
+                add_data_kwargs=dict(colorbar_kwargs=dict(label_font_size=8)))
+        except Exception as error:
+            if error.args[0] == "MNI":
+                QMessageBox.warning(self, 'Mnotage error', 'Please import MNI Coordinates')
+            else:
+                self.show_error(error)
 
 
     def erp(self):
@@ -1668,7 +1659,9 @@ class MainWindow(QMainWindow):
 
 
     def show_con_win(self):
-        self.con_win = Connectivity_Win(self.current_data['data'])
+        data = self.current_data['data']
+        subject = self.ptc_cb.currentText()
+        self.con_win = Connectivity_Win(data, subject)
         self.connect_win.show()
 
 

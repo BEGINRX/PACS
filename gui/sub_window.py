@@ -2721,7 +2721,7 @@ class Time_Freq_Win(QMainWindow):
 
 
 
-
+from gui.re_ref import get_chan_group
 class Connectivity_Win(QMainWindow):
 
     def __init(self, data, subject):
@@ -2730,6 +2730,7 @@ class Connectivity_Win(QMainWindow):
         else:
             raise TypeError('This is not an epoch data')
         self.subject = subject
+        self.group = len(get_chan_group(self.data))
 
         self.init_ui()
 
@@ -2763,12 +2764,127 @@ class Connectivity_Win(QMainWindow):
         self.setCentralWidget(self.center_widget)
 
 
+    # def create_widget_old(self):
+    #     self.time_box = QGroupBox('Data Information')
+    #     self.connect_box = QGroupBox('Connectivity Measures')
+    #     self.classic_measure_box = QGroupBox('Classic Measures')
+    #     self.phase_syn_box = QGroupBox('Phase Synchronization')
+    #     self.granger_causa_box = QGroupBox('Granger Causality')
+    #     self.infor_theory_box = QGroupBox('Information Theory')
+    #     self.generalized_syn_box = QGroupBox('Generalized Synchronization')
+    #
+    #     self.corre_btn = QPushButton(self)
+    #     self.corre_btn.setText('Correlation')
+    #     self.cross_corre_btn = QPushButton(self)
+    #     self.cross_corre_btn.setText('Cross-Correlation')
+    #     self.coher_btn = QPushButton(self)
+    #     self.coher_btn.setText('Coherence')
+    #     self.imag_coher_btn = QPushButton(self)
+    #     self.imag_coher_btn.setText('Imaginary part of Coherence')
+    #     self.psi_btn = QPushButton(self)
+    #     self.psi_btn.setText('Phase Slope Index')
+    #
+    #     self.plv_btn = QPushButton(self)
+    #     self.plv_btn.setText('Phase-Locking Value')
+    #     self.pli_btn = QPushButton(self)
+    #     self.pli_btn.setText('Phase-Lag Index')
+    #     self.wpli_btn = QPushButton(self)
+    #     self.wpli_btn.setText('Weighted Phase-Lag Index')
+    #     self.ri_btn = QPushButton(self)
+    #     self.ri_btn.setText('Rho Index')
+    #     self.dpi_btn = QPushButton(self)
+    #     self.dpi_btn.setText('Directionality Phase Index')
+    #
+    #     self.gc_btn = QPushButton(self)
+    #     self.gc_btn.setText('Granger Causality')
+    #     self.pdc_btn = QPushButton(self)
+    #     self.pdc_btn.setText('Partial Directly Coherence')
+    #     self.dtf_btn = QPushButton(self)
+    #     self.dtf_btn.setText('Directly Transfer Function')
+    #
+    #     self.mi_btn = QPushButton(self)
+    #     self.mi_btn.setText('Mutual Information')
+    #     self.pmi_btn = QPushButton(self)
+    #     self.pmi_btn.setText('Partial Mutual Information')
+    #     self.te_btn = QPushButton(self)
+    #     self.te_btn.setText('Transfer Entropy')
+    #     self.pte_btn = QPushButton(self)
+    #     self.pte_btn.setText('Partial Transfer Entropy')
+    #
+    #     self.si_btn = QPushButton(self)
+    #     self.si_btn.setText('S index')
+    #     self.hi_btn = QPushButton(self)
+    #     self.hi_btn.setText('H index')
+    #     self.mi_btn = QPushButton(self)
+    #     self.mi_btn.setText('M index')
+    #     self.ni_btn = QPushButton(self)
+    #     self.ni_btn.setText('N index')
+    #     self.li_btn = QPushButton(self)
+    #     self.li_btn.setText('L index')
+    #     self.sl_btn = QPushButton(self)
+    #     self.sl_btn.setText('Synchronization Likelyhood')
+
 
     def create_widget(self):
-
-        self.time_box = QGroupBox('Data')
+        self.data_box = QGroupBox('Data Information')
         self.connect_box = QGroupBox('Connectivity Measures')
 
+        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+        # Time Domain                                                             #
+        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+        #
+        self.time_box = QGroupBox('Time Domain')
+        self.func0_box = QGroupBox('Functional Connectivity')
+        self.direct0_box = QGroupBox('Directional Connectivity')
+        # functional
+        self.pearson_corre_btn = QPushButton(self)
+        self.pearson_corre_btn.setText('Pearson correlation')
+        self.enve_coore_btn = QPushButton(self)
+        self.enve_coore_btn.setText('Envelope correlation')
+        self.mutual_info_btn = QPushButton(self)
+        self.mutual_info_btn.setText('Mutual information')
+        # directional
+        self.cross_corre_btn = QPushButton(self)
+        self.cross_corre_btn.setText('Cross-Correlation')
+        self.granger_causa0_btn = QPushButton(self)
+        self.granger_causa0_btn.setText('Granger causality')
+        self.trans_ectropy_btn = QPushButton(self)
+        self.trans_ectropy_btn.setText('Transfer entropy')
+
+
+        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+        # Frequency Domain                                                        #
+        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+        #
+        self.freq_box = QGroupBox('Frequency Domain')
+        self.func1_box = QGroupBox('Functional Connectivity')
+        self.direct1_box = QGroupBox('Directional Connectivity')
+        # functional
+        self.coher_btn = QPushButton(self)
+        self.coher_btn.setText('Coherence')
+        self.imag_coher_btn = QPushButton(self)
+        self.imag_coher_btn.setText('Imaginary part of Coherence')
+        self.plv_btn = QPushButton(self)
+        self.plv_btn.setText('Phase-Locking Value')
+        self.ciplv_btn = QPushButton(self)
+        self.ciplv_btn.setText('corrected imaginary PLV')
+        self.ppc_btn = QPushButton(self)
+        self.ppc_btn.setText('Pairwise Phase Consistency')
+        self.pli_btn = QPushButton(self)
+        self.pli_btn.setText('Phase-Lag Index')
+        self.wpli_btn = QPushButton(self)
+        self.wpli_btn.setText('Weighted Phase-Lag Index')
+        self.unbiased_pli_btn = QPushButton(self)
+        self.unbiased_pli_btn.setText('Unbiased squared PLI')
+        self.unbiased_wpli_btn = QPushButton(self)
+        self.unbiased_wpli_btn.setText('Unbiased squared weighted PLI')
+        # directional
+        self.psi_btn = QPushButton(self)
+        self.psi_btn.setText('Phase Slope Index')
+        self.para_granger_btn = QPushButton(self)
+        self.para_granger_btn.setText('Parametric Granger Causality')
+        self.non_para_granger_btn = QPushButton(self)
+        self.non_para_granger_btn.setText('Non-parametric Granger Causality')
 
 
 
