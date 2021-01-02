@@ -2055,202 +2055,6 @@ class Topo_Power_Itc_Win(QMainWindow):
 
 
 
-class CSD_Win(QMainWindow):
-
-    csd_signal = pyqtSignal(str, list, list, int, bool)
-
-    def __init__(self, event):
-        super(CSD_Win, self).__init__()
-        self.event = event
-        self.use_fft = True
-        self.n_fft = 0
-
-        self.init_ui()
-
-
-    def init_ui(self):
-
-        self.setFixedWidth(350)
-        self.setWindowModality(Qt.ApplicationModal)
-        self.center()
-        self.set_font()
-        self.create_center_widget()
-        self.create_combobox()
-        self.create_label()
-        self.create_line_edit()
-        self.create_button()
-        self.create_layout()
-        self.set_style()
-        QApplication.setStyle(QStyleFactory.create('Fusion'))
-
-
-    def center(self):
-        '''set the app window to the center of the displayer of the computer'''
-        qr = self.frameGeometry()
-        cp = QDesktopWidget().availableGeometry().center()
-        qr.moveCenter(cp)
-        self.move(qr.topLeft())
-
-
-    def set_font(self):
-        '''set the font'''
-        self.font = QFont()
-        self.font.setFamily('Arial')
-        self.font.setPointSize(12)
-
-
-    def create_center_widget(self):
-        '''create center widget'''
-        self.center_widget = QWidget()
-        self.center_widget.setFont(self.font)
-        self.setCentralWidget(self.center_widget)
-
-
-    def create_combobox(self):
-
-        self.method_combo = QComboBox(self)
-        self.method_combo.addItems(['Short-term Fourier',
-                                    'Multitaper',
-                                    'Morlet Wavelets'])
-        self.method_combo.currentIndexChanged.connect(self.deactivate_fft)
-
-        self.event_combo = QComboBox(self)
-        self.event_combo.addItems(self.event)
-
-        self.fft_check_box = QCheckBox('Use FFT', self)
-        self.fft_check_box.setChecked(True)
-        self.fft_check_box.stateChanged.connect(self.change_fft)
-        self.fft_check_box.setEnabled(False)
-
-
-    def create_label(self):
-
-        self.method_label = QLabel('Method', self)
-        self.method_label.setFixedWidth(100)
-        self.event_label = QLabel('Event', self)
-        self.event_label.setFixedWidth(100)
-        self.n_fft_label = QLabel('n_FFT', self)
-        self.n_fft_label.setFixedWidth(100)
-        self.freq_label = QLabel('Frequency', self)
-        self.freq_label.setFixedWidth(100)
-        self.line_label_0 = QLabel(' - ', self)
-        self.line_label_0.setFixedWidth(20)
-        self.line_label_1 = QLabel(' - ', self)
-        self.line_label_1.setFixedWidth(20)
-
-
-    def create_line_edit(self):
-        self.n_fft_edit = QLineEdit('512')
-        self.n_fft_edit.setAlignment(Qt.AlignCenter)
-        self.n_fft_edit.setFixedWidth(93)
-        self.n_fft_edit.setValidator(QDoubleValidator())
-
-        self.fmin_edit = QLineEdit()
-        self.fmin_edit.setAlignment(Qt.AlignCenter)
-        self.fmin_edit.setFixedWidth(93)
-        self.fmin_edit.setValidator(QDoubleValidator())
-
-        self.fmax_edit = QLineEdit()
-        self.fmax_edit.setAlignment(Qt.AlignCenter)
-        self.fmax_edit.setFixedWidth(93)
-        self.fmax_edit.setValidator(QDoubleValidator())
-
-
-    def create_button(self):
-
-        self.ok_button = QPushButton(self)
-        self.ok_button.setText('OK')
-        self.ok_button.setFixedWidth(60)
-        self.ok_button.clicked.connect(self.ok_func)
-        self.cancel_button = QPushButton(self)
-        self.cancel_button.setText('Cancel')
-        self.cancel_button.clicked.connect(self.close)
-
-
-    def create_layout(self):
-
-        layout_0 = QHBoxLayout()
-        layout_0.addWidget(self.method_label)
-        layout_0.addWidget(self.method_combo)
-
-        layout_1 = QHBoxLayout()
-        layout_1.addWidget(self.event_label)
-        layout_1.addWidget(self.event_combo)
-
-        layout_2 = QHBoxLayout()
-        layout_2.addWidget(self.fmin_edit)
-        layout_2.addWidget(self.line_label_0)
-        layout_2.addWidget(self.fmax_edit)
-
-        layout_3 = QHBoxLayout()
-        layout_3.addWidget(self.freq_label)
-        layout_3.addLayout(layout_2)
-
-        layout_4 = QHBoxLayout()
-        layout_4.addWidget(self.n_fft_label)
-        layout_4.addStretch(1)
-        layout_4.addWidget(self.n_fft_edit)
-
-        button_layout = QHBoxLayout()
-        button_layout.addStretch(1)
-        button_layout.addWidget(self.ok_button)
-        button_layout.addWidget(self.cancel_button)
-
-
-        main_layout = QVBoxLayout()
-        main_layout.addLayout(layout_0)
-        main_layout.addLayout(layout_1)
-        main_layout.addLayout(layout_3)
-        main_layout.addLayout(layout_4)
-        main_layout.addWidget(self.fft_check_box)
-        main_layout.addLayout(button_layout)
-
-
-        self.center_widget.setLayout(main_layout)
-
-
-    def deactivate_fft(self):
-        if self.method_combo.currentText() == 'Short-term Fourier' or \
-           self.method_combo.currentText() == 'Multitaper':
-            self.fft_check_box.setEnabled(False)
-            self.n_fft_edit.setEnabled(True)
-        else:
-            self.fft_check_box.setEnabled(True)
-            self.n_fft_edit.setEnabled(False)
-
-
-    def change_fft(self):
-        if self.fft_check_box.isChecked():
-            self.use_fft = True
-        else:
-            self.use_fft = False
-
-
-    def ok_func(self):
-        self.method_chosen = self.method_combo.currentText()
-        self.event_chosen = self.event_combo.currentText()
-        self.n_fft = int(self.n_fft_edit.text())
-        if self.fmin_edit.text() and self.fmax_edit.text():
-            self.fmin = float(self.fmin_edit.text())
-            self.fmax = float(self.fmax_edit.text())
-            # print(self.method_chosen, type(self.method_chosen))
-            # print(self.event_chosen, type(self.event_chosen))
-            # print([self.fmin, self.fmax], type(self.fmin))
-            # print([self.tmin, self.tmax], type(self.tmin))
-            # print(self.use_fft, self.show_itc)
-            self.csd_signal.emit(self.method_chosen, [self.event_chosen],
-                                   [self.fmin, self.fmax], self.n_fft, self.use_fft)
-        self.close()
-
-
-    def set_style(self):
-        self.setStyleSheet('''
-                        QPushButton{font: 10pt Times New Roman}
-                        QListWidget{background-color:white ;font: 13pt Times New Roman}
-                        QListWidget:item{height:28px}
-                        QGroupBox{background-color:rgb(242,242,242)}
-        ''')
-
 
 
 class Spectral_Connect_Win(QMainWindow):
@@ -2428,7 +2232,10 @@ class Morlet_Connectivity_Win(QMainWindow):
         self.matrix_plot = self.matrix[:, :, self.num]
         # self.matrix_plot += self.matrix_plot.T - np.diag(self.matrix_plot.diagonal())
         self.title = title
-        self.n_times = n_times
+        if not n_times:
+            n_times = np.arange(self.matrix_plot.shape[2])
+        else:
+            self.n_times = n_times
         self.init_ui()
     
     def init_ui(self):
@@ -2719,12 +2526,18 @@ class Time_Freq_Win(QMainWindow):
         self.setCentralWidget(self.center_widget)
 
 
+    def create_widget(self):
+        pass
+
+
 
 
 from gui.re_ref import get_chan_group
+
 class Connectivity_Win(QMainWindow):
 
-    def __init(self, data, subject):
+    def __init__(self, data, subject):
+        super(Connectivity_Win, self).__init__()
         if isinstance(data, BaseEpochs):
             self.data = data
         else:
@@ -2740,6 +2553,8 @@ class Connectivity_Win(QMainWindow):
         self.set_font()
         self.create_center_widget()
         self.create_widget()
+        self.create_layout()
+        self.set_style()
 
 
     def center(self):
@@ -2760,7 +2575,7 @@ class Connectivity_Win(QMainWindow):
     def create_center_widget(self):
         '''create center widget'''
         self.center_widget = QWidget()
-        self.center_widget.setFont(self.font)
+        # self.center_widget.setFont(self.font)
         self.setCentralWidget(self.center_widget)
 
 
@@ -2827,15 +2642,60 @@ class Connectivity_Win(QMainWindow):
 
     def create_widget(self):
         self.data_box = QGroupBox('Data Information')
+        self.data_box.setProperty('group', 'box')
+        self.name_label = QLabel(self.subject)
+        self.name_label.setProperty('group', 'label')
+        self.name_label.setAlignment(Qt.AlignHCenter)
+        self.samplingr_label = QLabel('Sampling Rate')
+        self.samplingr_label.setProperty('group', 'label_0')
+        # self.samplingr_label.setAlignment(Qt.AlignHCenter)
+        self.samplingr_con_label = QLabel(str(self.data.info['sfreq']))
+        self.samplingr_con_label.setProperty('group', 'label')
+        self.samplingr_con_label.setAlignment(Qt.AlignHCenter)
+        self.group_label = QLabel('Group')
+        self.group_label.setProperty('group', 'label_0')
+        # self.group_label.setAlignment(Qt.AlignHCenter)
+        self.group_con_label = QLabel(str(self.group))
+        self.group_con_label.setProperty('group', 'label')
+        self.group_con_label.setAlignment(Qt.AlignHCenter)
+        self.chan_label = QLabel('Channel')
+        self.chan_label.setProperty('group', 'label_0')
+        # self.chan_label.setAlignment(Qt.AlignHCenter)
+        self.chan_len_label = QLabel(str(len(self.data.ch_names)))
+        self.chan_len_label.setProperty('group', 'label')
+        self.chan_len_label.setAlignment(Qt.AlignHCenter)
+        self.event_label = QLabel('Event')
+        self.event_label.setProperty('group', 'label_0')
+        # self.event_label.setAlignment(Qt.AlignHCenter)
+        self.event_num_label = QLabel(str(len(self.data.event_id)))
+        self.event_num_label.setProperty('group', 'label')
+        self.event_num_label.setAlignment(Qt.AlignHCenter)
+        self.epoch_label = QLabel('Epoch')
+        self.epoch_label.setProperty('group', 'label_0')
+        # self.epoch_label.setAlignment(Qt.AlignHCenter)
+        self.epoch_num_label = QLabel(str(len(self.data)))
+        self.epoch_num_label.setProperty('group', 'label')
+        self.epoch_num_label.setAlignment(Qt.AlignHCenter)
+        self.time_epoch_label = QLabel('Time epoch')
+        self.time_epoch_label.setProperty('group', 'label_0')
+        # self.time_epoch_label.setAlignment(Qt.AlignHCenter)
+        self.time_range_label = QLabel(str(self.data.tmin) + ' - ' + str(self.data.tmax))
+        self.time_range_label.setProperty('group', 'label')
+        self.time_range_label.setAlignment(Qt.AlignHCenter)
+
         self.connect_box = QGroupBox('Connectivity Measures')
+        self.connect_box.setProperty('group', 'box')
 
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
         # Time Domain                                                             #
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
         #
         self.time_box = QGroupBox('Time Domain')
+        self.time_box.setProperty('group', 'box_1')
         self.func0_box = QGroupBox('Functional Connectivity')
+        self.func0_box.setProperty('group', 'box_1')
         self.direct0_box = QGroupBox('Directional Connectivity')
+        self.direct0_box.setProperty('group', 'box_1')
         # functional
         self.pearson_corre_btn = QPushButton(self)
         self.pearson_corre_btn.setText('Pearson correlation')
@@ -2857,8 +2717,11 @@ class Connectivity_Win(QMainWindow):
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
         #
         self.freq_box = QGroupBox('Frequency Domain')
+        self.freq_box.setProperty('group', 'box_1')
         self.func1_box = QGroupBox('Functional Connectivity')
+        self.func1_box.setProperty('group', 'box_1')
         self.direct1_box = QGroupBox('Directional Connectivity')
+        self.direct1_box.setProperty('group', 'box_1')
         # functional
         self.coher_btn = QPushButton(self)
         self.coher_btn.setText('Coherence')
@@ -2885,6 +2748,95 @@ class Connectivity_Win(QMainWindow):
         self.para_granger_btn.setText('Parametric Granger Causality')
         self.non_para_granger_btn = QPushButton(self)
         self.non_para_granger_btn.setText('Non-parametric Granger Causality')
+
+
+    def create_layout(self):
+
+        layout_1 = QHBoxLayout()
+        layout_1.addWidget(self.samplingr_label)
+        layout_1.addWidget(self.samplingr_con_label)
+        layout_1.addWidget(self.group_label)
+        layout_1.addWidget(self.group_con_label)
+        layout_1.addWidget(self.chan_label)
+        layout_1.addWidget(self.chan_len_label)
+        layout_2 = QHBoxLayout()
+        layout_2.addWidget(self.event_label)
+        layout_2.addWidget(self.event_num_label)
+        layout_2.addWidget(self.epoch_label)
+        layout_2.addWidget(self.epoch_num_label)
+        layout_2.addWidget(self.time_epoch_label)
+        layout_2.addWidget(self.time_range_label)
+        layout_3 = QVBoxLayout()
+        layout_3.addWidget(self.name_label)
+        layout_3.addLayout(layout_1)
+        layout_3.addLayout(layout_2)
+        self.data_box.setLayout(layout_3)
+
+        time_layout_0 = QHBoxLayout()
+        time_layout_0.addWidget(self.pearson_corre_btn)
+        time_layout_0.addWidget(self.enve_coore_btn)
+        time_layout_0.addWidget(self.mutual_info_btn)
+        self.func0_box.setLayout(time_layout_0)
+        time_layout_1 = QHBoxLayout()
+        time_layout_1.addWidget(self.cross_corre_btn)
+        time_layout_1.addWidget(self.granger_causa0_btn)
+        time_layout_1.addWidget(self.trans_ectropy_btn)
+        self.direct0_box.setLayout(time_layout_1)
+        layout_4 = QVBoxLayout()
+        layout_4.addWidget(self.func0_box)
+        layout_4.addWidget(self.direct0_box)
+        self.time_box.setLayout(layout_4)
+
+        freq_layout_0 = QVBoxLayout()
+        freq_layout_0.addWidget(self.coher_btn)
+        freq_layout_0.addWidget(self.imag_coher_btn)
+        freq_layout_0.addWidget(self.plv_btn)
+        freq_layout_1 = QVBoxLayout()
+        freq_layout_1.addWidget(self.ciplv_btn)
+        freq_layout_1.addWidget(self.ppc_btn)
+        freq_layout_1.addWidget(self.pli_btn)
+        freq_layout_2 = QVBoxLayout()
+        freq_layout_2.addWidget(self.unbiased_pli_btn)
+        freq_layout_2.addWidget(self.wpli_btn)
+        freq_layout_2.addWidget(self.unbiased_wpli_btn)
+        freq_layout_3 = QHBoxLayout()
+        freq_layout_3.addLayout(freq_layout_0)
+        freq_layout_3.addLayout(freq_layout_1)
+        freq_layout_3.addLayout(freq_layout_2)
+        self.func1_box.setLayout(freq_layout_3)
+        freq_layout_4 = QVBoxLayout()
+        freq_layout_4.addWidget(self.psi_btn)
+        freq_layout_4.addWidget(self.para_granger_btn)
+        freq_layout_4.addWidget(self.non_para_granger_btn)
+        self.direct1_box.setLayout(freq_layout_4)
+        layout_5 = QHBoxLayout()
+        layout_5.addWidget(self.func1_box)
+        layout_5.addWidget(self.direct1_box)
+        self.freq_box.setLayout(layout_5)
+
+
+        layout_6 = QVBoxLayout()
+        layout_6.addWidget(self.time_box)
+        layout_6.addWidget(self.freq_box)
+        self.connect_box.setLayout(layout_6)
+        layout_7 = QVBoxLayout()
+        layout_7.addWidget(self.data_box)
+        layout_7.addWidget(self.connect_box)
+        self.center_widget.setLayout(layout_7)
+
+
+
+    def set_style(self):
+        self.setStyleSheet(''' 
+            QLabel[group = 'label_0']{font:10pt Arial;
+            color: black}
+            QLabel[group = 'label']{font:bold 10pt Arial;
+            color: black}
+            QGroupBox[group = 'box']{font: bold 13pt Arial;
+            color: black}
+            QGroupBox[group = 'box_1']{font: bold 11pt Arial;
+            color: black}
+        ''')
 
 
 
@@ -2914,8 +2866,10 @@ if __name__ == "__main__":
     #     epoch, method='pli', mode='cwt_morlet', sfreq=sfreq,
     #     faverage=True, tmin=0., mt_adaptive=False, n_jobs=1, cwt_freqs=freqs, cwt_n_cycles=freqs / 2)
     # con = con[:, :, 0, :]
-    GUI = Morlet_Connectivity_Win(con, 'Phase Lag Index', times)
-    # GUI = My_Progress()
+    # GUI = Morlet_Connectivity_Win(con, 'Phase Lag Index', times)
+    import mne
+    data = mne.read_epochs('D:\SEEG_Cognition\data\color_epoch.fif')
+    GUI = Connectivity_Win(data=data, subject='caohaijuan')
     GUI.show()
     app.exec_()
 

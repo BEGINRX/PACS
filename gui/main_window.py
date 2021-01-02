@@ -32,11 +32,11 @@ from mne import Annotations, events_from_annotations, Epochs
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power, \
                           Calculate_PSD, Calculate_CSD, Calculate_Spectral_Connect
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
-                           Refer_Window, Baseline_Time, ERP_WIN, PSD_Para_Win, TFR_Win, Topo_Power_Itc_Win, \
-                           CSD_Win, Spectral_Connect_Win, My_Progress, Time_Freq_Win, Connectivity_Win
+                           Refer_Window, Baseline_Time, ERP_WIN, PSD_Para_Win, TFR_Win, Topo_Power_Itc_Win,\
+                           Spectral_Connect_Win, My_Progress, Time_Freq_Win, Connectivity_Win
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
 from gui.data_io import write_raw_edf, write_raw_set
-from gui.extra_func import new_layout
+from gui.my_func import new_layout
 
 class MainWindow(QMainWindow):
     '''
@@ -180,7 +180,7 @@ class MainWindow(QMainWindow):
         # actions for Help menu bar
         #
         #  website
-        self.website_action = QAction('sEEGPA website', self,
+        self.website_action = QAction('SEEG_Cognition website', self,
                                triggered=self.show_website)
         self.licence_action = QAction('Licence', self,
                                       triggered=self.show_licence)
@@ -287,7 +287,7 @@ class MainWindow(QMainWindow):
         self.empty_label_1.setProperty('name', 'empty')
 
         # sEEG Data Information title
-        self.data_info_label = QLabel('sEEG Data Information', self)
+        self.data_info_label = QLabel('SEEG Data Information', self)
         self.data_info_label.setProperty('name', 'title')
         self.data_info_label.setAlignment(Qt.AlignHCenter)
         self.data_info_label.setFixedHeight(30)
@@ -405,7 +405,7 @@ class MainWindow(QMainWindow):
         # self.data_size_cont_label.setFixedSize(130, 38)
 
         # labels in electordes and activation
-        self.electro_title_label = QLabel('sEEG Data visualization', self)
+        self.electro_title_label = QLabel('SEEG Data visualization', self)
         self.electro_title_label.setProperty('name', 'title')
         self.electro_title_label.setAlignment(Qt.AlignCenter)
         self.electro_title_label.setFixedHeight(30)
@@ -963,13 +963,14 @@ class MainWindow(QMainWindow):
             if data['data_mode'] == 'raw':
                 self.fig = mne.viz.plot_raw(data['data'], n_channels=20, scalings={'eeg':100e-6}, title='',
                                        show=False)
-                plt.get_current_fig_manager().window.showMaximized()
+                # plt.get_current_fig_manager().window.showMaximized()
+                self.fig.canvas.manager.full_screen_toggle()
                 plt.close()
                 print('Raw data 绘制完毕')
             elif data['data_mode'] == 'epoch':
                 self.fig = mne.viz.plot_epochs(data['data'], n_channels=20, scalings={'eeg':100e-6}, title='',
                                           show=False)
-                plt.get_current_fig_manager().window.showMaximized()
+                self.fig.canvas.manager.full_screen_toggle()
                 plt.close()
                 print('Epoch data 绘制完毕')
                 # 如果不添加plt.close(), 会出现
@@ -1626,32 +1627,6 @@ class MainWindow(QMainWindow):
                 self.show_error(error)
 
 
-    def csd_para(self):
-        data = self.current_data['data']
-        self.csd_para_win = CSD_Win(list(data.event_id.keys()))
-        self.csd_para_win.csd_signal.connect(self.calculate_csd)
-        self.csd_para_win.show()
-
-
-    def calculate_csd(self, method, event, freq, n_fft, use_fft):
-        data = self.current_data['data']
-        self.calcu_csd_thread = Calculate_CSD(data, method=method, event=event, freq=freq,
-                                              n_fft=n_fft, use_fft=use_fft)
-        self.calcu_csd_thread.csd_signal.connect(self.plot_csd)
-        self.calcu_csd_thread.start()
-
-
-    def plot_csd(self, csd, method):
-        if method == 'Short-term Fourier':
-            csd.mean().plot()
-            plt.suptitle('short-term Fourier transform')
-        elif method == 'Multitaper':
-            csd.mean().plot()
-            plt.suptitle('adaptive multitapers')
-        elif method == 'Morlet Wavelets':
-            csd.mean().plot()
-            plt.suptitle('Morlet wavelet transform')
-
 
     def show_tf_win(self):
         self.tf_win = Time_Freq_Win(self.current_data['data'])
@@ -2197,7 +2172,7 @@ class MainWindow(QMainWindow):
 
     def show_website(self):
 
-        QDesktopServices.openUrl(QUrl("http://www.baidu.com"))
+        QDesktopServices.openUrl(QUrl("http://bme.szu.edu.cn/20161/0325/54.html"))
 
 
     def show_licence(self):
