@@ -13,8 +13,8 @@ from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QPushButton,\
     QInputDialog, QLineEdit, QApplication, QScrollArea, QWidget, \
     QMessageBox, QStyleFactory, QListWidget, QAbstractItemView, \
     QStackedWidget, QGroupBox, QComboBox, QCheckBox, QProgressBar
-from PyQt5.QtCore import pyqtSignal, Qt, QBasicTimer
-from PyQt5.QtGui import QFont, QDoubleValidator, QIntValidator, QRegExpValidator
+from PyQt5.QtCore import pyqtSignal, Qt, QBasicTimer, QSize
+from PyQt5.QtGui import QFont, QDoubleValidator, QIntValidator, QPixmap
 from mne import BaseEpochs
 
 
@@ -2533,7 +2533,7 @@ class Time_Freq_Win(QMainWindow):
 
 
 from gui.re_ref import get_chan_group
-
+from gui.my_thread import Calculate_Spectral_Connect
 class Connectivity_Win(QMainWindow):
 
     def __init__(self, data, subject):
@@ -2549,6 +2549,7 @@ class Connectivity_Win(QMainWindow):
 
 
     def init_ui(self):
+        self.setFixedHeight(580)
         self.center()
         self.set_font()
         self.create_center_widget()
@@ -2644,44 +2645,63 @@ class Connectivity_Win(QMainWindow):
         self.data_box = QGroupBox('Data Information')
         self.data_box.setProperty('group', 'box')
         self.name_label = QLabel(self.subject)
-        self.name_label.setProperty('group', 'label')
+        self.name_label.setProperty('group', 'label_00')
         self.name_label.setAlignment(Qt.AlignHCenter)
+        self.name_label.setFixedWidth(700)
         self.samplingr_label = QLabel('Sampling Rate')
         self.samplingr_label.setProperty('group', 'label_0')
-        # self.samplingr_label.setAlignment(Qt.AlignHCenter)
+        self.samplingr_label.setAlignment(Qt.AlignLeft)
+        self.samplingr_label.setFixedWidth(120)
         self.samplingr_con_label = QLabel(str(self.data.info['sfreq']))
         self.samplingr_con_label.setProperty('group', 'label')
         self.samplingr_con_label.setAlignment(Qt.AlignHCenter)
+        self.samplingr_con_label.setFixedWidth(60)
         self.group_label = QLabel('Group')
         self.group_label.setProperty('group', 'label_0')
-        # self.group_label.setAlignment(Qt.AlignHCenter)
+        self.group_label.setAlignment(Qt.AlignLeft)
+        self.group_label.setFixedWidth(60)
         self.group_con_label = QLabel(str(self.group))
         self.group_con_label.setProperty('group', 'label')
         self.group_con_label.setAlignment(Qt.AlignHCenter)
+        self.group_con_label.setFixedWidth(60)
         self.chan_label = QLabel('Channel')
         self.chan_label.setProperty('group', 'label_0')
-        # self.chan_label.setAlignment(Qt.AlignHCenter)
+        self.chan_label.setAlignment(Qt.AlignLeft)
+        self.chan_label.setFixedWidth(90)
         self.chan_len_label = QLabel(str(len(self.data.ch_names)))
         self.chan_len_label.setProperty('group', 'label')
         self.chan_len_label.setAlignment(Qt.AlignHCenter)
+        self.chan_len_label.setFixedWidth(100)
         self.event_label = QLabel('Event')
         self.event_label.setProperty('group', 'label_0')
-        # self.event_label.setAlignment(Qt.AlignHCenter)
+        self.event_label.setAlignment(Qt.AlignLeft)
+        self.event_label.setFixedWidth(120)
         self.event_num_label = QLabel(str(len(self.data.event_id)))
         self.event_num_label.setProperty('group', 'label')
         self.event_num_label.setAlignment(Qt.AlignHCenter)
+        self.event_num_label.setFixedWidth(60)
         self.epoch_label = QLabel('Epoch')
         self.epoch_label.setProperty('group', 'label_0')
-        # self.epoch_label.setAlignment(Qt.AlignHCenter)
+        self.epoch_label.setAlignment(Qt.AlignLeft)
+        self.epoch_label.setFixedWidth(60)
         self.epoch_num_label = QLabel(str(len(self.data)))
         self.epoch_num_label.setProperty('group', 'label')
         self.epoch_num_label.setAlignment(Qt.AlignHCenter)
+        self.epoch_num_label.setFixedWidth(60)
         self.time_epoch_label = QLabel('Time epoch')
         self.time_epoch_label.setProperty('group', 'label_0')
-        # self.time_epoch_label.setAlignment(Qt.AlignHCenter)
+        self.time_epoch_label.setAlignment(Qt.AlignLeft)
+        self.time_epoch_label.setFixedWidth(90)
         self.time_range_label = QLabel(str(self.data.tmin) + ' - ' + str(self.data.tmax))
         self.time_range_label.setProperty('group', 'label')
         self.time_range_label.setAlignment(Qt.AlignHCenter)
+        self.time_range_label.setFixedWidth(100)
+
+        self.pic_label = QLabel()
+        # pixmap = QPixmap("../image/connectivity.jpg").scaled(350, 120)
+        pixmap = QPixmap("image/connectivity.jpg").scaled(350, 120)
+        self.pic_label.resize(300, 100)
+        self.pic_label.setPixmap(pixmap)
 
         self.connect_box = QGroupBox('Connectivity Measures')
         self.connect_box.setProperty('group', 'box')
@@ -2690,69 +2710,88 @@ class Connectivity_Win(QMainWindow):
         # Time Domain                                                             #
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
         #
-        self.time_box = QGroupBox('Time Domain')
-        self.time_box.setProperty('group', 'box_1')
+        self.time_box = QLabel('Time Domain')
+        self.time_box.setProperty('group', 'label_11')
         self.func0_box = QGroupBox('Functional Connectivity')
-        self.func0_box.setProperty('group', 'box_1')
+        self.func0_box.setProperty('group', 'box_12')
         self.direct0_box = QGroupBox('Directional Connectivity')
-        self.direct0_box.setProperty('group', 'box_1')
+        self.direct0_box.setProperty('group', 'box_12')
         # functional
         self.pearson_corre_btn = QPushButton(self)
-        self.pearson_corre_btn.setText('Pearson correlation')
+        self.pearson_corre_btn.setText('Pearson Correlation')
+        self.pearson_corre_btn.setFixedSize(200, 28)
         self.enve_coore_btn = QPushButton(self)
-        self.enve_coore_btn.setText('Envelope correlation')
+        self.enve_coore_btn.setText('Envelope Correlation')
+        self.enve_coore_btn.setFixedSize(200, 28)
         self.mutual_info_btn = QPushButton(self)
-        self.mutual_info_btn.setText('Mutual information')
+        self.mutual_info_btn.setText('Mutual Information')
+        self.mutual_info_btn.setFixedSize(200, 28)
         # directional
         self.cross_corre_btn = QPushButton(self)
         self.cross_corre_btn.setText('Cross-Correlation')
+        self.cross_corre_btn.setFixedSize(200, 28)
         self.granger_causa0_btn = QPushButton(self)
-        self.granger_causa0_btn.setText('Granger causality')
-        self.trans_ectropy_btn = QPushButton(self)
-        self.trans_ectropy_btn.setText('Transfer entropy')
+        self.granger_causa0_btn.setText('Granger Causality')
+        self.granger_causa0_btn.setFixedSize(200, 28)
+        self.trans_entropy_btn = QPushButton(self)
+        self.trans_entropy_btn.setText('Transfer Entropy')
+        self.trans_entropy_btn.setFixedSize(200, 28)
 
 
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
         # Frequency Domain                                                        #
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
         #
-        self.freq_box = QGroupBox('Frequency Domain')
-        self.freq_box.setProperty('group', 'box_1')
+        self.freq_box = QLabel('Frequency Domain')
+        self.freq_box.setProperty('group', 'label')
         self.func1_box = QGroupBox('Functional Connectivity')
-        self.func1_box.setProperty('group', 'box_1')
+        self.func1_box.setProperty('group', 'box_12')
         self.direct1_box = QGroupBox('Directional Connectivity')
-        self.direct1_box.setProperty('group', 'box_1')
+        self.direct1_box.setProperty('group', 'box_12')
         # functional
         self.coher_btn = QPushButton(self)
         self.coher_btn.setText('Coherence')
+        self.coher_btn.setFixedSize(200, 28)
         self.imag_coher_btn = QPushButton(self)
-        self.imag_coher_btn.setText('Imaginary part of Coherence')
+        self.imag_coher_btn.setText('Phase-Locking Value')
+        self.imag_coher_btn.setFixedSize(200, 28)
         self.plv_btn = QPushButton(self)
-        self.plv_btn.setText('Phase-Locking Value')
+        self.plv_btn.setText('Phase-Lag Index')
+        self.plv_btn.setFixedSize(200, 28)
         self.ciplv_btn = QPushButton(self)
-        self.ciplv_btn.setText('corrected imaginary PLV')
+        self.ciplv_btn.setText('Imaginary Coherence')
+        self.ciplv_btn.setFixedSize(240, 28)
         self.ppc_btn = QPushButton(self)
-        self.ppc_btn.setText('Pairwise Phase Consistency')
+        self.ppc_btn.setText('Corrected Imaginary PLV')
+        self.ppc_btn.setFixedSize(240, 28)
         self.pli_btn = QPushButton(self)
-        self.pli_btn.setText('Phase-Lag Index')
+        self.pli_btn.setText('Pairwise Phase Consistency')
+        self.pli_btn.setFixedSize(240, 28)
         self.wpli_btn = QPushButton(self)
-        self.wpli_btn.setText('Weighted Phase-Lag Index')
+        self.wpli_btn.setText('Weighted PLI')
+        self.wpli_btn.setFixedSize(230, 28)
         self.unbiased_pli_btn = QPushButton(self)
-        self.unbiased_pli_btn.setText('Unbiased squared PLI')
+        self.unbiased_pli_btn.setText('Unbiased Squared PLI')
+        self.unbiased_pli_btn.setFixedSize(230, 28)
         self.unbiased_wpli_btn = QPushButton(self)
-        self.unbiased_wpli_btn.setText('Unbiased squared weighted PLI')
+        self.unbiased_wpli_btn.setText('Unbiased Squared WPLI')
+        self.unbiased_wpli_btn.setFixedSize(230, 28)
         # directional
         self.psi_btn = QPushButton(self)
         self.psi_btn.setText('Phase Slope Index')
+        self.psi_btn.setFixedSize(300, 28)
         self.para_granger_btn = QPushButton(self)
         self.para_granger_btn.setText('Parametric Granger Causality')
+        self.para_granger_btn.setFixedSize(300, 28)
         self.non_para_granger_btn = QPushButton(self)
         self.non_para_granger_btn.setText('Non-parametric Granger Causality')
+        self.non_para_granger_btn.setFixedSize(300, 28)
 
 
     def create_layout(self):
 
         layout_1 = QHBoxLayout()
+        layout_1.setContentsMargins(0,0,0,0)
         layout_1.addWidget(self.samplingr_label)
         layout_1.addWidget(self.samplingr_con_label)
         layout_1.addWidget(self.group_label)
@@ -2772,20 +2811,26 @@ class Connectivity_Win(QMainWindow):
         layout_3.addLayout(layout_2)
         self.data_box.setLayout(layout_3)
 
+        info_layout = QHBoxLayout()
+        info_layout.addWidget(self.data_box, stretch=1)
+        info_layout.addWidget(self.pic_label, stretch=1000)
+
         time_layout_0 = QHBoxLayout()
-        time_layout_0.addWidget(self.pearson_corre_btn)
-        time_layout_0.addWidget(self.enve_coore_btn)
-        time_layout_0.addWidget(self.mutual_info_btn)
+        time_layout_0.addWidget(self.pearson_corre_btn, stretch=1)
+        time_layout_0.addWidget(self.enve_coore_btn, stretch=1)
+        time_layout_0.addWidget(self.mutual_info_btn, stretch=1)
+        time_layout_0.addStretch(1000)
         self.func0_box.setLayout(time_layout_0)
         time_layout_1 = QHBoxLayout()
-        time_layout_1.addWidget(self.cross_corre_btn)
-        time_layout_1.addWidget(self.granger_causa0_btn)
-        time_layout_1.addWidget(self.trans_ectropy_btn)
+        time_layout_1.addWidget(self.cross_corre_btn, stretch=1)
+        time_layout_1.addWidget(self.granger_causa0_btn, stretch=1)
+        time_layout_1.addWidget(self.trans_entropy_btn)
+        time_layout_1.addStretch(1000)
         self.direct0_box.setLayout(time_layout_1)
         layout_4 = QVBoxLayout()
         layout_4.addWidget(self.func0_box)
         layout_4.addWidget(self.direct0_box)
-        self.time_box.setLayout(layout_4)
+
 
         freq_layout_0 = QVBoxLayout()
         freq_layout_0.addWidget(self.coher_btn)
@@ -2812,31 +2857,224 @@ class Connectivity_Win(QMainWindow):
         layout_5 = QHBoxLayout()
         layout_5.addWidget(self.func1_box)
         layout_5.addWidget(self.direct1_box)
-        self.freq_box.setLayout(layout_5)
 
-
-        layout_6 = QVBoxLayout()
+        layout_6 = QHBoxLayout()
         layout_6.addWidget(self.time_box)
-        layout_6.addWidget(self.freq_box)
-        self.connect_box.setLayout(layout_6)
-        layout_7 = QVBoxLayout()
-        layout_7.addWidget(self.data_box)
-        layout_7.addWidget(self.connect_box)
-        self.center_widget.setLayout(layout_7)
+        layout_6.addStretch(1000)
+        layout_7 = QHBoxLayout()
+        layout_7.addWidget(self.freq_box)
+        layout_7.addStretch(1000)
+        layout_8 = QVBoxLayout()
+        layout_8.addLayout(layout_6)
+        layout_8.addLayout(layout_4)
+        layout_8.addLayout(layout_7)
+        layout_8.addLayout(layout_5)
+
+        self.connect_box.setLayout(layout_8)
+        layout_9 = QVBoxLayout()
+        layout_9.addLayout(info_layout)
+        layout_9.addWidget(self.connect_box)
+        self.center_widget.setLayout(layout_9)
 
 
 
     def set_style(self):
         self.setStyleSheet(''' 
-            QLabel[group = 'label_0']{font:10pt Arial;
+            QLabel[group = 'label_00']{font:10pt Consolas; background-color: white;
             color: black}
-            QLabel[group = 'label']{font:bold 10pt Arial;
+            QLabel[group = 'label_0']{font:10pt Consolas;
             color: black}
-            QGroupBox[group = 'box']{font: bold 13pt Arial;
+            QLabel[group = 'label']{font:bold 10pt Consolas;
             color: black}
-            QGroupBox[group = 'box_1']{font: bold 11pt Arial;
+            QGroupBox[group = 'box']{font: bold 13pt Consolas;
             color: black}
+            QGroupBox[group = 'box_1']{font: bold 11pt Consolas;
+            color: black}
+            QLabel[group = 'label_11']{font: bold 11pt Consolas;
+            color: black; border: none}
+            QGroupBox[group = 'box_12']{font: 9pt Consolas;
+            color: black}
+            QPushButton{font: 10pt Consolas; color: black}
+            QPushButton:hover{background-color:white}
+            QPushButton:pressed{background-color:white;
+                    padding=left:3px; padding-top:3px}
         ''')
+
+    # Connecivity analysis
+    #
+    # Time domain connecivity
+    def pcc(self):
+        pass
+
+    def coherence(self):
+        pass
+
+    # Frequency domain connectivity (Spectral)
+    '''
+        'coh' : Coherence given by::
+
+                 | E[Sxy] |
+        C = ---------------------
+            sqrt(E[Sxx] * E[Syy])
+    '''
+
+    def use_coherence(self):
+        self.method = 'coh'
+        data = self.current_data['data']
+        event_id = list(data.event_id.keys())
+        del data
+        self.connect_win = Spectral_Connect_Win(event_id, self.method)
+        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
+        self.connect_win.show()
+
+    '''
+        'imcoh' : Imaginary coherence [1]_ given by::
+
+                  Im(E[Sxy])
+        C = ----------------------
+            sqrt(E[Sxx] * E[Syy])
+    '''
+
+    def use_imaginary_coh(self):
+        self.method = 'imcoh'
+        data = self.current_data['data']
+        event_id = list(data.event_id.keys())
+        del data
+        self.connect_win = Spectral_Connect_Win(event_id, self.method)
+        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
+        self.connect_win.show()
+
+    '''
+        'plv' : Phase-Locking Value (PLV) [2]_ given by::
+
+         PLV = |E[Sxy/|Sxy|]|
+    '''
+
+    def use_plv(self):
+        self.method = 'plv'
+        data = self.current_data['data']
+        event_id = list(data.event_id.keys())
+        del data
+        self.connect_win = Spectral_Connect_Win(event_id, self.method)
+        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
+        self.connect_win.show()
+
+    '''
+        'ciplv' : corrected imaginary PLV (icPLV) [3]_ given by::
+
+                         |E[Im(Sxy/|Sxy|)]|
+        ciPLV = ------------------------------------
+                 sqrt(1 - |E[real(Sxy/|Sxy|)]| ** 2)
+    '''
+
+    def use_ciplv(self):
+        self.method = 'ciplv'
+        data = self.current_data['data']
+        event_id = list(data.event_id.keys())
+        del data
+        self.connect_win = Spectral_Connect_Win(event_id, self.method)
+        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
+        self.connect_win.show()
+
+    '''
+       'ppc' : Pairwise Phase Consistency (PPC), an unbiased estimator
+        of squared PLV
+    '''
+
+    def use_ppc(self):
+        self.method = 'ppc'
+        data = self.current_data['data']
+        event_id = list(data.event_id.keys())
+        del data
+        self.connect_win = Spectral_Connect_Win(event_id, self.method)
+        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
+        self.connect_win.show()
+
+    '''
+        'pli' : Phase Lag Index (PLI) [5]_ given by::
+
+         PLI = |E[sign(Im(Sxy))]|
+    '''
+
+    def use_pli(self):
+        self.method = 'pli'
+        data = self.current_data['data']
+        event_id = list(data.event_id.keys())
+        del data
+        self.connect_win = Spectral_Connect_Win(event_id, self.method)
+        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
+        self.connect_win.show()
+
+    # 'pli2_unbiased' : Unbiased estimator of squared PLI
+    def use_unbiased_pli(self):
+        self.method = 'pli2_unbiased'
+        data = self.current_data['data']
+        event_id = list(data.event_id.keys())
+        del data
+        self.connect_win = Spectral_Connect_Win(event_id, self.method)
+        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
+        self.connect_win.show()
+
+    def use_wpli(self):
+        self.method = 'wpli'
+        data = self.current_data['data']
+        event_id = list(data.event_id.keys())
+        del data
+        self.connect_win = Spectral_Connect_Win(event_id, self.method)
+        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
+        self.connect_win.show()
+
+    def use_debiased_wpli(self):
+        self.method = 'wpli2_debiased'
+        data = self.current_data['data']
+        event_id = list(data.event_id.keys())
+        del data
+        self.connect_win = Spectral_Connect_Win(event_id, self.method)
+        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
+        self.connect_win.show()
+
+    def calculate_con(self, method, mode, event, freq):
+        data = self.current_data['data']
+        evoke = data[event]
+        self.calcu_con = Calculate_Spectral_Connect(evoke, method=method, mode=mode, freq=freq)
+        self.calcu_con.spectral_connect_signal.connect(self.plot_spectral_connectivity)
+        self.calcu_con.start()
+
+    def plot_spectral_connectivity(self, con):
+        from matplotlib import pyplot as plt
+        fig, ax = plt.subplots()
+        image = ax.matshow(con[:, :])
+        fig.colorbar(image)
+        fig.tight_layout()
+        plt.show()
+        if self.method == 'coh':
+            plt.title('Coherence')
+        elif self.method == 'imcoh':
+            plt.title('Imaginary Coherence')
+        elif self.method == 'plv':
+            plt.title('Phase-Locking Value (PLV)')
+        elif self.method == 'ciplv':
+            plt.title('corrected imaginary PLV')
+        elif self.method == 'ppc':
+            plt.title('Pairwise Phase Consistency (PPC)')
+        elif self.method == 'pli':
+            plt.title('Phase Lag Index (PLI)')
+        elif self.method == 'pli2_unbiased':
+            plt.title('Unbiased estimator of squared PLI')
+        elif self.method == 'wpli':
+            plt.title('Weighted Phase Lag Index (WPLI)')
+        elif self.method == 'wpli2_debiased':
+            plt.title('Debiased estimator of squared WPLI')
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2872,8 +3110,5 @@ if __name__ == "__main__":
     GUI = Connectivity_Win(data=data, subject='caohaijuan')
     GUI.show()
     app.exec_()
-
-
-
 
 

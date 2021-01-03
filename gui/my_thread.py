@@ -289,35 +289,6 @@ class Calculate_PSD(QThread):
 
 
 
-class Calculate_CSD(QThread):
-
-    csd_signal = pyqtSignal(object, str)
-
-    def __init__(self, data, method, event, freq, n_fft, use_fft, parent=None):
-        super(Calculate_CSD, self).__init__(parent)
-        self.data = data
-        self.method = method
-        self.event = event
-        self.n_fft = n_fft
-        self.freq = freq
-        self.use_fft = use_fft
-
-
-    def run(self):
-        self.data.load_data()
-        if self.method == 'Short-term Fourier':
-            csd = csd_fourier(self.data, fmin=self.freq[0], fmax=self.freq[1],
-                                 n_fft=self.n_fft, n_jobs=2)
-        elif self.method == 'Multitaper':
-            csd = csd_multitaper(self.data, fmin=self.freq[0], fmax=self.freq[1],
-                                 n_fft=self.n_fft, n_jobs=2, adaptive=True)
-        elif self.method == 'Morlet Wavelets':
-            csd = csd_morlet(self.data, frequencies=self.freq, decim=10, n_jobs=2,
-                             use_fft=self.use_fft)
-        self.csd_signal.emit(csd, self.method)
-
-
-
 class Calculate_Spectral_Connect(QThread):
 
     spectral_connect_signal = pyqtSignal(object)

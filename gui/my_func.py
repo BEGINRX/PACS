@@ -41,3 +41,39 @@ def new_layout(chan):
     layout = mne.channels.Layout(box, ids=ids, kind=kind, names=names, pos=pos)
 
     return layout
+
+
+def get_pearson(epoch):
+    '''
+    Calculate Pearson Coorelation for all channels
+    :param epoch: instance of BaseRpochs
+                  data needed to be calculated
+    :return: numpy.array
+             pearson
+    '''
+    from scipy.stats import pearsonr
+    import numpy as np
+    from mne.epochs import BaseEpochs
+
+    if not isinstance(epoch, BaseEpochs):
+        raise TypeError('This is not BaseEpochs class')
+
+    chan = epoch.ch_names
+    pearson = np.zeros((1, 148, 148))
+    for j in range(len(epoch)):
+        print('calculating epoch ' + str(j))
+        pearson_tmp = np.zeros((1, len(chan))).astype(np.float32)
+        data = epoch[j]._data[0, :, :]
+        for k in range(len(chan)):
+            result = np.array([])
+            for i in range(len(chan)):
+                result = np.append(result, pearsonr(data[k], data[i])[0])
+            pearson_tmp = np.vstack((pearson_tmp, result.reshape(1, -1)))
+        pearson_tmp = np.delete(pearson_tmp, 0, axis=0)
+        pearson_tmp = np.expand_dims(pearson_tmp, 0).astype(np.float32)
+        pearson = np.concatenate((pearson, pearson_tmp), axis=0)
+    pearson = np.delete(pearson, 0, axis=0)
+
+    return pearson
+
+

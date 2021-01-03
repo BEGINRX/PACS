@@ -30,7 +30,7 @@ from PyQt5.Qt import QCursor
 from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 from mne import Annotations, events_from_annotations, Epochs
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power, \
-                          Calculate_PSD, Calculate_CSD, Calculate_Spectral_Connect
+                          Calculate_PSD, Calculate_Spectral_Connect
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
                            Refer_Window, Baseline_Time, ERP_WIN, PSD_Para_Win, TFR_Win, Topo_Power_Itc_Win,\
                            Spectral_Connect_Win, My_Progress, Time_Freq_Win, Connectivity_Win
@@ -1637,7 +1637,7 @@ class MainWindow(QMainWindow):
         data = self.current_data['data']
         subject = self.ptc_cb.currentText()
         self.con_win = Connectivity_Win(data, subject)
-        self.connect_win.show()
+        self.con_win.show()
 
 
     def tfr_para(self):
@@ -1709,181 +1709,6 @@ class MainWindow(QMainWindow):
         power.plot_joint(baseline=(-0.5, 0), mode='mean',
                          tmin=-.5, tmax=2,
                          timefreqs=[(.5, 10), (1.3, 8)])
-
-
-    # Connecivity analysis
-    #
-    # Time domain connecivity
-    def pcc(self):
-        pass
-
-
-    def coherence(self):
-        pass
-
-
-    # Frequency domain connectivity (Spectral)
-    '''
-        'coh' : Coherence given by::
-    
-                 | E[Sxy] |
-        C = ---------------------
-            sqrt(E[Sxx] * E[Syy])
-    '''
-    def use_coherence(self):
-        self.method = 'coh'
-        data = self.current_data['data']
-        event_id = list(data.event_id.keys())
-        del data
-        self.connect_win = Spectral_Connect_Win(event_id, self.method)
-        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
-        self.connect_win.show()
-
-
-    '''
-        'imcoh' : Imaginary coherence [1]_ given by::
-
-                  Im(E[Sxy])
-        C = ----------------------
-            sqrt(E[Sxx] * E[Syy])
-    '''
-    def use_imaginary_coh(self):
-        self.method = 'imcoh'
-        data = self.current_data['data']
-        event_id = list(data.event_id.keys())
-        del data
-        self.connect_win = Spectral_Connect_Win(event_id, self.method)
-        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
-        self.connect_win.show()
-
-
-    '''
-        'plv' : Phase-Locking Value (PLV) [2]_ given by::
-
-         PLV = |E[Sxy/|Sxy|]|
-    '''
-    def use_plv(self):
-        self.method = 'plv'
-        data = self.current_data['data']
-        event_id = list(data.event_id.keys())
-        del data
-        self.connect_win = Spectral_Connect_Win(event_id, self.method)
-        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
-        self.connect_win.show()
-
-
-
-    '''
-        'ciplv' : corrected imaginary PLV (icPLV) [3]_ given by::
-
-                         |E[Im(Sxy/|Sxy|)]|
-        ciPLV = ------------------------------------
-                 sqrt(1 - |E[real(Sxy/|Sxy|)]| ** 2)
-    '''
-    def use_ciplv(self):
-        self.method = 'ciplv'
-        data = self.current_data['data']
-        event_id = list(data.event_id.keys())
-        del data
-        self.connect_win = Spectral_Connect_Win(event_id, self.method)
-        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
-        self.connect_win.show()
-
-
-    '''
-       'ppc' : Pairwise Phase Consistency (PPC), an unbiased estimator
-        of squared PLV
-    '''
-    def use_ppc(self):
-        self.method = 'ppc'
-        data = self.current_data['data']
-        event_id = list(data.event_id.keys())
-        del data
-        self.connect_win = Spectral_Connect_Win(event_id, self.method)
-        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
-        self.connect_win.show()
-
-
-    '''
-        'pli' : Phase Lag Index (PLI) [5]_ given by::
-
-         PLI = |E[sign(Im(Sxy))]|
-    '''
-    def use_pli(self):
-        self.method = 'pli'
-        data = self.current_data['data']
-        event_id = list(data.event_id.keys())
-        del data
-        self.connect_win = Spectral_Connect_Win(event_id, self.method)
-        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
-        self.connect_win.show()
-
-
-    # 'pli2_unbiased' : Unbiased estimator of squared PLI
-    def use_unbiased_pli(self):
-        self.method = 'pli2_unbiased'
-        data = self.current_data['data']
-        event_id = list(data.event_id.keys())
-        del data
-        self.connect_win = Spectral_Connect_Win(event_id, self.method)
-        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
-        self.connect_win.show()
-
-
-    def use_wpli(self):
-        self.method = 'wpli'
-        data = self.current_data['data']
-        event_id = list(data.event_id.keys())
-        del data
-        self.connect_win = Spectral_Connect_Win(event_id, self.method)
-        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
-        self.connect_win.show()
-
-
-    def use_debiased_wpli(self):
-        self.method = 'wpli2_debiased'
-        data = self.current_data['data']
-        event_id = list(data.event_id.keys())
-        del data
-        self.connect_win = Spectral_Connect_Win(event_id, self.method)
-        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
-        self.connect_win.show()
-
-
-    def calculate_con(self, method, mode, event, freq):
-        data = self.current_data['data']
-        evoke = data[event]
-        self.calcu_con = Calculate_Spectral_Connect(evoke, method=method, mode=mode, freq=freq)
-        self.calcu_con.spectral_connect_signal.connect(self.plot_spectral_connectivity)
-        self.calcu_con.start()
-
-
-
-    def plot_spectral_connectivity(self, con):
-
-        fig, ax = plt.subplots()
-        image = ax.matshow(con[:, :])
-        fig.colorbar(image)
-        fig.tight_layout()
-        plt.show()
-        if self.method == 'coh':
-            plt.title('Coherence')
-        elif self.method == 'imcoh':
-            plt.title('Imaginary Coherence')
-        elif self.method == 'plv':
-            plt.title('Phase-Locking Value (PLV)')
-        elif self.method == 'ciplv':
-            plt.title('corrected imaginary PLV')
-        elif self.method == 'ppc':
-            plt.title('Pairwise Phase Consistency (PPC)')
-        elif self.method == 'pli':
-            plt.title('Phase Lag Index (PLI)')
-        elif self.method == 'pli2_unbiased':
-            plt.title('Unbiased estimator of squared PLI')
-        elif self.method == 'wpli':
-            plt.title('Weighted Phase Lag Index (WPLI)')
-        elif self.method == 'wpli2_debiased':
-            plt.title('Debiased estimator of squared WPLI')
 
 
     def gc(self):
