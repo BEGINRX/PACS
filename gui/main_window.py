@@ -1059,7 +1059,14 @@ class MainWindow(QMainWindow):
             else:
                 del seeg_data
         except Exception as error:
-            self.show_error(error)
+            if error.args[0] == "'str' object has no attribute 'annotations'":
+                QMessageBox.warning(self, 'Data Error',
+                                    'This is not raw data')
+            elif error.args[0] == "'str' object has no attribute 'events'":
+                QMessageBox.warning(self, 'Data Error',
+                                    'This is not epoch data')
+            else:
+                self.show_error(error)
 
 
     def set_current_data(self, key):
@@ -2016,10 +2023,10 @@ class MainWindow(QMainWindow):
             if self.current_data['data'].ch_names:
                 self.file_name_cont_label.setText(str(data_info['data_path']))
                 self.epoch_num_cont_label.setText(str(data_info['epoch_number']))
-                self.samp_rate_cont_label.setText(str(data_info['sampling_rate']))
+                self.samp_rate_cont_label.setText(str(round(data_info['sampling_rate'])))
                 self.chan_cont_label.setText(str(data_info['chan_number']))
-                self.start_cont_label.setText(str(data_info['epoch_start']))
-                self.end_cont_label.setText(str(data_info['epoch_end']))
+                self.start_cont_label.setText(str(round(data_info['epoch_start'])))
+                self.end_cont_label.setText(str(round(data_info['epoch_end'])))
                 self.event_class_cont_label.setText(str(data_info['event_class']))
                 self.event_num_cont_label.setText(str(data_info['event_number']))
                 self.time_point_cont_label.setText(str(data_info['time_point']))

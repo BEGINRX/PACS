@@ -8,7 +8,7 @@ import numpy as np
 import sys
 import traceback
 import time
-from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QPushButton,\
+from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget, QPushButton,\
     QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, \
     QInputDialog, QLineEdit, QApplication, QScrollArea, QWidget, \
     QMessageBox, QStyleFactory, QListWidget, QAbstractItemView, \
@@ -2055,13 +2055,15 @@ class Topo_Power_Itc_Win(QMainWindow):
 
 
 
-
-
 class Spectral_Connect_Win(QMainWindow):
 
     spectral_connect_signal = pyqtSignal(str, str, str, list)
 
     def __init__(self, event, method):
+        '''
+        :param event:
+        :param method: which method to calculate spectral connectivity
+        '''
         super(Spectral_Connect_Win, self).__init__()
         self.event = event
         self.method = method
@@ -2549,13 +2551,14 @@ class Connectivity_Win(QMainWindow):
 
 
     def init_ui(self):
-        self.setFixedHeight(580)
+        self.setFixedHeight(590)
         self.center()
         self.set_font()
         self.create_center_widget()
         self.create_widget()
         self.create_layout()
         self.set_style()
+        QApplication.setStyle(QStyleFactory.create('Fusion'))
 
 
     def center(self):
@@ -2577,68 +2580,8 @@ class Connectivity_Win(QMainWindow):
         '''create center widget'''
         self.center_widget = QWidget()
         # self.center_widget.setFont(self.font)
+        self.center_widget.setProperty('group', 'center')
         self.setCentralWidget(self.center_widget)
-
-
-    # def create_widget_old(self):
-    #     self.time_box = QGroupBox('Data Information')
-    #     self.connect_box = QGroupBox('Connectivity Measures')
-    #     self.classic_measure_box = QGroupBox('Classic Measures')
-    #     self.phase_syn_box = QGroupBox('Phase Synchronization')
-    #     self.granger_causa_box = QGroupBox('Granger Causality')
-    #     self.infor_theory_box = QGroupBox('Information Theory')
-    #     self.generalized_syn_box = QGroupBox('Generalized Synchronization')
-    #
-    #     self.corre_btn = QPushButton(self)
-    #     self.corre_btn.setText('Correlation')
-    #     self.cross_corre_btn = QPushButton(self)
-    #     self.cross_corre_btn.setText('Cross-Correlation')
-    #     self.coher_btn = QPushButton(self)
-    #     self.coher_btn.setText('Coherence')
-    #     self.imag_coher_btn = QPushButton(self)
-    #     self.imag_coher_btn.setText('Imaginary part of Coherence')
-    #     self.psi_btn = QPushButton(self)
-    #     self.psi_btn.setText('Phase Slope Index')
-    #
-    #     self.plv_btn = QPushButton(self)
-    #     self.plv_btn.setText('Phase-Locking Value')
-    #     self.pli_btn = QPushButton(self)
-    #     self.pli_btn.setText('Phase-Lag Index')
-    #     self.wpli_btn = QPushButton(self)
-    #     self.wpli_btn.setText('Weighted Phase-Lag Index')
-    #     self.ri_btn = QPushButton(self)
-    #     self.ri_btn.setText('Rho Index')
-    #     self.dpi_btn = QPushButton(self)
-    #     self.dpi_btn.setText('Directionality Phase Index')
-    #
-    #     self.gc_btn = QPushButton(self)
-    #     self.gc_btn.setText('Granger Causality')
-    #     self.pdc_btn = QPushButton(self)
-    #     self.pdc_btn.setText('Partial Directly Coherence')
-    #     self.dtf_btn = QPushButton(self)
-    #     self.dtf_btn.setText('Directly Transfer Function')
-    #
-    #     self.mi_btn = QPushButton(self)
-    #     self.mi_btn.setText('Mutual Information')
-    #     self.pmi_btn = QPushButton(self)
-    #     self.pmi_btn.setText('Partial Mutual Information')
-    #     self.te_btn = QPushButton(self)
-    #     self.te_btn.setText('Transfer Entropy')
-    #     self.pte_btn = QPushButton(self)
-    #     self.pte_btn.setText('Partial Transfer Entropy')
-    #
-    #     self.si_btn = QPushButton(self)
-    #     self.si_btn.setText('S index')
-    #     self.hi_btn = QPushButton(self)
-    #     self.hi_btn.setText('H index')
-    #     self.mi_btn = QPushButton(self)
-    #     self.mi_btn.setText('M index')
-    #     self.ni_btn = QPushButton(self)
-    #     self.ni_btn.setText('N index')
-    #     self.li_btn = QPushButton(self)
-    #     self.li_btn.setText('L index')
-    #     self.sl_btn = QPushButton(self)
-    #     self.sl_btn.setText('Synchronization Likelyhood')
 
 
     def create_widget(self):
@@ -2652,7 +2595,7 @@ class Connectivity_Win(QMainWindow):
         self.samplingr_label.setProperty('group', 'label_0')
         self.samplingr_label.setAlignment(Qt.AlignLeft)
         self.samplingr_label.setFixedWidth(120)
-        self.samplingr_con_label = QLabel(str(self.data.info['sfreq']))
+        self.samplingr_con_label = QLabel(str(round(self.data.info['sfreq'])))
         self.samplingr_con_label.setProperty('group', 'label')
         self.samplingr_con_label.setAlignment(Qt.AlignHCenter)
         self.samplingr_con_label.setFixedWidth(60)
@@ -2698,10 +2641,11 @@ class Connectivity_Win(QMainWindow):
         self.time_range_label.setFixedWidth(100)
 
         self.pic_label = QLabel()
-        # pixmap = QPixmap("../image/connectivity.jpg").scaled(350, 120)
-        pixmap = QPixmap("image/connectivity.jpg").scaled(350, 120)
-        self.pic_label.resize(300, 100)
+        pixmap = QPixmap("../image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
+        # pixmap = QPixmap("image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
+        self.pic_label.resize(150, 150)
         self.pic_label.setPixmap(pixmap)
+        self.pic_label.setAlignment(Qt.AlignCenter)
 
         self.connect_box = QGroupBox('Connectivity Measures')
         self.connect_box.setProperty('group', 'box')
@@ -2841,8 +2785,8 @@ class Connectivity_Win(QMainWindow):
         freq_layout_1.addWidget(self.ppc_btn)
         freq_layout_1.addWidget(self.pli_btn)
         freq_layout_2 = QVBoxLayout()
-        freq_layout_2.addWidget(self.unbiased_pli_btn)
         freq_layout_2.addWidget(self.wpli_btn)
+        freq_layout_2.addWidget(self.unbiased_pli_btn)
         freq_layout_2.addWidget(self.unbiased_wpli_btn)
         freq_layout_3 = QHBoxLayout()
         freq_layout_3.addLayout(freq_layout_0)
@@ -2880,24 +2824,25 @@ class Connectivity_Win(QMainWindow):
 
     def set_style(self):
         self.setStyleSheet(''' 
-            QLabel[group = 'label_00']{font:10pt Consolas; background-color: white;
+            QLabel[group='label_00']{font:10pt Consolas; background-color: rgb(207, 207, 207);
             color: black}
-            QLabel[group = 'label_0']{font:10pt Consolas;
+            QLabel[group='label_0']{font:10pt Consolas;
             color: black}
-            QLabel[group = 'label']{font:bold 10pt Consolas;
+            QLabel[group='label']{font:bold 10pt Consolas;
             color: black}
-            QGroupBox[group = 'box']{font: bold 13pt Consolas;
+            QGroupBox[group='box']{font: bold 13pt Consolas;
             color: black}
-            QGroupBox[group = 'box_1']{font: bold 11pt Consolas;
+            QGroupBox[group='box_1']{font: bold 11pt Consolas;
             color: black}
-            QLabel[group = 'label_11']{font: bold 11pt Consolas;
+            QLabel[group='label_11']{font: bold 11pt Consolas;
             color: black; border: none}
-            QGroupBox[group = 'box_12']{font: 9pt Consolas;
+            QGroupBox[group='box_12']{font: 9pt Consolas;
             color: black}
-            QPushButton{font: 10pt Consolas; color: black}
+            QPushButton{background-color: rgb(210, 210, 210); font: 10pt Consolas; color: black}
             QPushButton:hover{background-color:white}
             QPushButton:pressed{background-color:white;
                     padding=left:3px; padding-top:3px}
+            QWidget[group='center']{background-color: white}
         ''')
 
     # Connecivity analysis
@@ -2905,6 +2850,7 @@ class Connectivity_Win(QMainWindow):
     # Time domain connecivity
     def pcc(self):
         pass
+
 
     def coherence(self):
         pass
@@ -2920,12 +2866,13 @@ class Connectivity_Win(QMainWindow):
 
     def use_coherence(self):
         self.method = 'coh'
-        data = self.current_data['data']
-        event_id = list(data.event_id.keys())
-        del data
+        event_id = list(self.data.event_id.keys())
         self.connect_win = Spectral_Connect_Win(event_id, self.method)
         self.connect_win.spectral_connect_signal.connect(self.calculate_con)
         self.connect_win.show()
+
+    def use_canonical_coh(self):
+        pass
 
     '''
         'imcoh' : Imaginary coherence [1]_ given by::
