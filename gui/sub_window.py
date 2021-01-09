@@ -2055,7 +2055,55 @@ class Topo_Power_Itc_Win(QMainWindow):
 
 
 
-class Spectral_Connect_Win(QMainWindow):
+
+class Morlet_Con_Win(QMainWindow):
+    
+    def __init__(self):
+        super(Morlet_Con_Win, self).__init__()
+
+
+
+    def init_ui(self):
+        self.setMinimumWidth(400)
+        self.setMinimumHeight(300)
+        self.center()
+        self.set_font()
+        self.create_center_widget()
+        self.create_widget()
+        self.create_layout()
+        self.set_style()
+
+
+    def center(self):
+        '''set the app window to the center of the displayer of the computer'''
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+
+    def set_font(self):
+        '''set the font'''
+        self.font = QFont()
+        self.font.setFamily('Arial')
+        self.font.setPointSize(12)
+
+
+    def create_center_widget(self):
+        '''create center widget'''
+        self.center_widget = QWidget()
+        self.center_widget.setFont(self.font)
+        self.setCentralWidget(self.center_widget)
+
+    def create_widget(self):
+        self.name_label = QLabel('Morlet Parameters')
+        self.name_label.setAlignment(Qt.AlignCenter)
+        self.name_label.setProperty('group', 'name')
+
+
+
+
+class Spectral_Con_Win(QMainWindow):
 
     spectral_connect_signal = pyqtSignal(str, str, str, list)
 
@@ -2064,10 +2112,11 @@ class Spectral_Connect_Win(QMainWindow):
         :param event:
         :param method: which method to calculate spectral connectivity
         '''
-        super(Spectral_Connect_Win, self).__init__()
+        super(Spectral_Con_Win, self).__init__()
         self.event = event
         self.method = method
         self.mode = None
+        self.plot_mode = 'normal'
 
         self.init_ui()
 
@@ -2085,6 +2134,7 @@ class Spectral_Connect_Win(QMainWindow):
         self.create_button()
         self.create_layout()
         self.set_style()
+        # self.setWindowFlags(Qt.WindowStaysOnTopHint)
         QApplication.setStyle(QStyleFactory.create('Fusion'))
 
 
@@ -2118,6 +2168,14 @@ class Spectral_Connect_Win(QMainWindow):
         self.event_combo = QComboBox(self)
         self.event_combo.addItems(self.event)
 
+        self.matrix_check_box = QCheckBox('Plot in matrix')
+        self.matrix_check_box.stateChanged.connect(self.plot_mode)
+
+
+    def plot_mode(self):
+        if self.matrix_check_box.isChecked():
+            self.plot_mode = 'matrix'
+
 
     def create_label(self):
         self.method_label = QLabel('Method', self)
@@ -2128,6 +2186,10 @@ class Spectral_Connect_Win(QMainWindow):
         self.freq_label.setFixedWidth(100)
         self.line_label = QLabel(' - ', self)
         self.line_label.setFixedWidth(20)
+
+        self.choose_chan_label = QLabel('Choose sub_channels to calculate, otherwise all')
+        self.choose_chan_label.setFixedWidth(330)
+        self.choose_chan_label.setWordWrap(True)
 
 
     def create_line_edit(self):
@@ -2144,13 +2206,32 @@ class Spectral_Connect_Win(QMainWindow):
 
     def create_button(self):
 
+        self.choose_chanx_btn = QPushButton(self)
+        self.choose_chanx_btn.setText('Channel x')
+        self.choose_chanx_btn.clicked.connect(self.choose_x)
+        self.choose_chany_btn = QPushButton(self)
+        self.choose_chany_btn.setText('Channel y')
+        self.choose_chany_btn.clicked.connect(self.choose_y)
+
+        self.morlet_btn = QPushButton(self)
+        self.morlet_btn.setText('Use Morlet')
+
         self.ok_button = QPushButton(self)
         self.ok_button.setText('OK')
         self.ok_button.setFixedWidth(60)
+        self.ok_button.setProperty('group', 'bottom')
         self.ok_button.clicked.connect(self.ok_func)
         self.cancel_button = QPushButton(self)
         self.cancel_button.setText('Cancel')
         self.cancel_button.clicked.connect(self.close)
+        self.cancel_button.setProperty('group', 'bottom')
+
+
+    def choose_x(self):
+        pass
+
+    def choose_y(self):
+        pass
 
 
     def create_layout(self):
@@ -2172,6 +2253,10 @@ class Spectral_Connect_Win(QMainWindow):
         layout_3.addWidget(self.freq_label)
         layout_3.addLayout(layout_2)
 
+        layout_4 = QHBoxLayout()
+        layout_4.addWidget(self.choose_chanx_btn)
+        layout_4.addWidget(self.choose_chany_btn)
+
 
         button_layout = QHBoxLayout()
         button_layout.addStretch(1)
@@ -2183,6 +2268,8 @@ class Spectral_Connect_Win(QMainWindow):
         main_layout.addLayout(layout_0)
         main_layout.addLayout(layout_1)
         main_layout.addLayout(layout_3)
+        main_layout.addWidget(self.choose_chan_label)
+        main_layout.addLayout(layout_4)
         main_layout.addLayout(button_layout)
 
         self.center_widget.setLayout(main_layout)
@@ -2204,7 +2291,7 @@ class Spectral_Connect_Win(QMainWindow):
 
     def set_style(self):
         self.setStyleSheet('''
-                        QPushButton{font: 10pt Times New Roman}
+                        QPushButton[group='bottom']{font: 10pt Times New Roman}
                         QListWidget{background-color:white ;font: 13pt Times New Roman}
                         QListWidget:item{height:28px}
                         QGroupBox{background-color:rgb(242,242,242)}
@@ -3034,27 +3121,13 @@ if __name__ == "__main__":
     # GUI = Epoch_Time()
     # GUI = Select_Event(event=['1', '2'])
     # GUI = Refer_Window()
-    # GUI = Spectral_Connect_Win(['blue', 'red'], 'pli')
+    GUI = Spectral_Connect_Win(['blue', 'red'], 'pli')
     con = np.random.random((30, 40, 10))
     times = np.arange(10).reshape(10, 1)
+
     # import mne
-    # from mne.connectivity import spectral_connectivity
-    # import numpy as np
-    # fpath = 'D:\SEEG_Cognition\data\color_epoch.fif'
-    # epoch = mne.read_epochs(fpath, preload=True)
-    # epoch = epoch['blue']
-    # fmin, fmax = 3., 9.
-    # freqs = np.arange(fmin, fmax, 2)
-    # sfreq = epoch.info['sfreq']  # the sampling frequency
-    # epoch.load_data()
-    # con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
-    #     epoch, method='pli', mode='cwt_morlet', sfreq=sfreq,
-    #     faverage=True, tmin=0., mt_adaptive=False, n_jobs=1, cwt_freqs=freqs, cwt_n_cycles=freqs / 2)
-    # con = con[:, :, 0, :]
-    # GUI = Morlet_Connectivity_Win(con, 'Phase Lag Index', times)
-    import mne
-    data = mne.read_epochs('D:\SEEG_Cognition\data\color_epoch.fif')
-    GUI = Connectivity_Win(data=data, subject='caohaijuan')
+    # data = mne.read_epochs('D:\SEEG_Cognition\data\color_epoch.fif')
+    # GUI = Connectivity_Win(data=data, subject='caohaijuan')
     GUI.show()
     app.exec_()
 

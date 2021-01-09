@@ -33,7 +33,7 @@ from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thre
                           Calculate_PSD, Calculate_Spectral_Connect
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
                            Refer_Window, Baseline_Time, ERP_WIN, PSD_Para_Win, TFR_Win, Topo_Power_Itc_Win,\
-                           Spectral_Connect_Win, My_Progress, Time_Freq_Win, Connectivity_Win
+                           My_Progress, Time_Freq_Win, Connectivity_Win
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
 from gui.data_io import write_raw_edf, write_raw_set
 from gui.my_func import new_layout
@@ -104,13 +104,15 @@ class MainWindow(QMainWindow):
 
 
     def frame(self):
-        '''set the app window to the center of the displayer of the computer'''
+        '''set the app window to the full screen'''
         # self.setWindowFlags(Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint | Qt.WindowMaximizeButtonHint)
-        fg= self.frameGeometry()
-        self.rect = QDesktopWidget().availableGeometry()
-        cp = self.rect.center()
-        fg.moveCenter(cp)
-        desktop =  QApplication.desktop()
+        self.desktop = QApplication.desktop()
+        self.desktop_count = self.desktop.screenCount()
+        self.fg = self.frameGeometry()
+        self.rect = QDesktopWidget().availableGeometry(0)
+        self.cp = self.rect.center()
+        self.fg.moveCenter(self.cp)
+
         self.setGeometry(self.rect)  # 可避免遮挡任务栏
         self.showMaximized()
 
@@ -928,7 +930,8 @@ class MainWindow(QMainWindow):
         self.data_path, _ = QFileDialog.getOpenFileName(self, 'Import data')
         if 'set' == self.data_path[-3:] or \
            'edf' == self.data_path[-3:] or \
-           'fif' == self.data_path[-3:]:
+           'fif' == self.data_path[-3:] or \
+           'vhdr' == self.data_path[-4:]:
             self.import_worker.data_path = self.data_path
             self.import_worker.start()
             self.flag += 1
@@ -962,8 +965,7 @@ class MainWindow(QMainWindow):
         try:
             if data['data_mode'] == 'raw':
                 self.fig = mne.viz.plot_raw(data['data'], n_channels=20, scalings={'eeg':100e-6}, title='',
-                                       show=False)
-                # plt.get_current_fig_manager().window.showMaximized()
+                                       show=False, duration=10.0)
                 self.fig.canvas.manager.full_screen_toggle()
                 plt.close()
                 print('Raw data 绘制完毕')
@@ -995,6 +997,7 @@ class MainWindow(QMainWindow):
             self.canvas_tmp.setFocusPolicy(Qt.StrongFocus)
             self.canvas_tmp.setFocus()
             self.fig_stack.addWidget(self.canvas_tmp)
+            # self.fig_stack.setVisible()
         except Exception as error:
             if error.args[0] == "'RawEEGLAB' object has no attribute 'drop_bad'":
                 pass

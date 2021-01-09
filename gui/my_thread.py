@@ -43,6 +43,8 @@ class Import_Thread(QThread):
             self.seeg_data = io.read_raw_edf(self.data_path, preload=True)
         elif self.data_path[-3:] == 'fif':
             self.seeg_data = io.read_raw_fif(self.data_path, preload=True)
+        elif self.data_path[-4:] == 'vhdr':
+            self.seeg_data = io.read_raw_brainvision(self.data_path, preload=True)
 
 
     def run(self):
@@ -313,6 +315,10 @@ class Calculate_Spectral_Connect(QThread):
             con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
                 self.data, method=self.method, mode='fourier', sfreq=self.sfreq, fmin=self.freq[0],
                 fmax=self.freq[1], faverage=True, tmin=0., mt_adaptive=False, n_jobs=1)
+        elif self.mode == 'Morlet':
+            con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
+                self.data, method=self.method, mode='cwt_morlet', sfreq=self.sfreq, cwt_freqs=None,
+                faverage=True, tmin=0., mt_adaptive=False, n_jobs=1)
         con = con[:, :, 0]
         con += con.T - np.diag(con.diagonal())
         self.spectral_connect_signal.emit(con)
