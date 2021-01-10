@@ -33,7 +33,7 @@ from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thre
                           Calculate_PSD, Calculate_Spectral_Connect
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
                            Refer_Window, Baseline_Time, ERP_WIN, PSD_Para_Win, TFR_Win, Topo_Power_Itc_Win,\
-                           My_Progress, Time_Freq_Win, Connectivity_Win
+                           My_Progress, Time_Freq_Win, Con_Win
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
 from gui.data_io import write_raw_edf, write_raw_set
 from gui.my_func import new_layout
@@ -112,10 +112,8 @@ class MainWindow(QMainWindow):
         self.rect = QDesktopWidget().availableGeometry(0)
         self.cp = self.rect.center()
         self.fg.moveCenter(self.cp)
-
         self.setGeometry(self.rect)  # 可避免遮挡任务栏
         self.showMaximized()
-
 
 
     def create_central_widget(self):

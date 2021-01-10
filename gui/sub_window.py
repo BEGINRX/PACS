@@ -2105,7 +2105,7 @@ class Morlet_Con_Win(QMainWindow):
 
 class Spectral_Con_Win(QMainWindow):
 
-    spectral_connect_signal = pyqtSignal(str, str, str, list)
+    spectral_con_signal = pyqtSignal(str, str, str, list)
 
     def __init__(self, event, method):
         '''
@@ -2169,10 +2169,10 @@ class Spectral_Con_Win(QMainWindow):
         self.event_combo.addItems(self.event)
 
         self.matrix_check_box = QCheckBox('Plot in matrix')
-        self.matrix_check_box.stateChanged.connect(self.plot_mode)
+        self.matrix_check_box.stateChanged.connect(self.plot_mode_change)
 
 
-    def plot_mode(self):
+    def plot_mode_change(self):
         if self.matrix_check_box.isChecked():
             self.plot_mode = 'matrix'
 
@@ -2621,12 +2621,14 @@ class Time_Freq_Win(QMainWindow):
 
 
 
-from gui.re_ref import get_chan_group
-from gui.my_thread import Calculate_Spectral_Connect
-class Connectivity_Win(QMainWindow):
+# from gui.re_ref import get_chan_group
+# from gui.my_thread import Cal_Spec_Con
+from re_ref import get_chan_group
+from my_thread import Cal_Spec_Con
+class Con_Win(QMainWindow):
 
     def __init__(self, data, subject):
-        super(Connectivity_Win, self).__init__()
+        super(Con_Win, self).__init__()
         if isinstance(data, BaseEpochs):
             self.data = data
         else:
@@ -2638,6 +2640,7 @@ class Connectivity_Win(QMainWindow):
 
 
     def init_ui(self):
+        self.setWindowTitle('Connectivity Analysis')
         self.setFixedHeight(590)
         self.center()
         self.set_font()
@@ -2676,7 +2679,7 @@ class Connectivity_Win(QMainWindow):
         self.data_box.setProperty('group', 'box')
         self.name_label = QLabel(self.subject)
         self.name_label.setProperty('group', 'label_00')
-        self.name_label.setAlignment(Qt.AlignHCenter)
+        self.name_label.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
         self.name_label.setFixedWidth(700)
         self.samplingr_label = QLabel('Sampling Rate')
         self.samplingr_label.setProperty('group', 'label_0')
@@ -2783,30 +2786,39 @@ class Connectivity_Win(QMainWindow):
         self.coher_btn = QPushButton(self)
         self.coher_btn.setText('Coherence')
         self.coher_btn.setFixedSize(200, 28)
-        self.imag_coher_btn = QPushButton(self)
-        self.imag_coher_btn.setText('Phase-Locking Value')
-        self.imag_coher_btn.setFixedSize(200, 28)
+        self.coher_btn.clicked.connect(self.use_coherence)
         self.plv_btn = QPushButton(self)
-        self.plv_btn.setText('Phase-Lag Index')
+        self.plv_btn.setText('Phase-Locking Value')
         self.plv_btn.setFixedSize(200, 28)
-        self.ciplv_btn = QPushButton(self)
-        self.ciplv_btn.setText('Imaginary Coherence')
-        self.ciplv_btn.setFixedSize(240, 28)
-        self.ppc_btn = QPushButton(self)
-        self.ppc_btn.setText('Corrected Imaginary PLV')
-        self.ppc_btn.setFixedSize(240, 28)
+        self.plv_btn.clicked.connect(self.use_plv)
         self.pli_btn = QPushButton(self)
-        self.pli_btn.setText('Pairwise Phase Consistency')
-        self.pli_btn.setFixedSize(240, 28)
+        self.pli_btn.setText('Phase-Lag Index')
+        self.pli_btn.setFixedSize(200, 28)
+        self.pli_btn.clicked.connect(self.use_pli)
+        self.imag_coher_btn = QPushButton(self)
+        self.imag_coher_btn.setText('Imaginary Coherence')
+        self.imag_coher_btn.setFixedSize(240, 28)
+        self.imag_coher_btn.clicked.connect(self.use_imaginary_coh)
+        self.ciplv_btn = QPushButton(self)
+        self.ciplv_btn.setText('Corrected Imaginary PLV')
+        self.ciplv_btn.setFixedSize(240, 28)
+        self.ciplv_btn.clicked.connect(self.use_ciplv)
+        self.ppc_btn = QPushButton(self)
+        self.ppc_btn.setText('Pairwise Phase Consistency')
+        self.ppc_btn.setFixedSize(240, 28)
+        self.ppc_btn.clicked.connect(self.use_ppc)
         self.wpli_btn = QPushButton(self)
         self.wpli_btn.setText('Weighted PLI')
         self.wpli_btn.setFixedSize(230, 28)
-        self.unbiased_pli_btn = QPushButton(self)
-        self.unbiased_pli_btn.setText('Unbiased Squared PLI')
-        self.unbiased_pli_btn.setFixedSize(230, 28)
-        self.unbiased_wpli_btn = QPushButton(self)
-        self.unbiased_wpli_btn.setText('Unbiased Squared WPLI')
-        self.unbiased_wpli_btn.setFixedSize(230, 28)
+        self.wpli_btn.clicked.connect(self.use_wpli)
+        self.uspli_btn = QPushButton(self)
+        self.uspli_btn.setText('Unbiased Squared PLI')
+        self.uspli_btn.setFixedSize(230, 28)
+        self.uspli_btn.clicked.connect(self.use_unbiased_pli)
+        self.dswpli_btn = QPushButton(self)
+        self.dswpli_btn.setText('Unbiased Squared WPLI')
+        self.dswpli_btn.setFixedSize(230, 28)
+        self.dswpli_btn.clicked.connect(self.use_debiased_wpli)
         # directional
         self.psi_btn = QPushButton(self)
         self.psi_btn.setText('Phase Slope Index')
@@ -2865,16 +2877,16 @@ class Connectivity_Win(QMainWindow):
 
         freq_layout_0 = QVBoxLayout()
         freq_layout_0.addWidget(self.coher_btn)
-        freq_layout_0.addWidget(self.imag_coher_btn)
+        freq_layout_0.addWidget(self.pli_btn)
         freq_layout_0.addWidget(self.plv_btn)
         freq_layout_1 = QVBoxLayout()
+        freq_layout_1.addWidget(self.imag_coher_btn)
         freq_layout_1.addWidget(self.ciplv_btn)
         freq_layout_1.addWidget(self.ppc_btn)
-        freq_layout_1.addWidget(self.pli_btn)
         freq_layout_2 = QVBoxLayout()
         freq_layout_2.addWidget(self.wpli_btn)
-        freq_layout_2.addWidget(self.unbiased_pli_btn)
-        freq_layout_2.addWidget(self.unbiased_wpli_btn)
+        freq_layout_2.addWidget(self.uspli_btn)
+        freq_layout_2.addWidget(self.dswpli_btn)
         freq_layout_3 = QHBoxLayout()
         freq_layout_3.addLayout(freq_layout_0)
         freq_layout_3.addLayout(freq_layout_1)
@@ -2906,7 +2918,6 @@ class Connectivity_Win(QMainWindow):
         layout_9.addLayout(info_layout)
         layout_9.addWidget(self.connect_box)
         self.center_widget.setLayout(layout_9)
-
 
 
     def set_style(self):
@@ -2954,9 +2965,9 @@ class Connectivity_Win(QMainWindow):
     def use_coherence(self):
         self.method = 'coh'
         event_id = list(self.data.event_id.keys())
-        self.connect_win = Spectral_Connect_Win(event_id, self.method)
-        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
-        self.connect_win.show()
+        self.con_win = Spectral_Con_Win(event_id, self.method)
+        self.con_win.spectral_con_signal.connect(self.calculate_con)
+        self.con_win.show()
 
     def use_canonical_coh(self):
         pass
@@ -2971,12 +2982,10 @@ class Connectivity_Win(QMainWindow):
 
     def use_imaginary_coh(self):
         self.method = 'imcoh'
-        data = self.current_data['data']
-        event_id = list(data.event_id.keys())
-        del data
-        self.connect_win = Spectral_Connect_Win(event_id, self.method)
-        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
-        self.connect_win.show()
+        event_id = list(self.data.event_id.keys())
+        self.con_win = Spectral_Con_Win(event_id, self.method)
+        self.con_win.spectral_con_signal.connect(self.calculate_con)
+        self.con_win.show()
 
     '''
         'plv' : Phase-Locking Value (PLV) [2]_ given by::
@@ -2986,12 +2995,10 @@ class Connectivity_Win(QMainWindow):
 
     def use_plv(self):
         self.method = 'plv'
-        data = self.current_data['data']
-        event_id = list(data.event_id.keys())
-        del data
-        self.connect_win = Spectral_Connect_Win(event_id, self.method)
-        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
-        self.connect_win.show()
+        event_id = list(self.data.event_id.keys())
+        self.con_win = Spectral_Con_Win(event_id, self.method)
+        self.con_win.spectral_con_signal.connect(self.calculate_con)
+        self.con_win.show()
 
     '''
         'ciplv' : corrected imaginary PLV (icPLV) [3]_ given by::
@@ -3003,12 +3010,10 @@ class Connectivity_Win(QMainWindow):
 
     def use_ciplv(self):
         self.method = 'ciplv'
-        data = self.current_data['data']
-        event_id = list(data.event_id.keys())
-        del data
-        self.connect_win = Spectral_Connect_Win(event_id, self.method)
-        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
-        self.connect_win.show()
+        event_id = list(self.data.event_id.keys())
+        self.con_win = Spectral_Con_Win(event_id, self.method)
+        self.con_win.spectral_con_signal.connect(self.calculate_con)
+        self.con_win.show()
 
     '''
        'ppc' : Pairwise Phase Consistency (PPC), an unbiased estimator
@@ -3017,12 +3022,10 @@ class Connectivity_Win(QMainWindow):
 
     def use_ppc(self):
         self.method = 'ppc'
-        data = self.current_data['data']
-        event_id = list(data.event_id.keys())
-        del data
-        self.connect_win = Spectral_Connect_Win(event_id, self.method)
-        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
-        self.connect_win.show()
+        event_id = list(self.data.event_id.keys())
+        self.con_win = Spectral_Con_Win(event_id, self.method)
+        self.con_win.spectral_con_signal.connect(self.calculate_con)
+        self.con_win.show()
 
     '''
         'pli' : Phase Lag Index (PLI) [5]_ given by::
@@ -3032,49 +3035,40 @@ class Connectivity_Win(QMainWindow):
 
     def use_pli(self):
         self.method = 'pli'
-        data = self.current_data['data']
-        event_id = list(data.event_id.keys())
-        del data
-        self.connect_win = Spectral_Connect_Win(event_id, self.method)
-        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
-        self.connect_win.show()
+        event_id = list(self.data.event_id.keys())
+        self.con_win = Spectral_Con_Win(event_id, self.method)
+        self.con_win.spectral_con_signal.connect(self.calculate_con)
+        self.con_win.show()
 
     # 'pli2_unbiased' : Unbiased estimator of squared PLI
     def use_unbiased_pli(self):
         self.method = 'pli2_unbiased'
-        data = self.current_data['data']
-        event_id = list(data.event_id.keys())
-        del data
-        self.connect_win = Spectral_Connect_Win(event_id, self.method)
-        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
-        self.connect_win.show()
+        event_id = list(self.data.event_id.keys())
+        self.con_win = Spectral_Con_Win(event_id, self.method)
+        self.con_win.spectral_con_signal.connect(self.calculate_con)
+        self.con_win.show()
 
     def use_wpli(self):
         self.method = 'wpli'
-        data = self.current_data['data']
-        event_id = list(data.event_id.keys())
-        del data
-        self.connect_win = Spectral_Connect_Win(event_id, self.method)
-        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
-        self.connect_win.show()
+        event_id = list(self.data.event_id.keys())
+        self.con_win = Spectral_Con_Win(event_id, self.method)
+        self.con_win.spectral_con_signal.connect(self.calculate_con)
+        self.con_win.show()
 
     def use_debiased_wpli(self):
         self.method = 'wpli2_debiased'
-        data = self.current_data['data']
-        event_id = list(data.event_id.keys())
-        del data
-        self.connect_win = Spectral_Connect_Win(event_id, self.method)
-        self.connect_win.spectral_connect_signal.connect(self.calculate_con)
-        self.connect_win.show()
+        event_id = list(self.data.event_id.keys())
+        self.con_win = Spectral_Con_Win(event_id, self.method)
+        self.con_win.spectral_con_signal.connect(self.calculate_con)
+        self.con_win.show()
 
     def calculate_con(self, method, mode, event, freq):
-        data = self.current_data['data']
-        evoke = data[event]
-        self.calcu_con = Calculate_Spectral_Connect(evoke, method=method, mode=mode, freq=freq)
-        self.calcu_con.spectral_connect_signal.connect(self.plot_spectral_connectivity)
+        epoch = self.data[event]
+        self.calcu_con = Cal_Spec_Con(epoch, method=method, mode=mode, freq=freq)
+        self.calcu_con.spectral_con_signal.connect(self.plot_spec_con)
         self.calcu_con.start()
 
-    def plot_spectral_connectivity(self, con):
+    def plot_spec_con(self, con):
         from matplotlib import pyplot as plt
         fig, ax = plt.subplots()
         image = ax.matshow(con[:, :])
@@ -3121,13 +3115,13 @@ if __name__ == "__main__":
     # GUI = Epoch_Time()
     # GUI = Select_Event(event=['1', '2'])
     # GUI = Refer_Window()
-    GUI = Spectral_Connect_Win(['blue', 'red'], 'pli')
-    con = np.random.random((30, 40, 10))
-    times = np.arange(10).reshape(10, 1)
+    # GUI = Spectral_Con_Win(['blue', 'red'], 'pli')
+    # con = np.random.random((30, 40, 10))
+    # times = np.arange(10).reshape(10, 1)
 
-    # import mne
-    # data = mne.read_epochs('D:\SEEG_Cognition\data\color_epoch.fif')
-    # GUI = Connectivity_Win(data=data, subject='caohaijuan')
+    import mne
+    data = mne.read_epochs('D:\SEEG_Cognition\data\color_epoch.fif')
+    GUI = Con_Win(data=data, subject='曹海娟')
     GUI.show()
     app.exec_()
 

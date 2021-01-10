@@ -291,12 +291,12 @@ class Calculate_PSD(QThread):
 
 
 
-class Calculate_Spectral_Connect(QThread):
+class Cal_Spec_Con(QThread):
 
-    spectral_connect_signal = pyqtSignal(object)
+    spectral_con_signal = pyqtSignal(object)
 
     def __init__(self, data, method, mode, freq):
-        super(Calculate_Spectral_Connect, self).__init__()
+        super(Cal_Spec_Con, self).__init__()
 
         self.data = data
         self.method = method
@@ -321,4 +321,4 @@ class Calculate_Spectral_Connect(QThread):
                 faverage=True, tmin=0., mt_adaptive=False, n_jobs=1)
         con = con[:, :, 0]
         con += con.T - np.diag(con.diagonal())
-        self.spectral_connect_signal.emit(con)
+        self.spectral_con_signal.emit(con)
