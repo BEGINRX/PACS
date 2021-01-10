@@ -2621,10 +2621,10 @@ class Time_Freq_Win(QMainWindow):
 
 
 
-# from gui.re_ref import get_chan_group
-# from gui.my_thread import Cal_Spec_Con
-from re_ref import get_chan_group
-from my_thread import Cal_Spec_Con
+from gui.re_ref import get_chan_group
+from gui.my_thread import Cal_Spec_Con
+# from re_ref import get_chan_group
+# from my_thread import Cal_Spec_Con
 class Con_Win(QMainWindow):
 
     def __init__(self, data, subject):
@@ -2731,8 +2731,8 @@ class Con_Win(QMainWindow):
         self.time_range_label.setFixedWidth(100)
 
         self.pic_label = QLabel()
-        pixmap = QPixmap("../image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
-        # pixmap = QPixmap("image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
+        # pixmap = QPixmap("../image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
+        pixmap = QPixmap("image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
         self.pic_label.resize(150, 150)
         self.pic_label.setPixmap(pixmap)
         self.pic_label.setAlignment(Qt.AlignCenter)

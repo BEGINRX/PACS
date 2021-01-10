@@ -30,7 +30,7 @@ from PyQt5.Qt import QCursor
 from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 from mne import Annotations, events_from_annotations, Epochs
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power, \
-                          Calculate_PSD, Calculate_Spectral_Connect
+                          Calculate_PSD, Cal_Spec_Con
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
                            Refer_Window, Baseline_Time, ERP_WIN, PSD_Para_Win, TFR_Win, Topo_Power_Itc_Win,\
                            My_Progress, Time_Freq_Win, Con_Win
@@ -659,6 +659,7 @@ class MainWindow(QMainWindow):
                 self.ptc_cb.setCurrentText(self.ptc_name)
                 self.tree = QTreeWidget()
                 self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
+                self.tree.customContextMenuRequested.connect(self.change_current_data)
                 self.tree.customContextMenuRequested.connect(self.right_menu)
                 self.tree.setProperty('name', 'ptc')
                 self.root = self.tree.invisibleRootItem()
@@ -852,6 +853,7 @@ class MainWindow(QMainWindow):
             item = self.tree.itemAt(point)
             self.name = item.text(0)
             print('node name: ', self.name)
+            # self.set_current_data(self.name)
             try:
                 item_parent = item.parent().text(0)
                 print('parent name:', item_parent)
@@ -1644,7 +1646,7 @@ class MainWindow(QMainWindow):
     def show_con_win(self):
         data = self.current_data['data']
         subject = self.ptc_cb.currentText()
-        self.con_win = Connectivity_Win(data, subject)
+        self.con_win = Con_Win(data, subject)
         self.con_win.show()
 
 
