@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget, QPushButt
 from PyQt5.QtCore import pyqtSignal, Qt, QBasicTimer, QSize
 from PyQt5.QtGui import QFont, QDoubleValidator, QIntValidator, QPixmap
 from mne import BaseEpochs
+from mne.io import BaseRaw
 
 
 def show_error(error):
@@ -2580,9 +2581,16 @@ class My_Progress(QMainWindow):
 
 class Time_Freq_Win(QMainWindow):
 
-    def __init__(self, data):
+    def __init__(self, data, subject):
         super(Time_Freq_Win, self).__init__()
-        self.data = data
+        if isinstance(data, BaseEpochs):
+            self.data = data
+        else:
+            raise TypeError('This is not an epoch data')
+        if isinstance(subject, str):
+            self.subject = subject
+        else:
+            print('subject name error')
         self.init_ui()
 
 
@@ -2616,7 +2624,97 @@ class Time_Freq_Win(QMainWindow):
 
 
     def create_widget(self):
-        pass
+        self.data_box = QGroupBox('Data Information')
+        self.data_box.setProperty('group', 'box')
+        self.name_label = QLabel(self.subject)
+        self.name_label.setProperty('group', 'label_00')
+        self.name_label.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+        self.name_label.setFixedWidth(700)
+        self.sfreq_label = QLabel('Sampling Rate')
+        self.sfreq_label.setProperty('group', 'label_0')
+        self.sfreq_label.setAlignment(Qt.AlignLeft)
+        self.sfreq_label.setFixedWidth(120)
+        self.sfreq_con_label = QLabel(str(round(self.data.info['sfreq'])))
+        self.sfreq_con_label.setProperty('group', 'label')
+        self.sfreq_con_label.setAlignment(Qt.AlignHCenter)
+        self.sfreq_con_label.setFixedWidth(60)
+        self.group_label = QLabel('Group')
+        self.group_label.setProperty('group', 'label_0')
+        self.group_label.setAlignment(Qt.AlignLeft)
+        self.group_label.setFixedWidth(60)
+        self.group_con_label = QLabel(str(self.group))
+        self.group_con_label.setProperty('group', 'label')
+        self.group_con_label.setAlignment(Qt.AlignHCenter)
+        self.group_con_label.setFixedWidth(60)
+        self.chan_label = QLabel('Channel')
+        self.chan_label.setProperty('group', 'label_0')
+        self.chan_label.setAlignment(Qt.AlignLeft)
+        self.chan_label.setFixedWidth(90)
+        self.chan_len_label = QLabel(str(len(self.data.ch_names)))
+        self.chan_len_label.setProperty('group', 'label')
+        self.chan_len_label.setAlignment(Qt.AlignHCenter)
+        self.chan_len_label.setFixedWidth(100)
+        self.event_label = QLabel('Event')
+        self.event_label.setProperty('group', 'label_0')
+        self.event_label.setAlignment(Qt.AlignLeft)
+        self.event_label.setFixedWidth(120)
+        self.event_num_label = QLabel(str(len(self.data.event_id)))
+        self.event_num_label.setProperty('group', 'label')
+        self.event_num_label.setAlignment(Qt.AlignHCenter)
+        self.event_num_label.setFixedWidth(60)
+        self.epoch_label = QLabel('Epoch')
+        self.epoch_label.setProperty('group', 'label_0')
+        self.epoch_label.setAlignment(Qt.AlignLeft)
+        self.epoch_label.setFixedWidth(60)
+        self.epoch_num_label = QLabel(str(len(self.data)))
+        self.epoch_num_label.setProperty('group', 'label')
+        self.epoch_num_label.setAlignment(Qt.AlignHCenter)
+        self.epoch_num_label.setFixedWidth(60)
+        self.time_epoch_label = QLabel('Time epoch')
+        self.time_epoch_label.setProperty('group', 'label_0')
+        self.time_epoch_label.setAlignment(Qt.AlignLeft)
+        self.time_epoch_label.setFixedWidth(90)
+        self.time_range_label = QLabel(str(self.data.tmin) + ' - ' + str(self.data.tmax))
+        self.time_range_label.setProperty('group', 'label')
+        self.time_range_label.setAlignment(Qt.AlignHCenter)
+        self.time_range_label.setFixedWidth(100)
+
+        self.pic_label = QLabel()
+        # pixmap = QPixmap("../image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
+        pixmap = QPixmap("image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
+        self.pic_label.resize(150, 150)
+        self.pic_label.setPixmap(pixmap)
+        self.pic_label.setAlignment(Qt.AlignCenter)
+
+
+
+    def create_layout(self):
+        layout_1 = QHBoxLayout()
+        layout_1.setContentsMargins(0, 0, 0, 0)
+        layout_1.addWidget(self.sfreq_label)
+        layout_1.addWidget(self.sfreq_con_label)
+        layout_1.addWidget(self.group_label)
+        layout_1.addWidget(self.group_con_label)
+        layout_1.addWidget(self.chan_label)
+        layout_1.addWidget(self.chan_len_label)
+        layout_2 = QHBoxLayout()
+        layout_2.addWidget(self.event_label)
+        layout_2.addWidget(self.event_num_label)
+        layout_2.addWidget(self.epoch_label)
+        layout_2.addWidget(self.epoch_num_label)
+        layout_2.addWidget(self.time_epoch_label)
+        layout_2.addWidget(self.time_range_label)
+        layout_3 = QVBoxLayout()
+        layout_3.addWidget(self.name_label)
+        layout_3.addLayout(layout_1)
+        layout_3.addLayout(layout_2)
+        self.data_box.setLayout(layout_3)
+
+        info_layout = QHBoxLayout()
+        info_layout.addWidget(self.data_box, stretch=1)
+        info_layout.addWidget(self.pic_label, stretch=1000)
+
+
 
 
 

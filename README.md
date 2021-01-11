@@ -5,8 +5,8 @@ sEEG信号分析与处理软件
 - h5py==3.1.0  
 - matplotlib==3.2.2  
 - mayavi==4.7.2  
-- mne==0.22.dev0  
-- numpy==1.16.2  
+- numpy==1.16.2    
+- mne   
 - pandas  
 - Pillow 
 - pyEDFlib  
@@ -19,8 +19,3 @@ sEEG信号分析与处理软件
 ## Environment and Run
 - __Open a terminal in the folder then type__
 ```pip install -r requirements.txt``` __to install the dependencies.__
-- __Then type__
-```
-pip install -U https://github.com/mne-tools/mne-python/archive/master.zip
-python -i main.py
-```   
