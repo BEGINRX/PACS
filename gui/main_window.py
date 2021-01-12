@@ -32,7 +32,7 @@ from mne import Annotations, events_from_annotations, Epochs
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power, \
                           Calculate_PSD, Cal_Spec_Con
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
-                           Refer_Window, Baseline_Time, ERP_WIN, PSD_Para_Win, TFR_Win, Topo_Power_Itc_Win,\
+                           Refer_Window, Baseline_Time, PSD_Para_Win, TFR_Win, \
                            My_Progress, Time_Freq_Win, Con_Win
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
 from gui.data_io import write_raw_edf, write_raw_set
@@ -152,15 +152,15 @@ class MainWindow(QMainWindow):
         # actions for File menu bar
         #
         self.create_subject = QAction('Create a subject', self,
-                                statusTip='Create a subject',
-                                triggered=self.create_subject)
+                                      statusTip='Create a subject',
+                                      triggered=self.create_subject)
         # triggered=self.create_ptc
 
 
         # delete data and clear the workshop
         self.clear_workshop = QAction('Clear the workshop', self,
-                                 statusTip='Clear the workshop',
-                                 triggered=self.clear_all)
+                                      statusTip='Clear the workshop',
+                                      triggered=self.clear_all)
         self.clear_all = QAction('Clear all', self,
                                  statusTip='Clear all workshops',
                                  triggered=self.clear_all)
@@ -181,7 +181,7 @@ class MainWindow(QMainWindow):
         #
         #  website
         self.website_action = QAction('SEEG_Cognition website', self,
-                               triggered=self.show_website)
+                                      triggered=self.show_website)
         self.licence_action = QAction('Licence', self,
                                       triggered=self.show_licence)
         self.email_action = QAction('E-mail us', self,
@@ -1232,9 +1232,10 @@ class MainWindow(QMainWindow):
     def export_mat(self):
 
         try:
+            self.current_data['data'].load_data()
             save_path, _ = QFileDialog.getSaveFileName(self, 'Save data')
-            sio.savemat(self.save_path + '_data.mat', {'seeg_data':self.current_data})
-            sio.savemat(self.save_path + '.label', {'label':'event'})
+            sio.savemat(self.save_path + '_data.mat', {'seeg_data':self.current_data['data']._data})
+            sio.savemat(self.save_path + '_label.mat', {'label':self.current_data['event']})
         except Exception as error:
             self.show_error(error)
 
@@ -1599,47 +1600,10 @@ class MainWindow(QMainWindow):
                 self.show_error(error)
 
 
-    def erp(self):
-
-        data = self.current_data['data'].copy()
-        self.event = data.event_id
-        self.erp_win = ERP_WIN(list(self.event.keys()))
-        self.erp_win.erp_signal.connect(self.plot_erp)
-        self.erp_win.show()
-        del data
-
-
-    def plot_erp(self, event, mode):
-
-        try:
-            data = self.current_data['data'].copy()
-            if mode == 'standard':
-                layout = new_layout(data.ch_names)
-                if len(event) > 1:
-                    evokeds = [data[name].average().pick_types(seeg=True) for name in event]
-                    mne.viz.plot_evoked_topo(evokeds, background_color='w', layout=layout, layout_scale=1)
-                elif len(event) == 1:
-                    print('到这')
-                    evokeds = data[event].average().pick_types(seeg=True, eeg=True)
-                    mne.viz.plot_evoked_topo(evokeds, background_color='w', layout=layout, layout_scale=1)
-            else:
-                if len(event) > 1:
-                    evokeds = [data[name].average().pick_types(seeg=True) for name in event]
-                    mne.viz.plot_evoked_topo(evokeds, background_color='w')
-                elif len(event) == 1:
-                    print('到这')
-                    evokeds = data[event].average().pick_types(seeg=True, eeg=True)
-                    mne.viz.plot_evoked_topo(evokeds, background_color='w')
-        except Exception as error:
-            if error.args[0] == "Cannot determine location of MEG/EOG/ECG channels using digitization points.":
-                QMessageBox.warning(self, 'Value Error', 'Please set montage first using MNI coornidates')
-            else:
-                self.show_error(error)
-
-
-
     def show_tf_win(self):
-        self.tf_win = Time_Freq_Win(self.current_data['data'])
+        data = self.current_data['data']
+        subject = self.ptc_cb.currentText()
+        self.tf_win = Time_Freq_Win(data, subject)
         self.tf_win.show()
 
 
@@ -1648,89 +1612,6 @@ class MainWindow(QMainWindow):
         subject = self.ptc_cb.currentText()
         self.con_win = Con_Win(data, subject)
         self.con_win.show()
-
-
-    def tfr_para(self):
-
-        data = self.current_data['data']
-        event_id = data.event_id
-        self.tfr_para_win = TFR_Win(list(event_id.keys()))
-        self.tfr_para_win.power_signal.connect(self.calcu_tfr)
-        self.tfr_para_win.show()
-
-
-
-    def calcu_tfr(self, method, event, chan_num, freq, time, use_fft, show_itc):
-        self.show_pbar()
-        data = self.current_data['data'][event]
-        self.calcu_psd_thread = Calculate_Power(data=data, method=method, chan_num=chan_num, freq=freq, time=time,
-                                              use_fft=use_fft, show_itc=show_itc)
-        self.calcu_psd_thread.power_signal.connect(self.plot_tfr)
-        self.calcu_psd_thread.start()
-
-
-
-    def plot_tfr(self, power, chan_num, time, itc):
-        self.pbar.step = 100
-        power.plot([chan_num], baseline=time, mode='mean', vmin=0.,
-           title='Time-Frequency Response', cmap='bwr')
-        if itc is not None:
-            itc.plot([chan_num], title='Inter-Trial coherence', vmin=0., vmax=1., cmap='Reds')
-
-
-    def epoch_power_para(self):
-
-        data = self.current_data['data']
-        event_id = data.event_id
-        self.tfr_para_win = Topo_Power_Itc_Win(list(event_id.keys()))
-        self.tfr_para_win.power_signal.connect(self.calcu_epoch_power)
-        self.tfr_para_win.show()
-
-
-    def calcu_epoch_power(self, method, event, freq, time, use_fft, show_itc):
-        self.show_pbar()
-        data = self.current_data['data']
-        if self.current_data['data_mode'] == 'epoch':
-            self.power_thread = Calculate_Power(data=data, method=method, chan_num=None, freq=freq,
-                                                time=time, use_fft=use_fft, show_itc=show_itc)
-            self.power_thread.power_signal.connect(self.plot_epoch_power)
-            self.power_thread.start()
-
-
-    def plot_epoch_power(self, power, chan_num, baseline, itc):
-        self.pbar.step = 100
-        power.plot_topo(baseline=baseline,
-                        mode='logratio', title='Average power')
-        if itc is not None:
-            itc.plot_topo(title='Inter-Trial coherence', vmin=0., vmax=1., cmap='Reds')
-
-
-    def calcu_epoch_power_joint(self):
-        self.show_pbar()
-        data = self.current_data['data']
-        if self.current_data['data_mode'] == 'epoch':
-            self.power_thread = Calculate_Power(data)
-            self.power_thread.power_signal.connect(self.plot_epoch_power_joint)
-            self.power_thread.start()
-
-
-    def plot_epoch_power_joint(self, power, itc):
-        self.pbar.step = 100
-        power.plot_joint(baseline=(-0.5, 0), mode='mean',
-                         tmin=-.5, tmax=2,
-                         timefreqs=[(.5, 10), (1.3, 8)])
-
-
-    def gc(self):
-        pass
-
-
-    def dtf(self):
-        pass
-
-
-    def pdc(self):
-        pass
 
 
 ############################################ Shared ####################################################
@@ -1865,40 +1746,6 @@ class MainWindow(QMainWindow):
         data.load_data()
         data.interpolate_bads()
         self.get_seeg_data(data)
-
-
-    # plot psd across channels
-    def get_psd_para(self):
-        if self.current_data['data_mode'] == 'raw':
-            self.psd_win = PSD_Para_Win(None)
-        elif self.current_data['data_mode'] == 'epoch':
-            self.psd_win = PSD_Para_Win(list(self.current_data['data'].event_id.keys()))
-        self.psd_win.power_signal.connect(self.calcu_psd)
-        self.psd_win.show()
-
-
-    def calcu_psd(self, method, event, nfft, freq, time, average):
-        data = self.current_data['data']
-        self.calcu_psd_thread = Calculate_PSD(data, method, freq, time, nfft, average)
-        self.calcu_psd_thread.psd_signal.connect(self.plot_psd)
-        self.calcu_psd_thread.start()
-
-
-    def plot_psd(self, method, psds_mean, psds_std, freqs):
-        try:
-            f, ax = plt.subplots()
-            ax.plot(freqs, psds_mean, color='k')
-            ax.fill_between(freqs, psds_mean - psds_std, psds_mean + psds_std,
-                            color='k', alpha=.5)
-            if method == 'Multitaper':
-                ax.set(title='Multitaper PSD', xlabel='Frequency (Hz)',
-                       ylabel='Power Spectral Density (dB)')
-            elif method == 'Welch':
-                ax.set(title='Welch PSD', xlabel='Frequency (Hz)',
-                       ylabel='Power Spectral Density (dB)')
-            plt.show()
-        except Exception as error:
-            self.show_error(error)
 
 
     def plot_topo_psd(self):
