@@ -1232,7 +1232,6 @@ class Baseline_Time(QMainWindow):
 
 
 
-
 class Evoke_Chan_WiN(QMainWindow):
 
     erp_signal = pyqtSignal(str, object)
@@ -1281,7 +1280,6 @@ class Evoke_Chan_WiN(QMainWindow):
         self.setCentralWidget(self.center_widget)
 
 
-
     def create_widget(self):
         self.event_label = QLabel('Event')
         self.event_label.setAlignment(Qt.AlignLeft)
@@ -1294,7 +1292,7 @@ class Evoke_Chan_WiN(QMainWindow):
         self.chan_label.setAlignment(Qt.AlignLeft)
         self.chan_label.setFixedWidth(80)
         self.chan_btn = QPushButton(self)
-        self.chan_btn.setText('Choose')
+        self.chan_btn.setText('···')
         self.chan_btn.setFixedWidth(90)
         self.chan_btn.clicked.connect(self.choose_chan)
 
@@ -1447,6 +1445,133 @@ class ERP_WIN(QMainWindow):
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.list_wid)
         main_layout.addWidget(self.standard_layout_button)
+        main_layout.addLayout(button_layout)
+
+        self.center_widget.setLayout(main_layout)
+
+
+    def set_style(self):
+        self.setStyleSheet('''
+                        QPushButton{font: 10pt Times New Roman}
+                        QListWidget{background-color:white ;font: 13pt Times New Roman}
+                        QListWidget:item{height:28px}
+                        QGroupBox{background-color:rgb(242,242,242)}
+        ''')
+
+
+
+class ERP_Image_Topo(QMainWindow):
+
+    erp_signal = pyqtSignal(str, list)
+
+    def __init__(self, event):
+        super(ERP_Image_Topo, self).__init__()
+        self.event = event
+        self.vmin = None
+        self.vmax = None
+
+        self.init_ui()
+
+
+    def init_ui(self):
+
+        self.setFixedWidth(380)
+        self.setWindowModality(Qt.ApplicationModal)
+        self.center()
+        self.set_font()
+        self.create_center_widget()
+        self.create_widget()
+        self.create_layout()
+        self.set_style()
+        QApplication.setStyle(QStyleFactory.create('Fusion'))
+
+
+    def center(self):
+        '''set the app window to the center of the displayer of the computer'''
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+
+    def set_font(self):
+        '''set the font'''
+        self.font = QFont()
+        self.font.setFamily('Arial')
+        self.font.setPointSize(12)
+
+
+    def create_center_widget(self):
+        '''create center widget'''
+        self.center_widget = QWidget()
+        self.center_widget.setFont(self.font)
+        self.setCentralWidget(self.center_widget)
+
+
+
+    def create_widget(self):
+        self.event_label = QLabel('Event')
+        self.event_label.setAlignment(Qt.AlignLeft)
+        self.event_label.setFixedWidth(90)
+        self.event_combo = QComboBox(self)
+        self.event_combo.addItems(self.event)
+        # self.event_combo.setFixedWidth(90)
+
+        self.value_label = QLabel('Value(μV)', self)
+        self.value_label.setFixedWidth(90)
+        self.vmin_edit = QLineEdit()
+        self.vmin_edit.setAlignment(Qt.AlignCenter)
+        self.vmin_edit.setFixedWidth(115)
+        self.vmin_edit.setValidator(QDoubleValidator())
+        self.vmin_edit.setText('default')
+        self.vmax_edit = QLineEdit()
+        self.vmax_edit.setAlignment(Qt.AlignCenter)
+        self.vmax_edit.setFixedWidth(115)
+        self.vmax_edit.setValidator(QDoubleValidator())
+        self.vmax_edit.setText('default')
+        self.line_label = QLabel(' - ', self)
+        self.line_label.setFixedWidth(20)
+
+        self.ok_button = QPushButton(self)
+        self.ok_button.setText('OK')
+        self.ok_button.setFixedWidth(60)
+        self.ok_button.clicked.connect(self.ok_func)
+
+    def ok_func(self):
+        self.event_sel = self.event_combo.currentText()
+        if self.vmin_edit.text() == 'default' and self.vmax_edit.text() == 'default':
+            self.vmin = None
+            self.vmax = None
+        else:
+            self.vmin = float(self.vmin_edit.text())
+            self.vmax = float(self.vmax_edit.text())
+        print(self.event_sel, self.vmin, self.vmax)
+        self.erp_signal.emit(self.event_sel, [self.vmin, self.vmax])
+        self.close()
+
+
+    def create_layout(self):
+
+        button_layout = QHBoxLayout()
+        button_layout.addStretch(1)
+        button_layout.addWidget(self.ok_button)
+
+        layout_0 = QHBoxLayout()
+        layout_0.addWidget(self.event_label)
+        layout_0.addWidget(self.event_combo)
+
+        layout_1 = QHBoxLayout()
+        layout_1.addWidget(self.vmin_edit)
+        layout_1.addWidget(self.line_label)
+        layout_1.addWidget(self.vmax_edit)
+
+        layout_2 = QHBoxLayout()
+        layout_2.addWidget(self.value_label)
+        layout_2.addLayout(layout_1)
+
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(layout_0)
+        main_layout.addLayout(layout_2)
         main_layout.addLayout(button_layout)
 
         self.center_widget.setLayout(main_layout)
@@ -2037,16 +2162,12 @@ class TFR_Win(QMainWindow):
 
 
     def init_ui(self):
-
         self.setFixedWidth(350)
         self.setWindowModality(Qt.ApplicationModal)
         self.center()
         self.set_font()
         self.create_center_widget()
-        self.create_combobox()
-        self.create_label()
-        self.create_line_edit()
-        self.create_button()
+        self.create_widget()
         self.create_layout()
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
@@ -2074,8 +2195,7 @@ class TFR_Win(QMainWindow):
         self.setCentralWidget(self.center_widget)
 
 
-    def create_combobox(self):
-
+    def create_widget(self):
         self.method_combo = QComboBox(self)
         self.method_combo.addItems(['Multitaper transform',
                                     'Stockwell transform',
@@ -2091,9 +2211,6 @@ class TFR_Win(QMainWindow):
         self.fft_check_box = QCheckBox('Use FFT', self)
         self.fft_check_box.setChecked(True)
         self.fft_check_box.stateChanged.connect(self.change_fft)
-
-
-    def create_label(self):
 
         self.method_label = QLabel('Method', self)
         self.method_label.setFixedWidth(100)
@@ -2114,8 +2231,6 @@ class TFR_Win(QMainWindow):
         self.line_label_2 = QLabel(' - ', self)
         self.line_label_2.setFixedWidth(20)
 
-
-    def create_line_edit(self):
         self.chan_edit = QLineEdit('0')
         self.chan_edit.setAlignment(Qt.AlignCenter)
         self.chan_edit.setFixedWidth(93)
@@ -2140,9 +2255,6 @@ class TFR_Win(QMainWindow):
         self.tmax_edit.setAlignment(Qt.AlignCenter)
         self.tmax_edit.setFixedWidth(93)
         self.tmax_edit.setValidator(QDoubleValidator())
-
-
-    def create_button(self):
 
         self.ok_button = QPushButton(self)
         self.ok_button.setText('OK')
@@ -2482,6 +2594,7 @@ class Topo_TFR_Itc_Win(QMainWindow):
         ''')
 
 
+
 class Time_Freq_Win(QMainWindow):
 
     def __init__(self, data, subject):
@@ -2499,7 +2612,7 @@ class Time_Freq_Win(QMainWindow):
 
 
     def init_ui(self):
-        self.setFixedSize(940,270)
+        self.setFixedSize(940,320)
         self.center()
         self.set_font()
         self.create_center_widget()
@@ -2606,7 +2719,7 @@ class Time_Freq_Win(QMainWindow):
         self.evoke_cmp_btn.setFixedSize(200, 28)
         self.evoke_cmp_btn.clicked.connect(self.evoke_cmp)
         self.erp_btn = QPushButton(self)
-        self.erp_btn.setText('Singal Channel Evoke')
+        self.erp_btn.setText('Channel(s) Evoke')
         self.erp_btn.setFixedSize(220, 28)
         self.erp_btn.clicked.connect(self.evoke)
         self.erp_topo_btn = QPushButton(self)
@@ -2631,8 +2744,12 @@ class Time_Freq_Win(QMainWindow):
         self.csd_btn.clicked.connect(self.csd)
         self.image_plot_btn = QPushButton(self)
         self.image_plot_btn.setText('ERP Image')
-        self.image_plot_btn.setFixedSize(210, 28)
+        self.image_plot_btn.setFixedSize(200, 28)
         self.image_plot_btn.clicked.connect(self.image_map)
+        self.erpim_topo_btn = QPushButton(self)
+        self.erpim_topo_btn.setText('ERP Image topograph')
+        self.erpim_topo_btn.setFixedSize(220, 28)
+        self.erpim_topo_btn.clicked.connect(self.erpim_topo)
 
 
     def create_layout(self):
@@ -2675,12 +2792,20 @@ class Time_Freq_Win(QMainWindow):
         layout_5.addWidget(self.csd_btn)
         layout_5.addStretch(100)
 
-        layout_6 = QVBoxLayout()
-        layout_6.addLayout(info_layout)
-        layout_6.addWidget(self.tf_label)
-        layout_6.addLayout(layout_4)
-        layout_6.addLayout(layout_5)
-        self.center_widget.setLayout(layout_6)
+        layout_6 = QHBoxLayout()
+        layout_6.addWidget(self.image_plot_btn)
+        layout_6.addWidget(self.erpim_topo_btn)
+        # layout_6.addWidget(self.tfr_topo_btn)
+        # layout_6.addWidget(self.csd_btn)
+        layout_6.addStretch(100)
+
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(info_layout)
+        main_layout.addWidget(self.tf_label)
+        main_layout.addLayout(layout_4)
+        main_layout.addLayout(layout_5)
+        main_layout.addLayout(layout_6)
+        self.center_widget.setLayout(main_layout)
 
 
     def set_style(self):
@@ -2722,13 +2847,27 @@ class Time_Freq_Win(QMainWindow):
             mne.viz.plot_epochs_image(data[event].pick_channels(ch_name), combine='mean', picks='seeg')
 
 
+    def erpim_topo(self):
+        self.event = self.data.event_id
+        event = list(self.event.keys())
+        self.event_win = ERP_Image_Topo(event=event)
+        self.event_win.erp_signal.connect(self.plot_erpim_topo)
+        self.event_win.show()
+
+    def plot_erpim_topo(self, event, value):
+        if not value[0] and not value[1]:
+            mne.viz.plot_topo_image_epochs(self.data[event])
+        else:
+            mne.viz.plot_topo_image_epochs(self.data[event],
+                                           vmin=value[0], vmax=value[1])
+
+
     def evoke_joint(self):
         self.event = self.data.event_id
         event = list(self.event.keys())
         self.erp_win = Evoke_Chan_WiN(event=event, chan = self.data.ch_names)
         self.erp_win.erp_signal.connect(self.plot_evoke_joint)
         self.erp_win.show()
-
 
     def plot_evoke_joint(self, event, ch_name):
         import matplotlib.pyplot as plt
@@ -3157,7 +3296,11 @@ class Multitaper_Con_Win(QMainWindow):
         self.setCentralWidget(self.center_widget)
 
 
-    def create_combobox(self):
+    def plot_mode_change(self):
+        if self.matrix_check_box.isChecked():
+            self.plot_mode = 'matrix'
+
+    def create_widget(self):
         self.method_combo = QComboBox(self)
         self.method_combo.addItems(['Fourier',
                                     'Multitaper'])
@@ -3168,13 +3311,6 @@ class Multitaper_Con_Win(QMainWindow):
         self.matrix_check_box = QCheckBox('Plot in matrix')
         self.matrix_check_box.stateChanged.connect(self.plot_mode_change)
 
-
-    def plot_mode_change(self):
-        if self.matrix_check_box.isChecked():
-            self.plot_mode = 'matrix'
-
-
-    def create_label(self):
         self.method_label = QLabel('Method', self)
         self.method_label.setFixedWidth(100)
         self.event_label = QLabel('Event', self)
@@ -3188,8 +3324,6 @@ class Multitaper_Con_Win(QMainWindow):
         self.choose_chan_label.setFixedWidth(330)
         self.choose_chan_label.setWordWrap(True)
 
-
-    def create_line_edit(self):
         self.fmin_edit = QLineEdit()
         self.fmin_edit.setAlignment(Qt.AlignCenter)
         self.fmin_edit.setFixedWidth(93)
@@ -3199,9 +3333,6 @@ class Multitaper_Con_Win(QMainWindow):
         self.fmax_edit.setAlignment(Qt.AlignCenter)
         self.fmax_edit.setFixedWidth(93)
         self.fmax_edit.setValidator(QDoubleValidator())
-
-
-    def create_button(self):
 
         self.choose_chanx_btn = QPushButton(self)
         self.choose_chanx_btn.setText('Channel x')
@@ -3404,16 +3535,12 @@ class Fourier_Con_Win(QMainWindow):
 
 
     def init_ui(self):
-
         self.setFixedWidth(350)
         self.setWindowModality(Qt.ApplicationModal)
         self.center()
         self.set_font()
         self.create_center_widget()
-        self.create_combobox()
-        self.create_label()
-        self.create_line_edit()
-        self.create_button()
+        self.create_widget()
         self.create_layout()
         self.set_style()
         # self.setWindowFlags(Qt.WindowStaysOnTopHint)
@@ -3442,7 +3569,7 @@ class Fourier_Con_Win(QMainWindow):
         self.setCentralWidget(self.center_widget)
 
 
-    def create_combobox(self):
+    def create_widget(self):
         self.method_combo = QComboBox(self)
         self.method_combo.addItems(['Fourier',
                                     'Multitaper'])
@@ -3452,14 +3579,6 @@ class Fourier_Con_Win(QMainWindow):
 
         self.matrix_check_box = QCheckBox('Plot in matrix')
         self.matrix_check_box.stateChanged.connect(self.plot_mode_change)
-
-
-    def plot_mode_change(self):
-        if self.matrix_check_box.isChecked():
-            self.plot_mode = 'matrix'
-
-
-    def create_label(self):
         self.method_label = QLabel('Method', self)
         self.method_label.setFixedWidth(100)
         self.event_label = QLabel('Event', self)
@@ -3473,8 +3592,6 @@ class Fourier_Con_Win(QMainWindow):
         self.choose_chan_label.setFixedWidth(330)
         self.choose_chan_label.setWordWrap(True)
 
-
-    def create_line_edit(self):
         self.fmin_edit = QLineEdit()
         self.fmin_edit.setAlignment(Qt.AlignCenter)
         self.fmin_edit.setFixedWidth(93)
@@ -3484,9 +3601,6 @@ class Fourier_Con_Win(QMainWindow):
         self.fmax_edit.setAlignment(Qt.AlignCenter)
         self.fmax_edit.setFixedWidth(93)
         self.fmax_edit.setValidator(QDoubleValidator())
-
-
-    def create_button(self):
 
         self.choose_chanx_btn = QPushButton(self)
         self.choose_chanx_btn.setText('Channel x')
@@ -3507,6 +3621,11 @@ class Fourier_Con_Win(QMainWindow):
         self.cancel_button.setText('Cancel')
         self.cancel_button.clicked.connect(self.close)
         self.cancel_button.setProperty('group', 'bottom')
+
+
+    def plot_mode_change(self):
+        if self.matrix_check_box.isChecked():
+            self.plot_mode = 'matrix'
 
 
     def choose_x(self):
@@ -3583,8 +3702,9 @@ class Fourier_Con_Win(QMainWindow):
 
 
 
-
 class Con_Method_Win(QMainWindow):
+
+    con_signal = pyqtSignal(list)
 
     def __init__(self, data, con_method):
 
@@ -3640,11 +3760,33 @@ class Con_Method_Win(QMainWindow):
         self.fft_btn.clicked.connect(self.fft_win)
 
 
+    def creatw_layout(self):
+        layout_0 = QVBoxLayout()
+        layout_0.addWidget(self.multi_btn)
+        layout_0.addWidget(self.morlet_btn)
+        layout_0.addWidget(self.fft_btn)
+
+        self.center_widget.setLayout(layout_0)
+
+
     def taper_win(self):
-        pass
+        self.multi_taper_win = Multitaper_Con_Win()
+        self.multi_taper_win.spec_con_signal.connect(self.get_para)
+        self.multi_taper_win.show()
 
+    def morlet_win(self):
+        self.morlet_win = Morlet_Con_Win()
+        self.morlet_win.spec_con_signal.connect(self.get_para)
+        self.morlet_win.show()
 
+    def fft_win(self):
+        self.fft_win = Fourier_Con_Win()
+        self.fft_win.spec_con_signal.connect(self.get_para)
+        self.fft_win.show()
 
+    def get_para(self, para):
+        self.para = para
+        self.con_signal.emit(self.para)
 
 
 
@@ -4138,7 +4280,7 @@ if __name__ == "__main__":
 
     import mne
     data = mne.read_epochs('D:\SEEG_Cognition\data\color_epoch.fif')
-    GUI = Time_Freq_Win(data=data, subject='曹海娟')
+    GUI = Con_Win(data=data, subject='曹海娟')
     GUI.show()
     app.exec_()
 

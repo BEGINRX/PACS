@@ -316,7 +316,7 @@ class Cal_Spec_Con(QThread):
                 self.data, method=self.method, mode='fourier', sfreq=self.sfreq, fmin=self.freq[0],
                 fmax=self.freq[1], faverage=True, tmin=0., mt_adaptive=False, n_jobs=1)
         elif self.mode == 'Morlet':
-            self.cwt_freq = np.logspace(*np.log10(self.freq), num=self.num)
+            self.cwt_freq = np.arange(self.freq, num=self.num)
             con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
                 self.data, method=self.method, mode='cwt_morlet', sfreq=self.sfreq, cwt_freqs=self.cwt_freq,
                 cwt_n_cycles=self.cwt_freq/2, faverage=True, tmin=0., n_jobs=1)
