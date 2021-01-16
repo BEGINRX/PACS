@@ -7,6 +7,8 @@
 '''
 import mne
 import numpy as np
+from mne import BaseEpochs, Evoked
+from mne.io import BaseRaw
 
 def new_layout(chan):
     box = (0, 1, 0, 1)
@@ -43,6 +45,63 @@ def new_layout(chan):
     return layout
 
 
+def plot_sensors_connectivity(con, dir=False):
+    if not dir:
+        pass
+    else:
+        pass
+
+
+def standardize_epoch(epoch, baseline, normal=False):
+    '''
+    standardize epochs
+    :param epoch: instance of BaseEpochs
+    :param baseline: tuple
+                     use baseline's mean and std to calculate connectivity
+    :return: instance of BaseEpochs
+             standardized epoch
+    '''
+    if not isinstance(epoch, BaseEpochs):
+        raise TypeError('This is not Epoch')
+    epoch_new = epoch.copy().crop(baseline[1])
+    data = epoch_new.get_data()
+    base = epoch.copy().crop(baseline[0], baseline[1]).get_data()
+    if not normal:
+        base_mean = np.expand_dims(base.mean(axis=2), 2)
+        base_std = np.expand_dims(base.std(axis=2), 2)
+        stand_data = (data - base_mean) / base_std
+        epoch_new._data = stand_data
+    else:
+        max = np.expand_dims(np.max(data, axis=2), 2)
+        min = np.expand_dims(np.min(data, axis=2), 2)
+        normal_data = (data - min) / (max - min)
+        epoch_new._data = normal_data
+
+    return epoch_new
+
+
+def standardize_evoke(evoke, baseline):
+    '''
+    standardize evokes
+    :param evoke: instance of Evoked
+    :param baseline: tuple
+                     use baseline's mean and std to calculate connectivity
+    :return: instance of Evoked
+             standardized evoke
+    '''
+    if not isinstance(evoke, Evoked):
+        raise TypeError('This is not Evoke')
+    evoke_new = evoke.copy().crop(baseline[1])
+    data = evoke_new.get_data()
+    base = evoke.copy().crop(baseline[0], baseline[1]).get_data()
+    base_mean = np.expand_dims(base.mean(axis=2), 2)
+    base_std = np.expand_dims(base.std(axis=2), 2)
+    stand_data = (data - base_mean) / base_std
+    evoke_new._data = stand_data
+
+    return evoke_new
+
+
 def get_pearson(epoch):
     '''
     Calculate Pearson Coorelation for all channels
@@ -59,7 +118,7 @@ def get_pearson(epoch):
         raise TypeError('This is not BaseEpochs class')
 
     chan = epoch.ch_names
-    pearson = np.zeros((1, 148, 148))
+    pearson = np.zeros((1, len(chan), len(chan)))
     for j in range(len(epoch)):
         print('calculating epoch ' + str(j))
         pearson_tmp = np.zeros((1, len(chan))).astype(np.float32)
@@ -73,7 +132,108 @@ def get_pearson(epoch):
         pearson_tmp = np.expand_dims(pearson_tmp, 0).astype(np.float32)
         pearson = np.concatenate((pearson, pearson_tmp), axis=0)
     pearson = np.delete(pearson, 0, axis=0)
+    pearson = np.mean(pearson, axis=0)
 
     return pearson
+
+
+def get_spec_pearson(epochx, epochy):
+    '''
+    Calculate Pearson Coorelation for sub channels
+    :param epochx: instance of BaseEpochs
+    :param epochy: instance of BaseEpochs
+    :return: pearson for sub channels
+    '''
+    from scipy.stats import pearsonr
+    import numpy as np
+    from mne.epochs import BaseEpochs
+
+    if not isinstance(epochx, BaseEpochs):
+        raise TypeError('This is not BaseEpochs class')
+    if not isinstance(epochy, BaseEpochs):
+        raise TypeError('This is not BaseEpochs class')
+    if not len(epochx) == len(epochy):
+        raise TypeError('This is not the same epoch')
+
+    chanx = epochx.ch_names
+    chany = epochy.ch_names
+    pearson = np.zeros((1, len(chanx), len(chany)))
+    for i in range(len(epochx)):
+        print('calculating epoch ' + str(i))
+        pearson_tmp = np.zeros((1, len(chany))).astype(np.float32)
+        datax = epochx[i]._data[0, :, :]
+        datay = epochy[i]._data[0, :, :]
+        for j in range(len(chanx)):
+            result = np.array([])
+            for k in range(len(chany)):
+                result = np.append(result, pearsonr(datax[j, :], datay[k, :])[0])
+            pearson_tmp = np.vstack((pearson_tmp, result.reshape(1, -1)))
+        pearson_tmp = np.delete(pearson_tmp, 0, axis=0)
+        pearson_tmp = np.expand_dims(pearson_tmp, 0).astype(np.float32)
+        pearson = np.concatenate((pearson, pearson_tmp), axis=0)
+    pearson = np.delete(pearson, 0, axis=0)
+    pearson = np.mean(pearson, axis=0)
+
+    return pearson
+
+
+def get_corr(epoch1, epoch2, baseline, normal=False):
+    from scipy.signal import correlate
+
+    sta_epoch1 = standardize_epoch(epoch1, baseline, normal=normal)
+    sta_epoch2 = standardize_epoch(epoch2, baseline, normal=normal)
+    try:
+        data1 = sta_epoch1.copy().crop(0.)._data
+        data2 = sta_epoch2.copy().crop(0.)._data
+    except:
+        data1 = sta_epoch1._data
+        data2 = sta_epoch2._data
+
+    corr = np.zeros((1, data1.shape[1], data2.shape[1]))
+    for i in range(len(epoch1)):
+        datax = data1[i, :, :]
+        datay = data2[i, :, :]
+        corr_tmp = np.zeros((1, datay.shape[0])).astype(np.float32)
+        for j in range(len(datax)):
+            result = np.array([])
+            for k in range(len(datay)):
+                result = np.append(result, correlate(datax[j, :], datay[k, :], mode='valid'))
+            corr_tmp = np.vstack((corr_tmp, np.expand_dims(result, 0)))
+        corr_tmp = np.delete(corr_tmp, 0, axis=0).astype(np.float32)
+        corr = np.concatenate((corr, np.expand_dims(corr_tmp, 0)), axis=0)
+    corr = np.delete(corr, 0, axis=0)
+    corr = np.mean(corr, axis=0)
+
+    return corr
+
+
+
+
+
+if __name__ == '__main__':
+
+    import mne
+    fpath = 'D:\SEEG_Cognition\data\color_epoch.fif'
+    evoke = mne.read_epochs(fpath)[0:2]
+    epochx = evoke.copy().pick_channels(['A1', 'A2', 'A3', 'A4'])
+    epochy = evoke.copy().pick_channels(['B1', 'B2', 'B3'])
+    epochx_data = epochx._data
+    epochy_data = epochy._data
+    result = get_spec_pearson(epochx, epochy)
+
+    import matplotlib.pyplot as plt
+    fig, ax = plt.subplots()
+    image = ax.matshow(result)
+    fig.colorbar(image)
+    plt.title('Pearson')
+    plt.show()
+
+    fig, ax = plt.subplots()
+    for i in range(len(result)):
+        ax.plot(result[i, :], label= epochx.ch_names[i] + '————' + str(epochy.ch_names),
+        marker = 'o', markerfacecolor = 'black', markersize = 3)
+    ax.legend()
+    ax.set_title('Pearson')
+    plt.show()
 
 
