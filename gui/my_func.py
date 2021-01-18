@@ -104,7 +104,7 @@ def standardize_evoke(evoke, baseline):
 
 def get_pearson(epoch):
     '''
-    Calculate Pearson Coorelation for all channels
+    Calculate Pearson Correlation for all channels
     :param epoch: instance of BaseRpochs
                   data needed to be calculated
     :return: numpy.array
@@ -173,11 +173,10 @@ def get_spec_pearson(epochx, epochy):
         pearson = np.concatenate((pearson, pearson_tmp), axis=0)
     pearson = np.delete(pearson, 0, axis=0)
     pearson = np.mean(pearson, axis=0)
-
     return pearson
 
 
-def get_corr(epoch1, epoch2, baseline, normal=False):
+def get_corr(epoch1, epoch2, baseline, normal=False, mode='valid', norm=True):
     from scipy.signal import correlate
 
     sta_epoch1 = standardize_epoch(epoch1, baseline, normal=normal)
@@ -188,23 +187,48 @@ def get_corr(epoch1, epoch2, baseline, normal=False):
     except:
         data1 = sta_epoch1._data
         data2 = sta_epoch2._data
-
-    corr = np.zeros((1, data1.shape[1], data2.shape[1]))
-    for i in range(len(epoch1)):
-        datax = data1[i, :, :]
-        datay = data2[i, :, :]
-        corr_tmp = np.zeros((1, datay.shape[0])).astype(np.float32)
-        for j in range(len(datax)):
-            result = np.array([])
-            for k in range(len(datay)):
-                result = np.append(result, correlate(datax[j, :], datay[k, :], mode='valid'))
-            corr_tmp = np.vstack((corr_tmp, np.expand_dims(result, 0)))
-        corr_tmp = np.delete(corr_tmp, 0, axis=0).astype(np.float32)
-        corr = np.concatenate((corr, np.expand_dims(corr_tmp, 0)), axis=0)
-    corr = np.delete(corr, 0, axis=0)
-    corr = np.mean(corr, axis=0)
-
+    if mode == 'valid':
+        corr = np.zeros((1, data1.shape[1], data2.shape[1]))
+        for i in range(len(epoch1)):
+            print('calculating epoch ' + str(i))
+            datax = data1[i, :, :]
+            datay = data2[i, :, :]
+            corr_tmp = np.zeros((1, datay.shape[0])).astype(np.float32)
+            for j in range(len(datax)):
+                result = np.array([])
+                for k in range(len(datay)):
+                    result = np.append(result, correlate(datax[j, :], datay[k, :], mode=mode))
+                corr_tmp = np.vstack((corr_tmp, np.expand_dims(result, 0)))
+            corr_tmp = np.delete(corr_tmp, 0, axis=0).astype(np.float32)
+            corr = np.concatenate((corr, np.expand_dims(corr_tmp, 0)), axis=0)
+        corr = np.delete(corr, 0, axis=0)
+        corr = np.mean(corr, axis=0)
+    elif mode == 'same':
+        pass
+    elif mode == 'full':
+        corr = np.zeros((1, epoch2._data.shape[1], 2 * epoch2._data.shape[2] - 1))
+        for i in range(len(epoch1)):
+            corr_tmp = correlate(epoch1._data[i], epoch2._data[i], mode='full')
+            corr = np.vstack((corr, np.expand_dims(corr_tmp, 0)))
+        corr = np.delete(corr, 0, axis=0).astype(np.float64)
+        if norm:
+            print('calculate normalized cross-correlation')
+            trans = np.zeros((1, len(epoch2.ch_names), 1))
+            for i in range(data2.shape[0]):
+                trans_tmp = np.array([])
+                for j in range(data2.shape[1]):
+                    n = np.sqrt(np.dot(data1[i, 0, :], data1[i, 0, :].T) *
+                                np.dot(data2[i, j, :], data2[i, j, :].T))
+                    trans_tmp = np.expand_dims(np.append(trans_tmp, np.array([n])), axis=1)
+                trans = np.vstack((trans, np.expand_dims(trans_tmp, axis=0)))
+            trans = np.delete(trans, 0, axis=0)
+            corr = np.true_divide(corr, trans)
+        corr = np.mean(corr, axis=0)
     return corr
+
+
+def get_mutual_info():
+    pass
 
 
 

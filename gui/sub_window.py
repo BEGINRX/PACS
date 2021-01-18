@@ -17,13 +17,14 @@ from PyQt5.QtGui import QFont, QDoubleValidator, QIntValidator, QPixmap
 from mne import BaseEpochs
 from mne.io import BaseRaw
 import mne
-
-from gui.re_ref import get_chan_group
-from gui.my_func import new_layout
-from gui.my_thread import Cal_Spec_Con
-# from re_ref import get_chan_group
-# from my_func import new_layout
-# from my_thread import Calculate_Power, Calculate_PSD, Cal_Spec_Con
+try:
+    from gui.re_ref import get_chan_group
+    from gui.my_func import new_layout
+    from gui.my_thread import Cal_Spec_Con
+except:
+    from re_ref import get_chan_group
+    from my_func import new_layout
+    from my_thread import Calculate_Power, Calculate_PSD, Cal_Spec_Con
 
 def show_error(error):
     print('*********************************************************************')
@@ -642,13 +643,14 @@ class Select_Chan(QMainWindow):
 
     chan_signal = pyqtSignal(list)
 
-    def __init__(self, chan_name=None):
+    def __init__(self, chan_name=None, multi=True):
 
         super(Select_Chan, self).__init__()
         self.chan_len = len(chan_name)
         self.chan_name = chan_name
         self.chan_sel = []
         self.setWindowTitle('Channel')
+        self.multi = multi
         # self.setWindowIcon()
         self.init_ui()
 
@@ -661,11 +663,10 @@ class Select_Chan(QMainWindow):
         self.center()
         self.set_font()
         self.create_center_widget()
-        self.create_list_widget()
-        self.create_button()
+        self.create_widget()
         self.create_layout()
         self.set_style()
-        QApplication.setStyle(QStyleFactory.create('Fusion'))
+        # QApplication.setStyle(QStyleFactory.create('Fusion'))
 
 
     def center(self):
@@ -691,17 +692,14 @@ class Select_Chan(QMainWindow):
         self.center_widget.setFont(self.font)
 
 
-    def create_list_widget(self):
-
+    def create_widget(self):
         self.tip_label = QLabel('Please select the channels you want to use!', self)
         self.tip_label.setWordWrap(True)
 
         self.list_wid = QListWidget()
         self.list_wid.addItems(self.chan_name)
-        self.list_wid.setSelectionMode(QAbstractItemView.ExtendedSelection)
-
-
-    def create_button(self):
+        if self.multi:
+            self.list_wid.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
         self.ok_button = QPushButton(self)
         self.ok_button.setText('OK')
@@ -3404,36 +3402,36 @@ class Morlet_Con_Pic(QMainWindow):
 
 class Multitaper_Con_Win(QMainWindow):
 
-    spec_con_signal = pyqtSignal(str, str, str, list)
+    spec_con_signal = pyqtSignal(dict)
 
-    def __init__(self, event, con_method):
+    def __init__(self, event, chan, time, con_method):
         '''
         :param event:
         :param method: which method to calculate spectral connectivity
         '''
         super(Multitaper_Con_Win, self).__init__()
         self.event = event
+        self.chan = chan
         self.con_method = con_method
-        self.mode = None
-        self.plot_mode = None
+        self.time = time
+        self.para = dict()
+        self.plot_2d = False
+        self.plot_3d = False
+
 
         self.init_ui()
 
 
     def init_ui(self):
 
-        self.setFixedWidth(350)
+        self.setFixedWidth(375)
         self.setWindowModality(Qt.ApplicationModal)
         self.center()
         self.set_font()
         self.create_center_widget()
-        self.create_combobox()
-        self.create_label()
-        self.create_line_edit()
-        self.create_button()
+        self.create_widget()
         self.create_layout()
         self.set_style()
-        # self.setWindowFlags(Qt.WindowStaysOnTopHint)
         QApplication.setStyle(QStyleFactory.create('Fusion'))
 
 
@@ -3459,126 +3457,230 @@ class Multitaper_Con_Win(QMainWindow):
         self.setCentralWidget(self.center_widget)
 
 
-    def plot_mode_change(self):
-        if self.matrix_check_box.isChecked():
-            self.plot_mode = 'matrix'
 
     def create_widget(self):
-        self.method_combo = QComboBox(self)
-        self.method_combo.addItems(['Fourier',
-                                    'Multitaper'])
-
-        self.event_combo = QComboBox(self)
-        self.event_combo.addItems(self.event)
-
-        self.matrix_check_box = QCheckBox('Plot in matrix')
-        self.matrix_check_box.stateChanged.connect(self.plot_mode_change)
-
-        self.method_label = QLabel('Method', self)
-        self.method_label.setFixedWidth(100)
         self.event_label = QLabel('Event', self)
         self.event_label.setFixedWidth(100)
+        self.event_combo = QComboBox(self)
+        self.event_combo.addItems(self.event)
+        self.event_combo.setFixedWidth(100)
+
         self.freq_label = QLabel('Frequency', self)
         self.freq_label.setFixedWidth(100)
-        self.line_label = QLabel(' - ', self)
-        self.line_label.setFixedWidth(20)
-
-        self.choose_chan_label = QLabel('Choose sub_channels to calculate, otherwise all')
-        self.choose_chan_label.setFixedWidth(330)
-        self.choose_chan_label.setWordWrap(True)
-
         self.fmin_edit = QLineEdit()
         self.fmin_edit.setAlignment(Qt.AlignCenter)
-        self.fmin_edit.setFixedWidth(93)
+        self.fmin_edit.setFixedWidth(100)
         self.fmin_edit.setValidator(QDoubleValidator())
-
         self.fmax_edit = QLineEdit()
         self.fmax_edit.setAlignment(Qt.AlignCenter)
-        self.fmax_edit.setFixedWidth(93)
+        self.fmax_edit.setFixedWidth(100)
         self.fmax_edit.setValidator(QDoubleValidator())
+        self.line1_label = QLabel(' - ', self)
+        self.line1_label.setFixedWidth(20)
 
-        self.choose_chanx_btn = QPushButton(self)
-        self.choose_chanx_btn.setText('Channel x')
-        self.choose_chanx_btn.clicked.connect(self.choose_x)
-        self.choose_chany_btn = QPushButton(self)
-        self.choose_chany_btn.setText('Channel y')
-        self.choose_chany_btn.clicked.connect(self.choose_y)
+        self.time_label = QLabel('Time', self)
+        self.time_label.setFixedWidth(100)
+        self.tmin_edit = QLineEdit()
+        self.tmin_edit.setAlignment(Qt.AlignCenter)
+        self.tmin_edit.setFixedWidth(100)
+        self.tmin_edit.setValidator(QDoubleValidator())
+        self.tmin_edit.setText(str(self.time[0]))
+        self.tmax_edit = QLineEdit()
+        self.tmax_edit.setAlignment(Qt.AlignCenter)
+        self.tmax_edit.setFixedWidth(100)
+        self.tmax_edit.setValidator(QDoubleValidator())
+        self.tmax_edit.setText(str(self.time[1]))
+        self.line2_label = QLabel(' - ', self)
+        self.line2_label.setFixedWidth(20)
 
-        self.morlet_btn = QPushButton(self)
-        self.morlet_btn.setText('Use Morlet')
+        self.bandwidth_label = QLabel('Band Width(Hz) ')
+        self.bandwidth_label.setFixedWidth(135)
+        self.bandwidth_edit = QLineEdit()
+        self.bandwidth_edit.setAlignment(Qt.AlignCenter)
+        self.bandwidth_edit.setFixedWidth(100)
+        self.bandwidth_edit.setValidator(QDoubleValidator())
+
+        self.des_label = QLabel('Select the Channels you want to use', self)
+        self.des_label.setWordWrap(True)
+        self.chanx_label = QLabel('Channel X', self)
+        self.chanx_label.setFixedWidth(90)
+        self.chanx_btn = QPushButton('···')
+        self.chanx_btn.clicked.connect(self.chanx)
+        self.chanx_btn.setFixedWidth(100)
+        self.chany_label = QLabel('Channel Y', self)
+        self.chany_label.setFixedWidth(90)
+        self.chany_btn = QPushButton('···')
+        self.chany_btn.clicked.connect(self.chany)
+        self.chany_btn.setFixedWidth(100)
+
+        self.adapt_cb = QCheckBox('Use Adaptive weights')
+        self.adapt_cb.stateChanged.connect(self.use_adaptive_func)
+        self.plot_2d_cb = QCheckBox('2D Viewer')
+        self.plot_2d_cb.stateChanged.connect(self.use_2d)
+        self.plot_all_cb = QCheckBox('Using all channels')
+        self.plot_all_cb.stateChanged.connect(self.all_chan)
+        self.plot_3d_cb = QCheckBox('3D Viewer')
+        self.plot_3d_cb.stateChanged.connect(self.use_3d)
 
         self.ok_button = QPushButton(self)
         self.ok_button.setText('OK')
         self.ok_button.setFixedWidth(60)
         self.ok_button.setProperty('group', 'bottom')
         self.ok_button.clicked.connect(self.ok_func)
-        self.cancel_button = QPushButton(self)
-        self.cancel_button.setText('Cancel')
-        self.cancel_button.clicked.connect(self.close)
-        self.cancel_button.setProperty('group', 'bottom')
 
 
-    def choose_x(self):
-        pass
+    def chanx(self):
+        self.chanx_win = Select_Chan(self.chan)
+        self.get_chan = 'x'
+        self.chanx_win.chan_signal.connect(self.get_chan_func)
+        self.chanx_win.show()
+
+    def chany(self):
+        self.chany_win = Select_Chan(self.chan)
+        self.get_chan = 'y'
+        self.chany_win.chan_signal.connect(self.get_chan_func)
+        self.chany_win.show()
 
 
-    def choose_y(self):
-        pass
+    def get_chan_func(self, chan):
+        if self.get_chan == 'x':
+            self.chanx_get = chan
+        elif self.get_chan == 'y':
+            self.chany_get = chan
+
+
+    def all_chan(self):
+        if self.plot_all_cb.isChecked():
+            self.all_plot = True
+            self.plot_2d_cb.setChecked(True)
+            self.plot_2d_cb.setEnabled(False)
+            self.plot_2d = True
+        else:
+            self.all_plot = False
+            self.plot_2d_cb.setChecked(False)
+            self.plot_2d_cb.setEnabled(True)
+            self.plot_2d = False
+
+
+    def use_2d(self):
+        if self.plot_2d_cb.isChecked():
+            self.plot_2d = True
+            self.plot_3d_cb.setEnabled(False)
+            self.plot_3d = False
+        else:
+            self.plot_2d = False
+            self.plot_3d_cb.setEnabled(True)
+
+
+    def use_3d(self):
+        if self.plot_3d_cb.isChecked():
+            self.plot_3d = True
+            self.plot_2d_cb.setEnabled(False)
+            self.plot_2d = False
+        else:
+            self.plot_3d = False
+            self.plot_2d_cb.setEnabled(True)
+
+
+    def use_adaptive_func(self):
+        self.use_adaptive = True
 
 
     def create_layout(self):
 
-        layout_0 = QHBoxLayout()
-        layout_0.addWidget(self.method_label)
-        layout_0.addWidget(self.method_combo)
-
         layout_1 = QHBoxLayout()
         layout_1.addWidget(self.event_label)
+        layout_1.addStretch(100)
         layout_1.addWidget(self.event_combo)
 
         layout_2 = QHBoxLayout()
         layout_2.addWidget(self.fmin_edit)
-        layout_2.addWidget(self.line_label)
+        layout_2.addWidget(self.line1_label)
         layout_2.addWidget(self.fmax_edit)
 
+        layout_20 = QHBoxLayout()
+        layout_20.addWidget(self.freq_label)
+        layout_20.addStretch(100)
+        layout_20.addLayout(layout_2)
+
         layout_3 = QHBoxLayout()
-        layout_3.addWidget(self.freq_label)
-        layout_3.addLayout(layout_2)
+        layout_3.addWidget(self.tmin_edit)
+        layout_3.addWidget(self.line2_label)
+        layout_3.addWidget(self.tmax_edit)
+
+        layout_30 = QHBoxLayout()
+        layout_30.addWidget(self.time_label)
+        layout_30.addStretch(100)
+        layout_30.addLayout(layout_3)
 
         layout_4 = QHBoxLayout()
-        layout_4.addWidget(self.choose_chanx_btn)
-        layout_4.addWidget(self.choose_chany_btn)
+        layout_4.addWidget(self.bandwidth_label)
+        layout_4.addStretch(100)
+        layout_4.addWidget(self.bandwidth_edit)
 
+        layout_5 = QHBoxLayout()
+        layout_5.addWidget(self.adapt_cb)
+        layout_5.addWidget(self.plot_2d_cb)
+
+        layout_6 = QHBoxLayout()
+        layout_6.addWidget(self.plot_all_cb)
+        layout_6.addStretch(100)
+        layout_6.addWidget(self.plot_3d_cb)
+
+        layout_7 = QHBoxLayout()
+        layout_7.addWidget(self.chanx_label)
+        layout_7.addStretch(100)
+        layout_7.addWidget(self.chanx_btn)
+        layout_8 = QHBoxLayout()
+        layout_8.addWidget(self.chany_label)
+        layout_8.addStretch(100)
+        layout_8.addWidget(self.chany_btn)
 
         button_layout = QHBoxLayout()
-        button_layout.addWidget(self.morlet_btn)
-        button_layout.addStretch(1)
+        button_layout.addStretch(100)
         button_layout.addWidget(self.ok_button)
-        button_layout.addWidget(self.cancel_button)
 
 
         main_layout = QVBoxLayout()
-        main_layout.addLayout(layout_0)
         main_layout.addLayout(layout_1)
-        main_layout.addLayout(layout_3)
-        main_layout.addWidget(self.choose_chan_label)
+        main_layout.addLayout(layout_20)
+        main_layout.addLayout(layout_30)
+        main_layout.addWidget(self.des_label)
+        main_layout.addLayout(layout_7)
+        main_layout.addLayout(layout_8)
         main_layout.addLayout(layout_4)
+        main_layout.addLayout(layout_5)
+        main_layout.addLayout(layout_6)
         main_layout.addLayout(button_layout)
 
         self.center_widget.setLayout(main_layout)
 
 
     def ok_func(self):
-        self.mode = self.method_combo.currentText()
         self.event_chosen = self.event_combo.currentText()
+        self.para['event'] = self.event
         if self.fmin_edit.text() and self.fmax_edit.text():
             self.fmin = float(self.fmin_edit.text())
             self.fmax = float(self.fmax_edit.text())
-            # print(self.method_chosen, type(self.method_chosen))
-            # print(self.event_chosen, type(self.event_chosen))
-            # print([self.fmin, self.fmax], type(self.fmin))
-            self.spec_con_signal.emit(self.method, self.mode, self.event_chosen,
-                                 [self.fmin, self.fmax])
+            self.para['freq'] = [self.fmin, self.fmax]
+        else:
+            self.close()
+        if self.tmin_edit.text() and self.tmax_edit.text():
+            self.tmin = float(self.tmin_edit.text())
+            self.tmax = float(self.tmax_edit.text())
+            self.para['time'] = [self.tmin, self.tmax]
+        else:
+            self.close()
+        if self.bandwidth_edit.text():
+            self.bandwidth = float(self.bandwidth_edit.text())
+            self.para['bandwidth'] = self.bandwidth
+        else:
+            self.close()
+        self.para['adaptive'] = self.use_adaptive
+        self.para['plot_mode'] = [self.all_plot, self.plot_2d, self.plot_3d]
+        if not self.all_plot:
+            self.para['chan'] = [self.chanx_get, self.chany_get]
+        self.spec_con_signal.emit(self.para)
         self.close()
 
 
@@ -3594,8 +3696,12 @@ class Multitaper_Con_Win(QMainWindow):
 
 class Morlet_Con_Win(QMainWindow):
 
-    def __init__(self):
+    def __init__(self, event, chan, con_method):
         super(Morlet_Con_Win, self).__init__()
+        self.event = event
+        self.chan = chan
+        self.con_method = con_method
+        self.init_ui()
 
     def init_ui(self):
         self.setMinimumWidth(400)
@@ -3683,14 +3789,15 @@ class Fourier_Con_Win(QMainWindow):
 
     spec_con_signal = pyqtSignal(str, str, str, list)
 
-    def __init__(self, event, method):
+    def __init__(self, event, chan, con_method):
         '''
         :param event:
         :param method: which method to calculate spectral connectivity
         '''
         super(Fourier_Con_Win, self).__init__()
         self.event = event
-        self.method = method
+        self.chan = chan
+        self.con_method = con_method
         self.mode = None
         self.plot_mode = 'normal'
 
@@ -3706,7 +3813,6 @@ class Fourier_Con_Win(QMainWindow):
         self.create_widget()
         self.create_layout()
         self.set_style()
-        # self.setWindowFlags(Qt.WindowStaysOnTopHint)
         QApplication.setStyle(QStyleFactory.create('Fusion'))
 
 
@@ -3867,13 +3973,14 @@ class Fourier_Con_Win(QMainWindow):
 
 class Freq_Con_Method_Win(QMainWindow):
 
-    con_signal = pyqtSignal(list)
+    con_signal = pyqtSignal(para)
 
-    def __init__(self, event, chan, con_method):
+    def __init__(self, event, chan, time, con_method):
 
         super(Freq_Con_Method_Win, self).__init__()
         self.event = event
         self.chan = chan
+        self.time = time
         self.con_method = con_method
 
         self.init_ui()
@@ -3917,19 +4024,19 @@ class Freq_Con_Method_Win(QMainWindow):
         self.taper_btn = QPushButton(self)
         self.taper_btn.setText('Multitaper')
         self.taper_btn.clicked.connect(self.taper_win)
-        self.taper_btn.setFixedSize(60)
+        self.taper_btn.setFixedWidth(120)
         self.morlet_btn = QPushButton(self)
         self.morlet_btn.setText('Morlet')
         self.morlet_btn.clicked.connect(self.morlet_win)
-        self.morlet_btn.setFixedSize(60)
+        self.morlet_btn.setFixedWidth(120)
         self.fft_btn = QPushButton(self)
         self.fft_btn.setText('Fourier')
         self.fft_btn.clicked.connect(self.fft_win)
-        self.fft_btn.setFixedSize(60)
+        self.fft_btn.setFixedWidth(120)
 
 
     def create_layout(self):
-        layout_0 = QHBoxLayout()
+        layout_0 = QVBoxLayout()
         layout_0.addWidget(self.taper_btn)
         layout_0.addWidget(self.morlet_btn)
         layout_0.addWidget(self.fft_btn)
@@ -3937,23 +4044,31 @@ class Freq_Con_Method_Win(QMainWindow):
 
 
     def taper_win(self):
-        self.multi_taper_win = Multitaper_Con_Win()
+        self.multi_taper_win = Multitaper_Con_Win(event=self.event, chan=self.chan,
+                                                  time=self.time, con_method=self.con_method)
         self.multi_taper_win.spec_con_signal.connect(self.get_para)
         self.multi_taper_win.show()
+        self.close()
 
     def morlet_win(self):
         self.morlet_win = Morlet_Con_Win()
         self.morlet_win.spec_con_signal.connect(self.get_para)
         self.morlet_win.show()
+        self.close()
 
     def fft_win(self):
         self.fft_win = Fourier_Con_Win()
         self.fft_win.spec_con_signal.connect(self.get_para)
         self.fft_win.show()
+        self.close()
 
     def get_para(self, para):
         self.para = para
         self.con_signal.emit(self.para)
+
+
+    def set_style(self):
+        pass
 
 
 
@@ -3961,12 +4076,14 @@ class Time_Con_Win(QMainWindow):
 
     para_signal = pyqtSignal(dict)
 
-    def __init__(self, data, event):
+    def __init__(self, data, event, con_method, multi=True):
 
         super(Time_Con_Win, self).__init__()
         self.data = data
         self.event = event
         self.chan = self.data.ch_names
+        self.multi = multi
+        self.con_method = con_method
         self.all_plot = False
         self.chanx_get = None
         self.chany_get = None
@@ -3977,7 +4094,8 @@ class Time_Con_Win(QMainWindow):
 
     def init_ui(self):
 
-        self.setFixedWidth(150)
+        self.setFixedWidth(280)
+        self.setFixedHeight(340)
         self.setWindowModality(Qt.ApplicationModal)
         self.center()
         self.set_font()
@@ -4015,25 +4133,48 @@ class Time_Con_Win(QMainWindow):
         self.event_label.setFixedWidth(100)
         self.event_cb = QComboBox(self)
         self.event_cb.addItems(self.event)
+        self.event_cb.setFixedWidth(110)
 
         self.des_label = QLabel('Select the Channels you want to use', self)
         self.des_label.setWordWrap(True)
-        self.des_label.setFixedWidth(100)
+        # self.des_label.setFixedWidth(100)
         self.chanx_label = QLabel('Channel X', self)
-        self.chanx_label.setFixedWidth(100)
+        self.chanx_label.setFixedWidth(90)
         self.chanx_btn = QPushButton('···')
         self.chanx_btn.clicked.connect(self.chanx)
+        self.chanx_btn.setFixedWidth(80)
         self.chany_label = QLabel('Channel Y', self)
-        self.chany_label.setFixedWidth(100)
+        self.chany_label.setFixedWidth(90)
         self.chany_btn = QPushButton('···')
         self.chany_btn.clicked.connect(self.chany)
+        self.chany_btn.setFixedWidth(80)
+        self.base_label = QLabel('Baseline', self)
+        self.base_label.setFixedWidth(90)
+        self.line_label = QLabel(' - ', self)
+        self.line_label.setFixedWidth(20)
+
+        self.tmin_edit = QLineEdit()
+        self.tmin_edit.setAlignment(Qt.AlignCenter)
+        self.tmin_edit.setFixedWidth(65)
+        self.tmin_edit.setText(str(self.data.tmin))
+        self.tmin_edit.setValidator(QDoubleValidator())
+        self.tmax_edit = QLineEdit()
+        self.tmax_edit.setAlignment(Qt.AlignCenter)
+        self.tmax_edit.setFixedWidth(65)
+        self.tmax_edit.setText('0')
+        self.tmax_edit.setValidator(QDoubleValidator())
 
         self.plot_all_cb = QCheckBox('Using all channels')
         self.plot_all_cb.stateChanged.connect(self.all_chan)
-        self.plot_2d_cb = QCheckBox('2D Matrix')
+        self.plot_2d_cb = QCheckBox('2D Viewer')
         self.plot_2d_cb.stateChanged.connect(self.use_2d)
-        self.plot_3d_cb = QCheckBox('3D')
+        self.plot_3d_cb = QCheckBox('3D Viewer')
         self.plot_3d_cb.stateChanged.connect(self.use_3d)
+        if self.con_method == 'cross correlation':
+            self.plot_all_cb.setEnabled(False)
+            self.plot_2d_cb.setEnabled(False)
+            self.plot_3d_cb.setEnabled(False)
+
 
         self.ok_button = QPushButton(self)
         self.ok_button.setText('OK')
@@ -4044,44 +4185,62 @@ class Time_Con_Win(QMainWindow):
     def create_layout(self):
         layout_0 = QHBoxLayout()
         layout_0.addWidget(self.event_label)
+        layout_0.addStretch(10)
         layout_0.addWidget(self.event_cb)
 
         layout_1 = QHBoxLayout()
         layout_1.addWidget(self.chanx_label)
+        layout_1.addStretch(10)
         layout_1.addWidget(self.chanx_btn)
 
         layout_2 = QHBoxLayout()
         layout_2.addWidget(self.chany_label)
+        layout_2.addStretch(10)
         layout_2.addWidget(self.chany_btn)
 
         layout_3 = QHBoxLayout()
         layout_3.addWidget(self.plot_2d_cb)
         layout_3.addWidget(self.plot_3d_cb)
 
+        layout_4 = QHBoxLayout()
+        layout_4.addWidget(self.tmin_edit)
+        layout_4.addWidget(self.line_label)
+        layout_4.addWidget(self.tmax_edit)
+
+        layout_5 = QHBoxLayout()
+        layout_5.addWidget(self.base_label)
+        layout_5.addLayout(layout_4)
+
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch(100)
+        btn_layout.addWidget(self.ok_button)
+
         main_layout = QVBoxLayout()
         main_layout.addLayout(layout_0)
         main_layout.addWidget(self.des_label)
         main_layout.addLayout(layout_1)
         main_layout.addLayout(layout_2)
+        main_layout.addLayout(layout_5)
         main_layout.addWidget(self.plot_all_cb)
         main_layout.addLayout(layout_3)
+        main_layout.addLayout(btn_layout)
 
         self.center_widget.setLayout(main_layout)
 
 
     def chanx(self):
-        self.chanx_win = Select_Chan(self.chan)
+        self.chanx_win = Select_Chan(self.chan, multi=self.multi)
         self.get_chan = 'x'
-        self.chanx_win.chan_signal.connect(self.get_chan)
+        self.chanx_win.chan_signal.connect(self.get_chan_func)
         self.chanx_win.show()
 
     def chany(self):
         self.chany_win = Select_Chan(self.chan)
         self.get_chan = 'y'
-        self.chany_win.chan_signal.connect(self.get_chan)
+        self.chany_win.chan_signal.connect(self.get_chan_func)
         self.chany_win.show()
 
-    def get_chanx(self, chan):
+    def get_chan_func(self, chan):
         if self.get_chan == 'x':
             self.chanx_get = chan
         elif self.get_chan == 'y':
@@ -4113,12 +4272,24 @@ class Time_Con_Win(QMainWindow):
         try:
             self.para = dict()
             self.para['event'] = self.event_cb.currentText()
-            self.para['chan'] = [self.chanx, self.chany]
+            self.para['chan'] = [self.chanx_get, self.chany_get]
             self.para['plot_mode'] = [self.all_plot, self.plot_2d, self.plot_3d]
+            print(self.tmin_edit.text())
+            if not self.tmin_edit.text():
+                self.tmin = float(self.tmin_edit.text())
+                try:
+                    self.tmax = float(self.tmax_edit.text())
+                except:
+                    self.tmax = 0
+                print(self.tmin, self.tmax)
+            else:
+                self.tmin = None
+                self.tmax = None
+            self.para['baseline'] = [self.tmin, self.tmax]
             self.para_signal.emit(self.para)
+            self.close()
         except Exception:
             traceback.print_exc()
-
 
     def set_style(self):
         pass
@@ -4451,34 +4622,50 @@ class Con_Win(QMainWindow):
     # Connecivity analysis
     #
     # Time domain connecivity
+    def show_pbar(self):
+        self.pbar = My_Progress()
+        self.pbar.show()
+
     def plot_con(self, para, result, title, ch_namex, ch_namey):
+        self.pbar.step = 100
         import matplotlib.pyplot as plt
         if para['plot_mode'][1]:
             import matplotlib.pyplot as plt
             fig, ax = plt.subplots()
             image = ax.matshow(result)
             fig.colorbar(image)
-            plt.title('Pearson')
+            plt.title(title)
             plt.show()
         elif para['plot_mode'][2]:
             pass
         else:
-            fig, ax = plt.subplots()
-            for i in range(len(result)):
-                if len(ch_namey) < 10:
-                    ax.plot(result[i, :], label=ch_namex[i] + '————' + ch_namey,
-                            marker='o', markerfacecolor='black', markersize=3)
-                    ax.legend()
-                else:
-                    ax.plot(result[i, :],marker='o', markerfacecolor='black',
-                            markersize=3)
-            ax.set_title('Pearson')
+            if self.method == 'cross correlation':
+                print('here I am')
+                fig, ax = plt.subplots()
+                for i in range(result.shape[0]):
+                    ax.plot(result[i], label=ch_namey[i])
+                ax.legend()
+                ax.grid(axis='y', linestyle='-.')
+                ax.set_title(title + ': ' + str(ch_namex))
+                fig.show()
+            else:
+                fig, ax = plt.subplots()
+                for i in range(len(result)):
+                    if len(ch_namey) < 20:
+                        ax.plot(result[i], label=ch_namex[i] + '————' + str(ch_namey),
+                                marker='o', markerfacecolor='black', markersize=3)
+                        ax.legend()
+                    else:
+                        ax.plot(result[i, :],marker='o', markerfacecolor='black',
+                                markersize=3)
+                ax.set_title(title)
+                fig.show()
 
 
     def use_pearson(self):
         self.method = 'pearson'
         event_id = list(self.data.event_id.keys())
-        self.time_con_win = Time_Con_Win(event=event_id, data=self.data)
+        self.time_con_win = Time_Con_Win(event=event_id, data=self.data, con_method=self.method)
         self.time_con_win.para_signal.connect(self.get_para)
         self.time_con_win.show()
 
@@ -4486,7 +4673,7 @@ class Con_Win(QMainWindow):
     def use_enve(self):
         self.method = 'envelope'
         event_id = list(self.data.event_id.keys())
-        self.time_con_win = Time_Con_Win(event=event_id, data=self.data)
+        self.time_con_win = Time_Con_Win(event=event_id, data=self.data, con_method=self.method)
         self.time_con_win.para_signal.connect(self.get_para)
         self.time_con_win.show()
 
@@ -4494,7 +4681,7 @@ class Con_Win(QMainWindow):
     def use_mutul_info(self):
         self.method = 'mutul information'
         event_id = list(self.data.event_id.keys())
-        self.time_con_win = Time_Con_Win(event=event_id, data=self.data)
+        self.time_con_win = Time_Con_Win(event=event_id, data=self.data, con_method=self.method)
         self.time_con_win.para_signal.connect(self.get_para)
         self.time_con_win.show()
 
@@ -4502,7 +4689,7 @@ class Con_Win(QMainWindow):
     def use_cross_corre(self):
         self.method = 'cross correlation'
         event_id = list(self.data.event_id.keys())
-        self.time_con_win = Time_Con_Win(event=event_id, data=self.data)
+        self.time_con_win = Time_Con_Win(event=event_id, data=self.data, multi=False, con_method=self.method)
         self.time_con_win.para_signal.connect(self.get_para)
         self.time_con_win.show()
 
@@ -4510,14 +4697,14 @@ class Con_Win(QMainWindow):
     def use_gc(self):
         self.method = 'granger causality'
         event_id = list(self.data.event_id.keys())
-        self.time_con_win = Time_Con_Win(event=event_id, data=self.data)
+        self.time_con_win = Time_Con_Win(event=event_id, data=self.data, con_method=self.method)
         self.time_con_win.para_signal.connect(self.get_para)
         self.time_con_win.show()
 
     def use_te(self):
         self.method = 'transfer entropy'
         event_id = list(self.data.event_id.keys())
-        self.time_con_win = Time_Con_Win(event=event_id, data=self.data)
+        self.time_con_win = Time_Con_Win(event=event_id, data=self.data, con_method=self.method)
         self.time_con_win.para_signal.connect(self.get_para)
         self.time_con_win.show()
 
@@ -4530,42 +4717,32 @@ class Con_Win(QMainWindow):
         '''
         from matplotlib import pyplot as plt
         from mne.viz import plot_sensors_connectivity
-        from gui.my_func import get_pearson, get_spec_pearson, get_corr
-        if self.method == 'pearson':
-            data = self.data[para['event']]
-            if not para['plot_mode'][0]:
-                epochx = data.copy().pick_channels(para['chan'][0])
-                epochy = data.copy().pick_channels(para['chan'][1])
-                pearson = get_spec_pearson(epochx, epochy)
-            else:
-                pearson = get_pearson(data)
-            self.plot_con(para, result=pearson, title='Pearson',
-                          ch_namex=epochx.ch_names, ch_namey=str(epochy.ch_names))
-        elif self.method == 'envelope':
-            data = self.data[para['event']]
-            if not para['plot_mode'][0]:
-                epochx = data.copy().pick_channels(para['chan'][0])
-                epochy = data.copy().pick_channels(para['chan'][1])
-                con = get_spec_pearson(epochx, epochy)
-            else:
-                con = mne.connectivity.envelope_correlation(data)
+        try:
+            from gui.my_thread import Cal_Time_Con
+        except:
+            from my_thread import Cal_Time_Con
+        self.show_pbar()
+        self.para = para
+        self.cal_con = Cal_Time_Con(data=self.data, method=self.method, para=para)
+        self.cal_con.con_signal.connect(self.plot_time_con)
+        self.cal_con.start()
 
-        elif self.method == 'mutul information':
-            pass
+
+    def plot_time_con(self, con, chanx, chany):
+        self.pbar.step = 100
+        if self.method == 'pearson':
+            self.plot_con(para=self.para, result=con, title='Pearson', ch_namex=chanx, ch_namey=chany)
+        elif self.method == 'envelope':
+            self.plot_con(para=self.para, result=con, title='Envelope', ch_namex=chanx, ch_namey=chany)
+        elif self.method == 'mutual information':
+            self.plot_con(para=self.para, result=con, title='Mutual Information', ch_namex=chanx, ch_namey=chany)
         elif self.method == 'cross correlation':
-            data = self.data[para['event']]
-            if not para['plot_mode'][0]:
-                epochx = data.copy().pick_channels(para['chan'][0])
-                epochy = data.copy().pick_channels(para['chan'][1])
-                result = get_corr(epochx, epochy)
-            else:
-                result = get_corr(data, data)
-            self.plot_con(para, result=result, title='Cross Correlation',
-                          ch_namex=epochx.ch_names, ch_namey=str(epochy.ch_names))
+            self.plot_con(para=self.para, result=con, title='Cross Correlation', ch_namex=chanx, ch_namey=chany)
         elif self.method == 'granger causality':
-            pass
+            self.plot_con(para=self.para, result=con, title='Granger Causality', ch_namex=chanx, ch_namey=chany)
         elif self.method == 'transfer entropy':
-            pass
+            self.plot_con(para=self.para, result=con, title='Transfer Entropy', ch_namex=chanx, ch_namey=chany)
+
 
 
 
@@ -4581,8 +4758,9 @@ class Con_Win(QMainWindow):
     def use_coherence(self):
         self.method = 'coh'
         event_id = list(self.data.event_id.keys())
-        self.con_win = Freq_Con_Method_Win(event_id, self.method)
-        self.con_win.spec_con_signal.connect(self.calculate_con)
+        self.con_win = Freq_Con_Method_Win(event_id, chan=self.data.ch_names,
+                                           con_method=self.method, time=[self.data.tmin, self.data.tmax])
+        self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
 
     def use_canonical_coh(self):
@@ -4599,8 +4777,9 @@ class Con_Win(QMainWindow):
     def use_imaginary_coh(self):
         self.method = 'imcoh'
         event_id = list(self.data.event_id.keys())
-        self.con_win = Freq_Con_Method_Win(event_id)
-        self.con_win.spec_con_signal.connect(self.calculate_con)
+        self.con_win = Freq_Con_Method_Win(event_id, chan=self.data.ch_names,
+                                           con_method=self.method)
+        self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
 
     '''
@@ -4612,8 +4791,9 @@ class Con_Win(QMainWindow):
     def use_plv(self):
         self.method = 'plv'
         event_id = list(self.data.event_id.keys())
-        self.con_win = Freq_Con_Method_Win(event_id)
-        self.con_win.spec_con_signal.connect(self.calculate_con)
+        self.con_win = Freq_Con_Method_Win(event_id, chan=self.data.ch_names,
+                                           con_method=self.method)
+        self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
 
     '''
@@ -4627,8 +4807,9 @@ class Con_Win(QMainWindow):
     def use_ciplv(self):
         self.method = 'ciplv'
         event_id = list(self.data.event_id.keys())
-        self.con_win = Freq_Con_Method_Win(event_id)
-        self.con_win.spec_con_signal.connect(self.calculate_con)
+        self.con_win = Freq_Con_Method_Win(event_id, chan=self.data.ch_names,
+                                           con_method=self.method)
+        self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
 
     '''
@@ -4639,8 +4820,9 @@ class Con_Win(QMainWindow):
     def use_ppc(self):
         self.method = 'ppc'
         event_id = list(self.data.event_id.keys())
-        self.con_win = Freq_Con_Method_Win(event_id)
-        self.con_win.spec_con_signal.connect(self.calculate_con)
+        self.con_win = Freq_Con_Method_Win(event_id, chan=self.data.ch_names,
+                                           con_method=self.method)
+        self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
 
     '''
@@ -4652,36 +4834,40 @@ class Con_Win(QMainWindow):
     def use_pli(self):
         self.method = 'pli'
         event_id = list(self.data.event_id.keys())
-        self.con_win = Freq_Con_Method_Win(event_id)
-        self.con_win.spec_con_signal.connect(self.calculate_con)
+        self.con_win = Freq_Con_Method_Win(event_id, chan=self.data.ch_names,
+                                           con_method=self.method)
+        self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
 
     # 'pli2_unbiased' : Unbiased estimator of squared PLI
     def use_unbiased_pli(self):
         self.method = 'pli2_unbiased'
         event_id = list(self.data.event_id.keys())
-        self.con_win = Freq_Con_Method_Win(event_id)
-        self.con_win.spec_con_signal.connect(self.calculate_con)
+        self.con_win = Freq_Con_Method_Win(event_id, chan=self.data.ch_names,
+                                           con_method=self.method)
+        self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
 
     def use_wpli(self):
         self.method = 'wpli'
         event_id = list(self.data.event_id.keys())
-        self.con_win = Freq_Con_Method_Win(event_id)
-        self.con_win.spec_con_signal.connect(self.calculate_con)
+        self.con_win = Freq_Con_Method_Win(event_id, chan=self.data.ch_names,
+                                           con_method=self.method)
+        self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
 
     def use_debiased_wpli(self):
         self.method = 'wpli2_debiased'
         event_id = list(self.data.event_id.keys())
-        self.con_win = Freq_Con_Method_Win(event_id)
-        self.con_win.spec_con_signal.connect(self.calculate_con)
+        self.con_win = Freq_Con_Method_Win(event_id, chan=self.data.ch_names,
+                                           con_method=self.method)
+        self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
 
     def calculate_con(self, mode, event, freq):
         epoch = self.data[event]
         self.calcu_con = Cal_Spec_Con(epoch, method=self.method, mode=mode, freq=freq)
-        self.calcu_con.spec_con_signal.connect(self.plot_spec_con)
+        self.calcu_con.con_signal.connect(self.plot_spec_con)
         self.calcu_con.start()
 
     def plot_spec_con(self, con):

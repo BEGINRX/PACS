@@ -323,3 +323,76 @@ class Cal_Spec_Con(QThread):
         con = con[:, :, 0]
         con += con.T - np.diag(con.diagonal())
         self.spec_con_signal.emit(con)
+
+
+
+class Cal_Time_Con(QThread):
+    from numpy import ndarray
+    con_signal = pyqtSignal(ndarray, list, list)
+
+    def __init__(self, data, method, para):
+        super(Cal_Time_Con, self).__init__()
+        self.data = data
+        self.method = method
+        self.para = para
+
+    def run(self):
+        try:
+            from gui.my_func import get_pearson, get_spec_pearson, get_corr
+        except:
+            from my_func import get_pearson, get_spec_pearson, get_corr
+        if self.method == 'pearson':
+            data = self.data[self.para['event']]
+            if not self.para['plot_mode'][0]:
+                epochx = data.copy().pick_channels(self.para['chan'][0])
+                epochy = data.copy().pick_channels(self.para['chan'][1])
+                con = get_spec_pearson(epochx, epochy)
+            else:
+                epochx, epochy = data, data
+                con = get_pearson(data)
+        elif self.method == 'envelope':
+            data = self.data[self.para['event']]
+            if not self.para['plot_mode'][0]:
+                epochx = data.copy().pick_channels(self.para['chan'][0])
+                epochy = data.copy().pick_channels(self.para['chan'][1])
+                con = get_spec_pearson(epochx, epochy)
+            else:
+                epochx, epochy = data, data
+                con = mne.connectivity.envelope_correlation(data)
+        elif self.method == 'mutual information':
+            data = self.data[self.para['event']]
+            if not self.para['plot_mode'][0]:
+                epochx = data.copy().pick_channels(self.para['chan'][0])
+                epochy = data.copy().pick_channels(self.para['chan'][1])
+                con = get_corr(epochx, epochy, baseline=self.para['baseline'])
+            else:
+                epochx, epochy = data, data
+                con = get_corr(data, data)
+        elif self.method == 'cross correlation':
+            data = self.data[self.para['event']]
+            if not self.para['plot_mode'][0]:
+                epochx = data.copy().pick_channels(self.para['chan'][0])
+                epochy = data.copy().pick_channels(self.para['chan'][1])
+                con = get_corr(epochx, epochy, baseline=self.para['baseline'], mode='full')
+            else:
+                epochx, epochy = data, data
+                con = get_corr(data, data, baseline=self.para['baseline'], mode='full')
+        elif self.method == 'granger causality':
+            data = self.data[self.para['event']]
+            if not self.para['plot_mode'][0]:
+                epochx = data.copy().pick_channels(self.para['chan'][0])
+                epochy = data.copy().pick_channels(self.para['chan'][1])
+                con = get_corr(epochx, epochy, baseline=self.para['baseline'])
+            else:
+                epochx, epochy = data, data
+                con = get_corr(data, data)
+        elif self.method == 'transfer entropy':
+            data = self.data[self.para['event']]
+            if not self.para['plot_mode'][0]:
+                epochx = data.copy().pick_channels(self.para['chan'][0])
+                epochy = data.copy().pick_channels(self.para['chan'][1])
+                con = get_corr(epochx, epochy, baseline=self.para['baseline'])
+            else:
+                epochx, epochy = data, data
+                con = get_corr(data, data)
+        self.con_signal.emit(con, epochx.ch_names, epochy.ch_names)
