@@ -3415,10 +3415,12 @@ class Multitaper_Con_Win(QMainWindow):
         self.con_method = con_method
         self.time = time
         self.para = dict()
+        self.para['chan'] = None
         self.plot_2d = False
         self.plot_3d = False
         self.all_plot = False
         self.use_adaptive = False
+        self.chanx_get, self.chany_get = None, None
         self.mode = 'Multitaper'
 
 
@@ -3557,33 +3559,29 @@ class Multitaper_Con_Win(QMainWindow):
         if self.plot_all_cb.isChecked():
             self.all_plot = True
             self.plot_2d_cb.setChecked(True)
-            self.plot_2d_cb.setEnabled(False)
             self.plot_2d = True
         else:
             self.all_plot = False
             self.plot_2d_cb.setChecked(False)
-            self.plot_2d_cb.setEnabled(True)
             self.plot_2d = False
 
 
     def use_2d(self):
         if self.plot_2d_cb.isChecked():
             self.plot_2d = True
-            self.plot_3d_cb.setEnabled(False)
             self.plot_3d = False
+            self.plot_3d_cb.setChecked(False)
         else:
             self.plot_2d = False
-            self.plot_3d_cb.setEnabled(True)
 
 
     def use_3d(self):
         if self.plot_3d_cb.isChecked():
             self.plot_3d = True
-            self.plot_2d_cb.setEnabled(False)
+            self.plot_2d_cb.setChecked(False)
             self.plot_2d = False
         else:
             self.plot_3d = False
-            self.plot_2d_cb.setEnabled(True)
 
 
     def use_adaptive_func(self):
@@ -4418,11 +4416,14 @@ class Con_Win(QMainWindow):
         self.time_range_label.setFixedWidth(100)
 
         self.pic_label = QLabel()
-        pixmap = QPixmap("../image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
-        # pixmap = QPixmap("image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
-        self.pic_label.resize(150, 150)
-        self.pic_label.setPixmap(pixmap)
-        self.pic_label.setAlignment(Qt.AlignCenter)
+        try:
+            pixmap = QPixmap("../image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
+        except:
+            pixmap = QPixmap("image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
+        finally:
+            self.pic_label.resize(150, 150)
+            self.pic_label.setPixmap(pixmap)
+            self.pic_label.setAlignment(Qt.AlignCenter)
 
         self.connect_box = QGroupBox('Connectivity Measures')
         self.connect_box.setProperty('group', 'box')
@@ -4791,7 +4792,7 @@ class Con_Win(QMainWindow):
         self.method = 'imcoh'
         event_id = list(self.data.event_id.keys())
         self.con_win = Freq_Con_Method_Win(event_id, chan=self.data.ch_names,
-                                           con_method=self.method)
+                                           con_method=self.method, time=[self.data.tmin, self.data.tmax])
         self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
 
@@ -4805,9 +4806,10 @@ class Con_Win(QMainWindow):
         self.method = 'plv'
         event_id = list(self.data.event_id.keys())
         self.con_win = Freq_Con_Method_Win(event_id, chan=self.data.ch_names,
-                                           con_method=self.method)
+                                           con_method=self.method, time=[self.data.tmin, self.data.tmax])
         self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
+
 
     '''
         'ciplv' : corrected imaginary PLV (icPLV) [3]_ given by::
@@ -4821,9 +4823,10 @@ class Con_Win(QMainWindow):
         self.method = 'ciplv'
         event_id = list(self.data.event_id.keys())
         self.con_win = Freq_Con_Method_Win(event_id, chan=self.data.ch_names,
-                                           con_method=self.method)
+                                           con_method=self.method, time=[self.data.tmin, self.data.tmax])
         self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
+
 
     '''
        'ppc' : Pairwise Phase Consistency (PPC), an unbiased estimator
@@ -4834,9 +4837,10 @@ class Con_Win(QMainWindow):
         self.method = 'ppc'
         event_id = list(self.data.event_id.keys())
         self.con_win = Freq_Con_Method_Win(event_id, chan=self.data.ch_names,
-                                           con_method=self.method)
+                                           con_method=self.method, time=[self.data.tmin, self.data.tmax])
         self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
+
 
     '''
         'pli' : Phase Lag Index (PLI) [5]_ given by::
@@ -4848,36 +4852,41 @@ class Con_Win(QMainWindow):
         self.method = 'pli'
         event_id = list(self.data.event_id.keys())
         self.con_win = Freq_Con_Method_Win(event_id, chan=self.data.ch_names,
-                                           con_method=self.method)
+                                           con_method=self.method, time=[self.data.tmin, self.data.tmax])
         self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
+
 
     # 'pli2_unbiased' : Unbiased estimator of squared PLI
     def use_unbiased_pli(self):
         self.method = 'pli2_unbiased'
         event_id = list(self.data.event_id.keys())
         self.con_win = Freq_Con_Method_Win(event_id, chan=self.data.ch_names,
-                                           con_method=self.method)
+                                           con_method=self.method, time=[self.data.tmin, self.data.tmax])
         self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
+
 
     def use_wpli(self):
         self.method = 'wpli'
         event_id = list(self.data.event_id.keys())
         self.con_win = Freq_Con_Method_Win(event_id, chan=self.data.ch_names,
-                                           con_method=self.method)
+                                           con_method=self.method, time=[self.data.tmin, self.data.tmax])
         self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
+
 
     def use_debiased_wpli(self):
         self.method = 'wpli2_debiased'
         event_id = list(self.data.event_id.keys())
         self.con_win = Freq_Con_Method_Win(event_id, chan=self.data.ch_names,
-                                           con_method=self.method)
+                                           con_method=self.method, time=[self.data.tmin, self.data.tmax])
         self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
 
+
     def calculate_con(self, para, mode):
+        self.show_pbar()
         epoch = self.data[para['event']]
         print('选取 ' + str(para['event']))
         self.para = para
@@ -4886,30 +4895,36 @@ class Con_Win(QMainWindow):
         self.calcu_con.start()
 
     def plot_spec_con(self, con_time, plot_mode):
+        self.pbar.step = 100
         from matplotlib import pyplot as plt
         if plot_mode[0]:
-            print('plot all channels')
-            fig, ax = plt.subplots ()
-            image = ax.matshow (con_time[0][:, :])
-            fig.colorbar(image)
-            ax.set_title(self.spec_con_method[self.method])
-            fig.show()
-        elif plot_mode[1]:
+            print ('plot all channels')
+            if plot_mode[1]:
+                print('plot in 2D viewer')
+                fig, ax = plt.subplots ()
+                image = ax.matshow (con_time[0][:, :])
+                fig.colorbar(image)
+                ax.set_title(self.spec_con_method[self.method])
+                fig.show()
+            elif plot_mode[2]:
+                print('plot in 3D viewer')
+                mne.viz.plot_sensors_connectivity (self.data.info, con_time[0][:, :])
+        elif not plot_mode[0] and plot_mode[1]:
             print('plot in 2D Viewer')
             fig, ax = plt.subplots ()
             image = ax.matshow (con_time[0][:, :])
             fig.colorbar(image)
             ax.set_title(self.spec_con_method[self.method])
             fig.show()
-        elif plot_mode[2]:
+        elif not plot_mode[0] and plot_mode[2]:
             print('plot in 3D viewer')
+            mne.viz.plot_sensors_connectivity(self.data.info, con_time[0][:, :])
         else:
             fig, ax = plt.subplots()
             for i in range(len(con_time[0])):
-                # ax.plot(con_time[0][i], label=self.para['chan'][0] + '————' + str(self.para['chan'][1][i]),
-                #         marker='o', markerfacecolor='black', markersize=3)
-                # ax.legend()
-                ax.plot(con_time[0][i], marker='o', markerfacecolor='black', markersize=3)
+                ax.plot(con_time[0][i], label=str(self.para['chan'][0][0]) + '————' + str(self.para['chan'][1]),
+                        marker='o', markerfacecolor='black', markersize=3)
+                ax.legend()
             ax.set_title (self.spec_con_method[self.method])
             fig.show()
 
