@@ -4416,14 +4416,12 @@ class Con_Win(QMainWindow):
         self.time_range_label.setFixedWidth(100)
 
         self.pic_label = QLabel()
-        try:
-            pixmap = QPixmap("../image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
-        except:
-            pixmap = QPixmap("image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
-        finally:
-            self.pic_label.resize(150, 150)
-            self.pic_label.setPixmap(pixmap)
-            self.pic_label.setAlignment(Qt.AlignCenter)
+
+        # pixmap = QPixmap("../image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
+        pixmap = QPixmap("image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
+        self.pic_label.resize(150, 150)
+        self.pic_label.setPixmap(pixmap)
+        self.pic_label.setAlignment(Qt.AlignCenter)
 
         self.connect_box = QGroupBox('Connectivity Measures')
         self.connect_box.setProperty('group', 'box')
