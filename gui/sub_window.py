@@ -3973,7 +3973,7 @@ class Fourier_Con_Win(QMainWindow):
 
 class Freq_Con_Method_Win(QMainWindow):
 
-    con_signal = pyqtSignal(para)
+    con_signal = pyqtSignal(dict)
 
     def __init__(self, event, chan, time, con_method):
 
