@@ -20,7 +20,7 @@ import mne
 try:
     from gui.re_ref import get_chan_group
     from gui.my_func import new_layout
-    from gui.my_thread import Cal_Spec_Con
+    from gui.my_thread import Calculate_Power, Calculate_PSD, Cal_Spec_Con
 except:
     from re_ref import get_chan_group
     from my_func import new_layout
@@ -3003,7 +3003,7 @@ class Time_Freq_Win(QMainWindow):
         if ch_name == None:
             pass
         else:
-            mne.viz.plot_epochs_image(data[event].pick_channels(ch_name), combine='mean', picks='seeg')
+            mne.viz.plot_epochs_image(self.data[event].pick_channels(ch_name), combine='mean', picks='seeg')
 
 
     def erpim_topo(self):
@@ -3402,7 +3402,7 @@ class Morlet_Con_Pic(QMainWindow):
 
 class Multitaper_Con_Win(QMainWindow):
 
-    spec_con_signal = pyqtSignal(dict)
+    spec_con_signal = pyqtSignal(dict, str)
 
     def __init__(self, event, chan, time, con_method):
         '''
@@ -3417,6 +3417,9 @@ class Multitaper_Con_Win(QMainWindow):
         self.para = dict()
         self.plot_2d = False
         self.plot_3d = False
+        self.all_plot = False
+        self.use_adaptive = False
+        self.mode = 'Multitaper'
 
 
         self.init_ui()
@@ -3530,10 +3533,11 @@ class Multitaper_Con_Win(QMainWindow):
 
 
     def chanx(self):
-        self.chanx_win = Select_Chan(self.chan)
+        self.chanx_win = Select_Chan(self.chan, multi=False)
         self.get_chan = 'x'
         self.chanx_win.chan_signal.connect(self.get_chan_func)
         self.chanx_win.show()
+        self.plot_2d_cb.setEnabled(False)
 
     def chany(self):
         self.chany_win = Select_Chan(self.chan)
@@ -3658,29 +3662,32 @@ class Multitaper_Con_Win(QMainWindow):
 
     def ok_func(self):
         self.event_chosen = self.event_combo.currentText()
-        self.para['event'] = self.event
+        self.para['event'] = self.event_chosen
         if self.fmin_edit.text() and self.fmax_edit.text():
             self.fmin = float(self.fmin_edit.text())
             self.fmax = float(self.fmax_edit.text())
             self.para['freq'] = [self.fmin, self.fmax]
         else:
+            self.para['freq'] = None
             self.close()
         if self.tmin_edit.text() and self.tmax_edit.text():
             self.tmin = float(self.tmin_edit.text())
             self.tmax = float(self.tmax_edit.text())
             self.para['time'] = [self.tmin, self.tmax]
         else:
+            self.para['time'] = None
             self.close()
         if self.bandwidth_edit.text():
             self.bandwidth = float(self.bandwidth_edit.text())
             self.para['bandwidth'] = self.bandwidth
         else:
+            self.para['bandwidth'] = None
             self.close()
         self.para['adaptive'] = self.use_adaptive
         self.para['plot_mode'] = [self.all_plot, self.plot_2d, self.plot_3d]
         if not self.all_plot:
             self.para['chan'] = [self.chanx_get, self.chany_get]
-        self.spec_con_signal.emit(self.para)
+        self.spec_con_signal.emit(self.para, self.mode)
         self.close()
 
 
@@ -3973,7 +3980,7 @@ class Fourier_Con_Win(QMainWindow):
 
 class Freq_Con_Method_Win(QMainWindow):
 
-    con_signal = pyqtSignal(dict)
+    con_signal = pyqtSignal(dict, str)
 
     def __init__(self, event, chan, time, con_method):
 
@@ -4062,9 +4069,9 @@ class Freq_Con_Method_Win(QMainWindow):
         self.fft_win.show()
         self.close()
 
-    def get_para(self, para):
-        self.para = para
-        self.con_signal.emit(self.para)
+    def get_para(self, para, mode):
+        print('here here')
+        self.con_signal.emit(para, mode)
 
 
     def set_style(self):
@@ -4305,6 +4312,16 @@ class Con_Win(QMainWindow):
             raise TypeError('This is not an epoch data')
         self.subject = subject
         self.group = len(get_chan_group(self.data))
+        self.spec_con_method = dict()
+        self.spec_con_method['coh'] = 'Coherence'
+        self.spec_con_method['imcoh'] = 'Imaginary Coherence'
+        self.spec_con_method['plv'] = 'Phase-Locking Value (PLV)'
+        self.spec_con_method['ciplv'] = 'corrected imaginary PLV'
+        self.spec_con_method['ppc'] = 'Pairwise Phase Consistency (PPC)'
+        self.spec_con_method['pli'] = 'Phase Lag Index (PLI)'
+        self.spec_con_method['pli2_unbiased'] = 'Unbiased estimator of squared PLI'
+        self.spec_con_method['wpli'] = 'Weighted Phase Lag Index (WPLI)'
+        self.spec_con_method['wpli2_debiased'] = 'Debiased estimator of squared WPLI'
 
         self.init_ui()
 
@@ -4651,13 +4668,9 @@ class Con_Win(QMainWindow):
             else:
                 fig, ax = plt.subplots()
                 for i in range(len(result)):
-                    if len(ch_namey) < 20:
-                        ax.plot(result[i], label=ch_namex[i] + '————' + str(ch_namey),
-                                marker='o', markerfacecolor='black', markersize=3)
-                        ax.legend()
-                    else:
-                        ax.plot(result[i, :],marker='o', markerfacecolor='black',
-                                markersize=3)
+                    ax.plot(result[i], label=ch_namex[i] + '————' + str(ch_namey),
+                            marker='o', markerfacecolor='black', markersize=3)
+                    ax.legend()
                 ax.set_title(title)
                 fig.show()
 
@@ -4864,37 +4877,42 @@ class Con_Win(QMainWindow):
         self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
 
-    def calculate_con(self, mode, event, freq):
-        epoch = self.data[event]
-        self.calcu_con = Cal_Spec_Con(epoch, method=self.method, mode=mode, freq=freq)
-        self.calcu_con.con_signal.connect(self.plot_spec_con)
+    def calculate_con(self, para, mode):
+        epoch = self.data[para['event']]
+        print('选取 ' + str(para['event']))
+        self.para = para
+        self.calcu_con = Cal_Spec_Con(epoch, para=para, method=self.method, mode=mode)
+        self.calcu_con.spec_con_signal.connect(self.plot_spec_con)
         self.calcu_con.start()
 
-    def plot_spec_con(self, con):
+    def plot_spec_con(self, con_time, plot_mode):
         from matplotlib import pyplot as plt
-        fig, ax = plt.subplots()
-        image = ax.matshow(con[:, :])
-        fig.colorbar(image)
-        fig.tight_layout()
-        plt.show()
-        if self.method == 'coh':
-            plt.title('Coherence')
-        elif self.method == 'imcoh':
-            plt.title('Imaginary Coherence')
-        elif self.method == 'plv':
-            plt.title('Phase-Locking Value (PLV)')
-        elif self.method == 'ciplv':
-            plt.title('corrected imaginary PLV')
-        elif self.method == 'ppc':
-            plt.title('Pairwise Phase Consistency (PPC)')
-        elif self.method == 'pli':
-            plt.title('Phase Lag Index (PLI)')
-        elif self.method == 'pli2_unbiased':
-            plt.title('Unbiased estimator of squared PLI')
-        elif self.method == 'wpli':
-            plt.title('Weighted Phase Lag Index (WPLI)')
-        elif self.method == 'wpli2_debiased':
-            plt.title('Debiased estimator of squared WPLI')
+        if plot_mode[0]:
+            print('plot all channels')
+            fig, ax = plt.subplots ()
+            image = ax.matshow (con_time[0][:, :])
+            fig.colorbar(image)
+            ax.set_title(self.spec_con_method[self.method])
+            fig.show()
+        elif plot_mode[1]:
+            print('plot in 2D Viewer')
+            fig, ax = plt.subplots ()
+            image = ax.matshow (con_time[0][:, :])
+            fig.colorbar(image)
+            ax.set_title(self.spec_con_method[self.method])
+            fig.show()
+        elif plot_mode[2]:
+            print('plot in 3D viewer')
+        else:
+            fig, ax = plt.subplots()
+            for i in range(len(con_time[0])):
+                # ax.plot(con_time[0][i], label=self.para['chan'][0] + '————' + str(self.para['chan'][1][i]),
+                #         marker='o', markerfacecolor='black', markersize=3)
+                # ax.legend()
+                ax.plot(con_time[0][i], marker='o', markerfacecolor='black', markersize=3)
+            ax.set_title (self.spec_con_method[self.method])
+            fig.show()
+
 
 
 

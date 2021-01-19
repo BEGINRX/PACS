@@ -293,36 +293,54 @@ class Calculate_PSD(QThread):
 
 class Cal_Spec_Con(QThread):
 
-    spec_con_signal = pyqtSignal(object)
+    spec_con_signal = pyqtSignal(list, list)
 
-    def __init__(self, data, method, mode, freq, num):
+    def __init__(self, data, para, method, mode):
         super(Cal_Spec_Con, self).__init__()
-
+        '''
+        para['freq'] = [fmin, fmax]                 [float, float]
+        para['time'] = [tmin, tmax]                 [float, float]
+        para['bandwidth'] = bandwidth               float
+        para['adaptive'] = use_adaptive             bool
+        para['chan'] = [chanx_get, chany_get]       
+        '''
         self.data = data
+        self.para = para
         self.method = method
-        self.mode = mode
-        self.freq = freq
         self.sfreq = self.data.info['sfreq']
+        self.mode = mode
+        chan = self.data.ch_names
+        self.indices = None
+        if para['chan'][0][0]:
+            chanx_index = np.array([chan.index(str(para['chan'][0][0]))] * len(para['chan'][1]))
+            chany_index = np.array([chan.index (i) for i in para['chan'][1]])
+            self.indices = (chanx_index, chany_index)
 
     def run(self):
 
         self.data.load_data()
         if self.mode == 'Multitaper':
             con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
-                self.data, method=self.method, mode='multitaper', sfreq=self.sfreq, fmin=self.freq[0], fmax=self.freq[1],
-                faverage=True, tmin=0., mt_adaptive=False, n_jobs=1)
+                self.data, method=self.method, mode='multitaper', sfreq=self.sfreq,
+                fmin=self.para['freq'][0], fmax=self.para['freq'][1], faverage=True, tmin=self.para['time'][0],
+                tmax=self.para['time'][1], mt_adaptive=self.para['adaptive'], indices=self.indices)
         elif self.mode == 'Fourier':
             con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
-                self.data, method=self.method, mode='fourier', sfreq=self.sfreq, fmin=self.freq[0],
-                fmax=self.freq[1], faverage=True, tmin=0., mt_adaptive=False, n_jobs=1)
+                self.data, method=self.method, mode='fourier', sfreq=self.sfreq,
+                fmin=self.para['freq'][0], fmax=self.para['freq'][1], faverage=True,
+                tmin=self.para['time'][0], tmax=self.para['time'][1], indices=self.indices)
         elif self.mode == 'Morlet':
             self.cwt_freq = np.arange(self.freq, num=self.num)
             con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
                 self.data, method=self.method, mode='cwt_morlet', sfreq=self.sfreq, cwt_freqs=self.cwt_freq,
-                cwt_n_cycles=self.cwt_freq/2, faverage=True, tmin=0., n_jobs=1)
-        con = con[:, :, 0]
-        con += con.T - np.diag(con.diagonal())
-        self.spec_con_signal.emit(con)
+                cwt_n_cycles=self.cwt_freq/2, faverage=True, tmin=0., indices=self.indices)
+        if len(con.shape) == 3:
+            con = con[:, :, 0]
+            con += con.T - np.diag (con.diagonal ())
+        else:
+            con = con.reshape(1, -1)
+
+        self.spec_con_signal.emit([con, times], self.para['plot_mode'])
 
 
 
