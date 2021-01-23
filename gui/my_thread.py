@@ -380,8 +380,6 @@ class Cal_Spec_Con(QThread):
                     data = np.zeros((epoch_1._data.shape[2], epoch_1._data.shape[0], n_signals))
                     for i in range(n_signals):
                         data[:, :, i] = epoch_1._data[:, i, :].reshape(-1, epoch_1._data.shape[0])
-                    if self.para['bandwidth'] == None:
-                        self.para['bandwidth'] = 3
                     m = Multitaper(data,
                                     sampling_frequency=self.sfreq,
                                     time_halfbandwidth_product=self.para['bandwidth'],
@@ -391,6 +389,7 @@ class Cal_Spec_Con(QThread):
                     con = Connectivity(fourier_coefficients=m.fft(),
                                       frequencies=m.frequencies,
                                       time=m.time)
+                    print('come  here')
                     self.spec_con_signal.emit([con, m])
         elif self.mode == 'Morlet':
             self.cwt_freq = np.linspace(self.freq, num=self.num)

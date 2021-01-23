@@ -3651,8 +3651,12 @@ class Multitaper_Con_Win(QMainWindow):
     def use_3d(self):
         if self.plot_3d_cb.isChecked():
             self.plot_3d = True
+            self.average_cb.setChecked(True)
+            self.average_cb.setEnabled(True)
+            self.average = True
         else:
             self.plot_3d = False
+            self.average_cb.setEnabled(False)
 
 
     def create_layout(self):
@@ -4853,7 +4857,7 @@ class Con_Win(QMainWindow):
                 np.append(con.frequencies, m.nyquist_frequency))
             fig, axes = plt.subplots(nrows=n_signals, ncols=n_signals, figsize=(15, 9))
             meshes = list ()
-            for ind1, ind2 in product (range (n_signals), range (n_signals)):
+            for ind1, ind2 in product (range(n_signals), range(n_signals)):
                 if ind1 == ind2:
                     vmin, vmax = con.power().min(), con.power().max()
                 else:
@@ -4884,7 +4888,7 @@ class Con_Win(QMainWindow):
                 axes[ind1, ind2].set_xlim(time_extent)
                 axes[ind1, ind2].axvline(0., color='black')
             plt.tight_layout (pad=2)
-            cb = fig.colorbar (meshes[-2], ax=axes.ravel ().tolist (), orientation='horizontal',
+            cb = fig.colorbar (meshes[-2], ax=axes.ravel().tolist(), orientation='horizontal',
                                shrink=.5, aspect=15, pad=0.1, label=self.spec_con_method[self.method])
             cb.outline.set_linewidth (0)
             fig.show()
@@ -4893,12 +4897,16 @@ class Con_Win(QMainWindow):
     def plot_notime(self, con_list):
         from matplotlib import pyplot as plt
         if self.para['average']:
-            con = con_list[0]
-            fig, ax = plt.subplots()
-            image = ax.matshow(con[:, :])
-            fig.colorbar(image)
-            ax.set_title(self.spec_con_method[self.method])
-            fig.show()
+            if self.para['plot_mode'][1]:
+                con = con_list[0]
+                mne.viz.plot_sensors_connectivity(self.data.info, con)
+            else:
+                con = con_list[0]
+                fig, ax = plt.subplots()
+                image = ax.matshow(con[:, :])
+                fig.colorbar(image)
+                ax.set_title(self.spec_con_method[self.method])
+                fig.show()
         else:
             print(self.para['chan'])
             con = con_list[0]
