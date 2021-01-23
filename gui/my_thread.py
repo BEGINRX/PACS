@@ -311,21 +311,20 @@ class Cal_Spec_Con(QThread):
         self.mode = mode
         chan = self.data.ch_names
         self.indices = None
-        if not para['chan']:
-            self.indices = None
-        else:
-            try:
+        if isinstance(para['chan'][0], list):
+            if len(para['chan'][0]) == 1:
                 chanx_index = np.array([chan.index(str(para['chan'][0][0]))] * len(para['chan'][1]))
                 chany_index = np.array([chan.index (i) for i in para['chan'][1]])
                 self.indices = (chanx_index, chany_index)
-            except:
-                pass
+        else:
+            self.indices = None
+        print(self.indices)
+
 
     def run(self):
         self.data.load_data()
         if self.mode == 'Multitaper':
             if not self.para['sliding'][0]:
-                self.spec_con = False
                 con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
                     self.data, method=self.method, mode='multitaper', sfreq=self.sfreq,
                     fmin=self.para['freq'][0], fmax=self.para['freq'][1], faverage=self.para['average'],
@@ -359,7 +358,9 @@ class Cal_Spec_Con(QThread):
 
                     for i in range(len (data)):
                         data_use = data[i]
-                        m = Multitaper (data_use,
+                        if self.para['bandwidth'] == None:
+                            self.para['bandwidth'] = 3
+                        m = Multitaper(data_use,
                                         sampling_frequency=self.sfreq,
                                         time_halfbandwidth_product=self.para['bandwidth'],
                                         time_window_duration=self.para['sliding'][1],
@@ -379,6 +380,8 @@ class Cal_Spec_Con(QThread):
                     data = np.zeros((epoch_1._data.shape[2], epoch_1._data.shape[0], n_signals))
                     for i in range(n_signals):
                         data[:, :, i] = epoch_1._data[:, i, :].reshape(-1, epoch_1._data.shape[0])
+                    if self.para['bandwidth'] == None:
+                        self.para['bandwidth'] = 3
                     m = Multitaper(data,
                                     sampling_frequency=self.sfreq,
                                     time_halfbandwidth_product=self.para['bandwidth'],

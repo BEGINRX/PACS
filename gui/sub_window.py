@@ -3563,6 +3563,11 @@ class Multitaper_Con_Win(QMainWindow):
         self.ok_button.setFixedWidth(60)
         self.ok_button.setProperty('group', 'bottom')
         self.ok_button.clicked.connect(self.ok_func)
+        self.cancel_button = QPushButton(self)
+        self.cancel_button.setText('Cancel')
+        self.cancel_button.setFixedWidth(60)
+        self.cancel_button.setProperty('group', 'bottom')
+        self.cancel_button.clicked.connect(self.close)
 
 
     def use_win(self):
@@ -3713,6 +3718,7 @@ class Multitaper_Con_Win(QMainWindow):
         button_layout = QHBoxLayout()
         button_layout.addStretch(100)
         button_layout.addWidget(self.ok_button)
+        button_layout.addWidget(self.cancel_button)
 
         main_layout = QVBoxLayout()
         main_layout.addLayout(layout_1)
@@ -3757,13 +3763,12 @@ class Multitaper_Con_Win(QMainWindow):
                 self.dura = float(self.win_dura.text())
                 self.step = float(self.win_step.text ())
             except:
-                self.close()
+                self.dura = None
+                self.step = None
         if self.bandwidth_edit.text():
-            self.bandwidth = float(self.bandwidth_edit.text())
-            self.para['bandwidth'] = self.bandwidth
+            self.para['bandwidth'] = float(self.bandwidth_edit.text())
         else:
-            self.para['bandwidth'] = None
-            self.close()
+            self.para['bandwidth'] = 3  #若用户没输入bandwidth, 则默认为3
         self.para['plot_mode'] = [self.all_plot, self.plot_3d]
         self.para['chan'] = [self.chanx_get, self.chany_get]
         self.para['average'] = self.average
@@ -4898,6 +4903,7 @@ class Con_Win(QMainWindow):
             print(self.para['chan'])
             con = con_list[0]
             if not self.para['chan'][1]:
+                print('在这')
                 pic_win = Pic_Change(matrix=con, title=self.spec_con_method[self.method],
                                      n_times=con_list[1], diagonal=True, domain='freq')
                 pic_win.show()
