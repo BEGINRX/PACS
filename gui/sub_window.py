@@ -2865,7 +2865,7 @@ class Time_Freq_Win(QMainWindow):
 
         self.pic_label = QLabel()
         # pixmap = QPixmap("../image/tf.png").scaled(QSize(130, 130), Qt.KeepAspectRatioByExpanding)
-        pixmap = QPixmap("image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
+        pixmap = QPixmap("image/tf.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
         self.pic_label.resize(150, 150)
         self.pic_label.setPixmap(pixmap)
         self.pic_label.setAlignment(Qt.AlignCenter)
@@ -4315,8 +4315,8 @@ class Con_Win(QMainWindow):
 
         self.pic_label = QLabel()
 
-        # pixmap = QPixmap("../image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
-        pixmap = QPixmap("image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
+        pixmap = QPixmap("../image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
+        # pixmap = QPixmap("image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
         self.pic_label.resize(150, 150)
         self.pic_label.setPixmap(pixmap)
         self.pic_label.setAlignment(Qt.AlignCenter)
