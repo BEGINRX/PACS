@@ -7,6 +7,7 @@
 import numpy as np
 import sys
 import traceback
+import time
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget, QPushButton,\
     QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, \
     QInputDialog, QLineEdit, QApplication, QScrollArea, QWidget, \
@@ -36,10 +37,11 @@ def show_error(error):
 
 class My_Progress(QMainWindow):
 
-    def __init__(self):
+    def __init__(self, delay=0):
 
         super(My_Progress, self).__init__()
         self.step = 0
+        self.delay = delay
         self.init_ui()
 
     def init_ui(self):
@@ -103,6 +105,7 @@ class My_Progress(QMainWindow):
             self.close()
         if self.step < 90:
             self.step += 1
+            time.sleep(self.delay)
 
 
 
@@ -3226,23 +3229,24 @@ class My_Figure(FigureCanvas):
 
 
 
-class Morlet_Con_Pic(QMainWindow):
+class Pic_Change(QMainWindow):
 
-    def __init__(self, matrix, title, n_times=None, diagonal=True):
+    def __init__(self, matrix, title, n_times=None, diagonal=True, domain='time'):
 
-        super(Morlet_Con_Pic, self).__init__()
+        super(Pic_Change, self).__init__()
         self.num = 0
         self.diagonal = diagonal
         if isinstance(matrix, np.ndarray):
             self.matrix = matrix
         self.matrix_plot = self.matrix[:, :, self.num]
-        if self.diagonal:
+        if not self.diagonal: # if the data has not been diagnoaled yet, then do it
             self.matrix_plot += self.matrix_plot.T - np.diag(self.matrix_plot.diagonal())
         self.title = title
-        if not n_times:
-            self.n_times = np.arange(self.matrix_plot.shape[2])
+        if n_times.any():
+            self.n_times = np.array(n_times)
         else:
-            self.n_times = n_times
+            self.n_times = np.arange (self.matrix_plot.shape[2])
+        self.domain = domain
         self.init_ui()
 
     def init_ui(self):
@@ -3303,7 +3307,12 @@ class Morlet_Con_Pic(QMainWindow):
         self.image = self.ax.matshow(self.matrix_plot)
         self.canvas.fig.colorbar(self.image)
         self.canvas.mpl_connect('key_press_event', self.on_move)
-        self.ax.set_title(self.title + ' ' + '(' + str(self.n_times[self.num].astype(np.float16)) + ')')
+        if self.domain == 'time':
+            self.ax.set_title(self.title + ' ' + '(' + 'time:' + '' +
+                          str(self.n_times[self.num].astype(np.float16)) + 's' + ')')
+        else:
+            self.ax.set_title (self.title + ' ' + '(' + 'frequency: ' +
+                               str (self.n_times[self.num].astype (np.float16)) + 'Hz' + ')')
         self.canvas.setFocusPolicy(Qt.StrongFocus)
         self.canvas.setFocus()
 
@@ -3317,11 +3326,15 @@ class Morlet_Con_Pic(QMainWindow):
 
     def change_canvas(self):
         self.matrix_plot = self.matrix[:, :, self.num]
-        if self.diagonal:
+        if not self.diagonal:
             self.matrix_plot += self.matrix_plot.T - np.diag(self.matrix_plot.diagonal())
         self.image.set_data(self.matrix_plot)
-        self.ax.set_title(self.title + ' ' + '(' + 'time:' + '' +
+        if self.domain == 'time':
+            self.ax.set_title(self.title + ' ' + '(' + 'time:' + '' +
                           str(self.n_times[self.num].astype(np.float16)) + 's' + ')')
+        else:
+            self.ax.set_title (self.title + ' ' + '(' + 'frequency: ' +
+                               str (self.n_times[self.num].astype (np.float16)) + 'Hz' + ')')
         self.canvas.draw_idle()
         self.num_line_edit.setText(str(self.num))
 
@@ -3347,6 +3360,8 @@ class Morlet_Con_Pic(QMainWindow):
                 self.num = 0
             else:
                 self.num += 1
+        else:
+            pass
         self.change_canvas()
 
     def left_move(self):
@@ -3416,11 +3431,12 @@ class Multitaper_Con_Win(QMainWindow):
         self.time = time
         self.para = dict()
         self.para['chan'] = None
-        self.plot_2d = False
         self.plot_3d = False
         self.all_plot = False
-        self.use_adaptive = False
         self.chanx_get, self.chany_get = None, None
+        self.average = False
+        self.dura = None
+        self.step = None
         self.mode = 'Multitaper'
 
 
@@ -3462,7 +3478,6 @@ class Multitaper_Con_Win(QMainWindow):
         self.setCentralWidget(self.center_widget)
 
 
-
     def create_widget(self):
         self.event_label = QLabel('Event', self)
         self.event_label.setFixedWidth(100)
@@ -3498,8 +3513,8 @@ class Multitaper_Con_Win(QMainWindow):
         self.line2_label = QLabel(' - ', self)
         self.line2_label.setFixedWidth(20)
 
-        self.bandwidth_label = QLabel('Band Width(Hz) ')
-        self.bandwidth_label.setFixedWidth(135)
+        self.bandwidth_label = QLabel('Band Width(Hz)')
+        self.bandwidth_label.setFixedWidth(140)
         self.bandwidth_edit = QLineEdit()
         self.bandwidth_edit.setAlignment(Qt.AlignCenter)
         self.bandwidth_edit.setFixedWidth(100)
@@ -3518,13 +3533,29 @@ class Multitaper_Con_Win(QMainWindow):
         self.chany_btn.clicked.connect(self.chany)
         self.chany_btn.setFixedWidth(100)
 
-        self.adapt_cb = QCheckBox('Use Adaptive weights')
-        self.adapt_cb.stateChanged.connect(self.use_adaptive_func)
-        self.plot_2d_cb = QCheckBox('2D Viewer')
-        self.plot_2d_cb.stateChanged.connect(self.use_2d)
-        self.plot_all_cb = QCheckBox('Using all channels')
+        self.win_cb = QCheckBox('use sliding windows')
+        self.win_cb.stateChanged.connect(self.use_win)
+        self.win_dura_label = QLabel('Window duration(s)')
+        self.win_dura_label.setFixedWidth(170)
+        self.win_dura = QLineEdit()
+        self.win_dura.setAlignment(Qt.AlignCenter)
+        self.win_dura.setFixedWidth(100)
+        self.win_dura.setValidator(QDoubleValidator())
+        self.win_dura.setEnabled(False)
+        self.win_step_label = QLabel ('Window Step(s)')
+        self.win_step_label.setFixedWidth(160)
+        self.win_step = QLineEdit()
+        self.win_step.setAlignment(Qt.AlignCenter)
+        self.win_step.setFixedWidth(100)
+        self.win_step.setValidator(QDoubleValidator())
+        self.win_step.setEnabled(False)
+
+        self.average_cb = QCheckBox('Average')
+        self.average_cb.stateChanged.connect (self.use_average)
+        self.plot_all_cb = QCheckBox('All channels')
         self.plot_all_cb.stateChanged.connect(self.all_chan)
         self.plot_3d_cb = QCheckBox('3D Viewer')
+        self.plot_3d_cb.setEnabled(False)
         self.plot_3d_cb.stateChanged.connect(self.use_3d)
 
         self.ok_button = QPushButton(self)
@@ -3534,12 +3565,28 @@ class Multitaper_Con_Win(QMainWindow):
         self.ok_button.clicked.connect(self.ok_func)
 
 
+    def use_win(self):
+        if self.win_cb.isChecked():
+            self.win_dura.setEnabled(True)
+            self.win_step.setEnabled(True)
+            self.average_cb.setEnabled(False)
+        else:
+            self.win_dura.setEnabled(False)
+            self.win_step.setEnabled(False)
+            try:
+                if len(self.chanx_get) == 1 and len (self.chany_get) >= 1:
+                    self.average_cb.setChecked(False)
+                    self.average_cb.setEnabled(False)
+                else:
+                    self.average_cb.setEnabled(True)
+            except:
+                pass
+
     def chanx(self):
-        self.chanx_win = Select_Chan(self.chan, multi=False)
+        self.chanx_win = Select_Chan(self.chan, multi=True)
         self.get_chan = 'x'
         self.chanx_win.chan_signal.connect(self.get_chan_func)
         self.chanx_win.show()
-        self.plot_2d_cb.setEnabled(False)
 
     def chany(self):
         self.chany_win = Select_Chan(self.chan)
@@ -3551,41 +3598,56 @@ class Multitaper_Con_Win(QMainWindow):
     def get_chan_func(self, chan):
         if self.get_chan == 'x':
             self.chanx_get = chan
+            if len(self.chanx_get) > 1:
+                self.chany_btn.setEnabled(False)
+                self.chany_get = None
+            else:
+                self.chany_btn.setEnabled(True)
         elif self.get_chan == 'y':
             self.chany_get = chan
+        try:
+            if len(self.chanx_get) == 1 and len(self.chany_get) >= 1:
+                self.average_cb.setChecked(False)
+                self.average_cb.setEnabled(False)
+            else:
+                self.average_cb.setEnabled(True)
+        except:
+            pass
 
 
     def all_chan(self):
         if self.plot_all_cb.isChecked():
             self.all_plot = True
-            self.plot_2d_cb.setChecked(True)
-            self.plot_2d = True
+            self.chanx_get, self.chany_get = None, None
+            self.plot_3d_cb.setEnabled(True)
+            self.average_cb.setEnabled(True)
+            self.win_cb.setChecked(False)
+            self.win_cb.setEnabled(False)
         else:
             self.all_plot = False
-            self.plot_2d_cb.setChecked(False)
-            self.plot_2d = False
+            self.plot_3d_cb.setEnabled(False)
+            try:
+                if len (self.chanx_get) == 1 and len (self.chany_get) >= 1:
+                    self.average_cb.setChecked (False)
+                    self.average_cb.setEnabled (False)
+                else:
+                    self.average_cb.setChecked (True)
+                    self.average_cb.setEnabled (True)
+            except:
+                pass
 
-
-    def use_2d(self):
-        if self.plot_2d_cb.isChecked():
-            self.plot_2d = True
-            self.plot_3d = False
-            self.plot_3d_cb.setChecked(False)
+    def use_average(self):
+        if self.average_cb.isChecked():
+            self.average = True
         else:
-            self.plot_2d = False
+            self.average = False
 
 
     def use_3d(self):
         if self.plot_3d_cb.isChecked():
             self.plot_3d = True
-            self.plot_2d_cb.setChecked(False)
-            self.plot_2d = False
         else:
             self.plot_3d = False
-
-
-    def use_adaptive_func(self):
-        self.use_adaptive = True
 
 
     def create_layout(self):
@@ -3621,13 +3683,13 @@ class Multitaper_Con_Win(QMainWindow):
         layout_4.addWidget(self.bandwidth_edit)
 
         layout_5 = QHBoxLayout()
-        layout_5.addWidget(self.adapt_cb)
-        layout_5.addWidget(self.plot_2d_cb)
+        layout_5.addWidget(self.average_cb)
+        layout_5.addStretch(100)
+        layout_5.addWidget(self.plot_3d_cb)
 
         layout_6 = QHBoxLayout()
         layout_6.addWidget(self.plot_all_cb)
         layout_6.addStretch(100)
-        layout_6.addWidget(self.plot_3d_cb)
 
         layout_7 = QHBoxLayout()
         layout_7.addWidget(self.chanx_label)
@@ -3638,10 +3700,19 @@ class Multitaper_Con_Win(QMainWindow):
         layout_8.addStretch(100)
         layout_8.addWidget(self.chany_btn)
 
+        layout_91 = QHBoxLayout()
+        layout_91.addWidget(self.win_dura_label)
+        layout_91.addStretch(10)
+        layout_91.addWidget(self.win_dura)
+
+        layout_92 = QHBoxLayout()
+        layout_92.addWidget(self.win_step_label)
+        layout_92.addStretch(10)
+        layout_92.addWidget(self.win_step)
+
         button_layout = QHBoxLayout()
         button_layout.addStretch(100)
         button_layout.addWidget(self.ok_button)
-
 
         main_layout = QVBoxLayout()
         main_layout.addLayout(layout_1)
@@ -3651,6 +3722,9 @@ class Multitaper_Con_Win(QMainWindow):
         main_layout.addLayout(layout_7)
         main_layout.addLayout(layout_8)
         main_layout.addLayout(layout_4)
+        main_layout.addWidget(self.win_cb)
+        main_layout.addLayout(layout_91)
+        main_layout.addLayout(layout_92)
         main_layout.addLayout(layout_5)
         main_layout.addLayout(layout_6)
         main_layout.addLayout(button_layout)
@@ -3662,9 +3736,12 @@ class Multitaper_Con_Win(QMainWindow):
         self.event_chosen = self.event_combo.currentText()
         self.para['event'] = self.event_chosen
         if self.fmin_edit.text() and self.fmax_edit.text():
-            self.fmin = float(self.fmin_edit.text())
-            self.fmax = float(self.fmax_edit.text())
-            self.para['freq'] = [self.fmin, self.fmax]
+            try:
+                self.fmin = float(self.fmin_edit.text())
+                self.fmax = float(self.fmax_edit.text())
+                self.para['freq'] = [self.fmin, self.fmax]
+            except:
+                self.close()
         else:
             self.para['freq'] = None
             self.close()
@@ -3675,16 +3752,23 @@ class Multitaper_Con_Win(QMainWindow):
         else:
             self.para['time'] = None
             self.close()
+        if self.win_cb.isChecked():
+            try:
+                self.dura = float(self.win_dura.text())
+                self.step = float(self.win_step.text ())
+            except:
+                self.close()
         if self.bandwidth_edit.text():
             self.bandwidth = float(self.bandwidth_edit.text())
             self.para['bandwidth'] = self.bandwidth
         else:
             self.para['bandwidth'] = None
             self.close()
-        self.para['adaptive'] = self.use_adaptive
-        self.para['plot_mode'] = [self.all_plot, self.plot_2d, self.plot_3d]
-        if not self.all_plot:
-            self.para['chan'] = [self.chanx_get, self.chany_get]
+        self.para['plot_mode'] = [self.all_plot, self.plot_3d]
+        self.para['chan'] = [self.chanx_get, self.chany_get]
+        self.para['average'] = self.average
+        print('是否Sliding: ' + str(self.win_cb.isChecked()))
+        self.para['sliding'] = [self.win_cb.isChecked(), self.dura, self.step]
         self.spec_con_signal.emit(self.para, self.mode)
         self.close()
 
@@ -3790,191 +3874,6 @@ class Morlet_Con_Win(QMainWindow):
 
 
 
-class Fourier_Con_Win(QMainWindow):
-
-    spec_con_signal = pyqtSignal(str, str, str, list)
-
-    def __init__(self, event, chan, con_method):
-        '''
-        :param event:
-        :param method: which method to calculate spectral connectivity
-        '''
-        super(Fourier_Con_Win, self).__init__()
-        self.event = event
-        self.chan = chan
-        self.con_method = con_method
-        self.mode = None
-        self.plot_mode = 'normal'
-
-        self.init_ui()
-
-
-    def init_ui(self):
-        self.setFixedWidth(350)
-        self.setWindowModality(Qt.ApplicationModal)
-        self.center()
-        self.set_font()
-        self.create_center_widget()
-        self.create_widget()
-        self.create_layout()
-        self.set_style()
-        QApplication.setStyle(QStyleFactory.create('Fusion'))
-
-
-    def center(self):
-        '''set the app window to the center of the displayer of the computer'''
-        qr = self.frameGeometry()
-        cp = QDesktopWidget().availableGeometry().center()
-        qr.moveCenter(cp)
-        self.move(qr.topLeft())
-
-
-    def set_font(self):
-        '''set the font'''
-        self.font = QFont()
-        self.font.setFamily('Arial')
-        self.font.setPointSize(12)
-
-
-    def create_center_widget(self):
-        '''create center widget'''
-        self.center_widget = QWidget()
-        self.center_widget.setFont(self.font)
-        self.setCentralWidget(self.center_widget)
-
-
-    def create_widget(self):
-        self.method_combo = QComboBox(self)
-        self.method_combo.addItems(['Fourier',
-                                    'Multitaper'])
-
-        self.event_combo = QComboBox(self)
-        self.event_combo.addItems(self.event)
-
-        self.matrix_check_box = QCheckBox('Plot in matrix')
-        self.matrix_check_box.stateChanged.connect(self.plot_mode_change)
-        self.method_label = QLabel('Method', self)
-        self.method_label.setFixedWidth(100)
-        self.event_label = QLabel('Event', self)
-        self.event_label.setFixedWidth(100)
-        self.freq_label = QLabel('Frequency', self)
-        self.freq_label.setFixedWidth(100)
-        self.line_label = QLabel(' - ', self)
-        self.line_label.setFixedWidth(20)
-
-        self.choose_chan_label = QLabel('Choose sub_channels to calculate, otherwise all')
-        self.choose_chan_label.setFixedWidth(330)
-        self.choose_chan_label.setWordWrap(True)
-
-        self.fmin_edit = QLineEdit()
-        self.fmin_edit.setAlignment(Qt.AlignCenter)
-        self.fmin_edit.setFixedWidth(93)
-        self.fmin_edit.setValidator(QDoubleValidator())
-
-        self.fmax_edit = QLineEdit()
-        self.fmax_edit.setAlignment(Qt.AlignCenter)
-        self.fmax_edit.setFixedWidth(93)
-        self.fmax_edit.setValidator(QDoubleValidator())
-
-        self.choose_chanx_btn = QPushButton(self)
-        self.choose_chanx_btn.setText('Channel x')
-        self.choose_chanx_btn.clicked.connect(self.choose_x)
-        self.choose_chany_btn = QPushButton(self)
-        self.choose_chany_btn.setText('Channel y')
-        self.choose_chany_btn.clicked.connect(self.choose_y)
-
-        self.morlet_btn = QPushButton(self)
-        self.morlet_btn.setText('Use Morlet')
-
-        self.ok_button = QPushButton(self)
-        self.ok_button.setText('OK')
-        self.ok_button.setFixedWidth(60)
-        self.ok_button.setProperty('group', 'bottom')
-        self.ok_button.clicked.connect(self.ok_func)
-        self.cancel_button = QPushButton(self)
-        self.cancel_button.setText('Cancel')
-        self.cancel_button.clicked.connect(self.close)
-        self.cancel_button.setProperty('group', 'bottom')
-
-
-    def plot_mode_change(self):
-        if self.matrix_check_box.isChecked():
-            self.plot_mode = 'matrix'
-
-
-    def choose_x(self):
-        pass
-
-
-    def choose_y(self):
-        pass
-
-
-    def create_layout(self):
-
-        layout_0 = QHBoxLayout()
-        layout_0.addWidget(self.method_label)
-        layout_0.addWidget(self.method_combo)
-
-        layout_1 = QHBoxLayout()
-        layout_1.addWidget(self.event_label)
-        layout_1.addWidget(self.event_combo)
-
-        layout_2 = QHBoxLayout()
-        layout_2.addWidget(self.fmin_edit)
-        layout_2.addWidget(self.line_label)
-        layout_2.addWidget(self.fmax_edit)
-
-        layout_3 = QHBoxLayout()
-        layout_3.addWidget(self.freq_label)
-        layout_3.addLayout(layout_2)
-
-        layout_4 = QHBoxLayout()
-        layout_4.addWidget(self.choose_chanx_btn)
-        layout_4.addWidget(self.choose_chany_btn)
-
-
-        button_layout = QHBoxLayout()
-        button_layout.addWidget(self.morlet_btn)
-        button_layout.addStretch(1)
-        button_layout.addWidget(self.ok_button)
-        button_layout.addWidget(self.cancel_button)
-
-
-        main_layout = QVBoxLayout()
-        main_layout.addLayout(layout_0)
-        main_layout.addLayout(layout_1)
-        main_layout.addLayout(layout_3)
-        main_layout.addWidget(self.choose_chan_label)
-        main_layout.addLayout(layout_4)
-        main_layout.addLayout(button_layout)
-
-        self.center_widget.setLayout(main_layout)
-
-
-    def ok_func(self):
-        self.mode = self.method_combo.currentText()
-        self.event_chosen = self.event_combo.currentText()
-        if self.fmin_edit.text() and self.fmax_edit.text():
-            self.fmin = float(self.fmin_edit.text())
-            self.fmax = float(self.fmax_edit.text())
-            # print(self.method_chosen, type(self.method_chosen))
-            # print(self.event_chosen, type(self.event_chosen))
-            # print([self.fmin, self.fmax], type(self.fmin))
-            self.spec_con_signal.emit(self.method, self.mode, self.event_chosen,
-                                 [self.fmin, self.fmax])
-        self.close()
-
-
-    def set_style(self):
-        self.setStyleSheet('''
-                        QPushButton[group='bottom']{font: 10pt Times New Roman}
-                        QListWidget{background-color:white ;font: 13pt Times New Roman}
-                        QListWidget:item{height:28px}
-                        QGroupBox{background-color:rgb(242,242,242)}
-        ''')
-
-
 
 class Freq_Con_Method_Win(QMainWindow):
 
@@ -4034,17 +3933,12 @@ class Freq_Con_Method_Win(QMainWindow):
         self.morlet_btn.setText('Morlet')
         self.morlet_btn.clicked.connect(self.morlet_win)
         self.morlet_btn.setFixedWidth(120)
-        self.fft_btn = QPushButton(self)
-        self.fft_btn.setText('Fourier')
-        self.fft_btn.clicked.connect(self.fft_win)
-        self.fft_btn.setFixedWidth(120)
 
 
     def create_layout(self):
         layout_0 = QVBoxLayout()
         layout_0.addWidget(self.taper_btn)
         layout_0.addWidget(self.morlet_btn)
-        layout_0.addWidget(self.fft_btn)
         self.center_widget.setLayout(layout_0)
 
 
@@ -4061,11 +3955,6 @@ class Freq_Con_Method_Win(QMainWindow):
         self.morlet_win.show()
         self.close()
 
-    def fft_win(self):
-        self.fft_win = Fourier_Con_Win()
-        self.fft_win.spec_con_signal.connect(self.get_para)
-        self.fft_win.show()
-        self.close()
 
     def get_para(self, para, mode):
         print('here here')
@@ -4417,8 +4306,8 @@ class Con_Win(QMainWindow):
 
         self.pic_label = QLabel()
 
-        # pixmap = QPixmap("../image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
-        pixmap = QPixmap("image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
+        pixmap = QPixmap("../image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
+        # pixmap = QPixmap("image/connectivity_use.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
         self.pic_label.resize(150, 150)
         self.pic_label.setPixmap(pixmap)
         self.pic_label.setAlignment(Qt.AlignCenter)
@@ -4660,7 +4549,7 @@ class Con_Win(QMainWindow):
                 fig, ax = plt.subplots()
                 for i in range(result.shape[0]):
                     ax.plot(result[i], label=ch_namey[i])
-                ax.legend()
+                ax.legend(bbox_to_anchor=(1.01, 0), loc=3, borderaxespad=0)
                 ax.grid(axis='y', linestyle='-.')
                 ax.set_title(title + ': ' + str(ch_namex))
                 fig.show()
@@ -4754,8 +4643,6 @@ class Con_Win(QMainWindow):
             self.plot_con(para=self.para, result=con, title='Granger Causality', ch_namex=chanx, ch_namey=chany)
         elif self.method == 'transfer entropy':
             self.plot_con(para=self.para, result=con, title='Transfer Entropy', ch_namex=chanx, ch_namey=chany)
-
-
 
 
     # Frequency domain connectivity (Spectral)
@@ -4886,45 +4773,162 @@ class Con_Win(QMainWindow):
     def calculate_con(self, para, mode):
         self.show_pbar()
         epoch = self.data[para['event']]
-        print('选取 ' + str(para['event']))
         self.para = para
-        self.calcu_con = Cal_Spec_Con(epoch, para=para, method=self.method, mode=mode)
-        self.calcu_con.spec_con_signal.connect(self.plot_spec_con)
-        self.calcu_con.start()
+        if self.para['freq'][1] and self.para['bandwidth']:
+            self.calcu_con = Cal_Spec_Con(epoch, para=self.para, method=self.method, mode=mode)
+            self.calcu_con.spec_con_signal.connect(self.plot_spec_con)
+            self.calcu_con.start()
+        else:
+            pass
 
-    def plot_spec_con(self, con_time, plot_mode):
-        self.pbar.step = 100
-        from matplotlib import pyplot as plt
-        if plot_mode[0]:
-            print ('plot all channels')
-            if plot_mode[1]:
-                print('plot in 2D viewer')
-                fig, ax = plt.subplots ()
-                image = ax.matshow (con_time[0][:, :])
-                fig.colorbar(image)
-                ax.set_title(self.spec_con_method[self.method])
+
+    def plot_time(self, con_list):
+        import matplotlib.pyplot as plt
+        from itertools import product
+        if len(self.para['chan'][0]) == 1:
+            result = con_list[0]
+            con = result[0][0]
+            m = result[0][1]
+            time_extent = (self.para['time'][0], self.para['time'][1])
+            data = con_list[1]
+            times = con_list[2]
+            for i in range (len (result)):
+                import matplotlib.pyplot as plt
+                fig, ax = plt.subplots (nrows=2, ncols=1, figsize=(15, 9))
+                ax[0].set_title('Stereo-EEG: ' + str(self.para['chan'][0][0]) + '——' +
+                                str(self.para['chan'][1][i]), fontweight='bold')
+                ax[0].plot(times, data[i][:, i, :])
+                ax[0].set_xlabel('Time(s)')
+                ax[0].set_ylabel('Amplitude')
+                ax[0].set_xlim(time_extent)
+                ax[0].axvline (self.data.baseline[1], color='black')
+
+                time_grid, freq_grid = np.meshgrid (
+                    np.append(con.time, time_extent[-1]),
+                    np.append(con.frequencies, m.nyquist_frequency))
+                if self.method == 'coh':
+                    con_ = con.coherence_magnitude ()[..., 0, 1].squeeze ().T
+                elif self.method == 'imcoh':
+                    con_ = con.imaginary_coherence ()[..., 0, 1].squeeze ().T
+                elif self.method == 'plv':
+                    con_ = abs (con.phase_locking_value ())[..., 0, 1].squeeze ().T
+                elif self.method == 'ciplv':
+                    pass
+                elif self.method == 'ppc':
+                    con_ = con.pairwise_phase_consistency ()[..., 0, 1].squeeze ().T
+                elif self.method == 'pli':
+                    con_ = con.phase_lag_index ()[..., 0, 1].squeeze ().T
+                elif self.method == 'pli2_unbiased':
+                    con_ = con.debiased_squared_phase_lag_index ()[..., 0, 1].squeeze ().T
+                elif self.method == 'wpli':
+                    con_ = con.weighted_phase_lag_index ()[..., 0, 1].squeeze ().T
+                elif self.method == 'wpli2_debiased':
+                    con_ = con.debiased_squared_weighted_phase_lag_index ()[..., 0, 1].squeeze ().T
+                mesh = ax[1].pcolormesh (time_grid, freq_grid, con_,
+                                         vmin=0.0, vmax=1.0, cmap='viridis')
+                ax[1].set_ylim((0, 300))
+                ax[1].set_xlim(time_extent)
+                ax[1].axvline(self.data.baseline[1], color='black')
+                ax[1].set_xlabel('Time(s)')
+                ax[1].set_ylabel('Frequency(Hz)')
+                ax[1].set_title('Connectivity', fontweight='bold')
+                fig.tight_layout(pad=4)
+                cb = fig.colorbar(mesh, ax=ax.ravel ().tolist (), orientation='horizontal',
+                                   shrink=.5, aspect=15, pad=0.1, label='Coherence')
+                cb.outline.set_linewidth(0)
                 fig.show()
-            elif plot_mode[2]:
-                print('plot in 3D viewer')
-                mne.viz.plot_sensors_connectivity (self.data.info, con_time[0][:, :])
-        elif not plot_mode[0] and plot_mode[1]:
-            print('plot in 2D Viewer')
-            fig, ax = plt.subplots ()
-            image = ax.matshow (con_time[0][:, :])
+
+        else:
+            con = con_list[0]
+            m = con_list[1]
+            n_signals = len(self.para['chan'][0])
+            time_extent = (self.para['time'][0], self.para['time'][1])
+            time_grid, freq_grid = np.meshgrid (
+                np.append(con.time, time_extent[-1]),
+                np.append(con.frequencies, m.nyquist_frequency))
+            fig, axes = plt.subplots(nrows=n_signals, ncols=n_signals, figsize=(15, 9))
+            meshes = list ()
+            for ind1, ind2 in product (range (n_signals), range (n_signals)):
+                if ind1 == ind2:
+                    vmin, vmax = con.power().min(), con.power().max()
+                else:
+                    vmin, vmax = 0, 0.5
+                if self.method == 'coh':
+                    con_ = con.coherence_magnitude()[..., ind1, ind2].squeeze().T
+                elif self.method == 'imcoh':
+                    con_ = con.imaginary_coherence()[..., ind1, ind2].squeeze().T
+                elif self.method == 'plv':
+                    con_ = abs(con.phase_locking_value())[..., ind1, ind2].squeeze().T
+                elif self.method == 'ciplv':
+                    pass
+                elif self.method == 'ppc':
+                    con_ = con.pairwise_phase_consistency()[..., ind1, ind2].squeeze().T
+                elif self.method == 'pli':
+                    con_ = con.phase_lag_index()[..., ind1, ind2].squeeze().T
+                elif self.method == 'pli2_unbiased':
+                    con_ = con.debiased_squared_phase_lag_index()[..., ind1, ind2].squeeze().T
+                elif self.method == 'wpli':
+                    con_ = con.weighted_phase_lag_index()[..., ind1, ind2].squeeze().T
+                elif self.method == 'wpli2_debiased':
+                    con_ = con.debiased_squared_weighted_phase_lag_index()[..., ind1, ind2].squeeze().T
+                mesh = axes[ind1, ind2].pcolormesh(
+                    time_grid, freq_grid, con_,
+                    vmin=vmin, vmax=vmax, cmap='viridis')
+                meshes.append (mesh)
+                axes[ind1, ind2].set_ylim((0, 300))
+                axes[ind1, ind2].set_xlim(time_extent)
+                axes[ind1, ind2].axvline(0., color='black')
+            plt.tight_layout (pad=2)
+            cb = fig.colorbar (meshes[-2], ax=axes.ravel ().tolist (), orientation='horizontal',
+                               shrink=.5, aspect=15, pad=0.1, label=self.spec_con_method[self.method])
+            cb.outline.set_linewidth (0)
+            fig.show()
+
+
+    def plot_notime(self, con_list):
+        from matplotlib import pyplot as plt
+        if self.para['average']:
+            con = con_list[0]
+            fig, ax = plt.subplots()
+            image = ax.matshow(con[:, :])
             fig.colorbar(image)
             ax.set_title(self.spec_con_method[self.method])
             fig.show()
-        elif not plot_mode[0] and plot_mode[2]:
-            print('plot in 3D viewer')
-            mne.viz.plot_sensors_connectivity(self.data.info, con_time[0][:, :])
         else:
-            fig, ax = plt.subplots()
-            for i in range(len(con_time[0])):
-                ax.plot(con_time[0][i], label=str(self.para['chan'][0][0]) + '————' + str(self.para['chan'][1]),
-                        marker='o', markerfacecolor='black', markersize=3)
-                ax.legend()
-            ax.set_title (self.spec_con_method[self.method])
-            fig.show()
+            print(self.para['chan'])
+            con = con_list[0]
+            if not self.para['chan'][1]:
+                pic_win = Pic_Change(matrix=con, title=self.spec_con_method[self.method],
+                                     n_times=con_list[1], diagonal=True, domain='freq')
+                pic_win.show()
+            else:
+                import matplotlib.pyplot as plt
+                fig, ax = plt.subplots()
+                for i in range(con.shape[0]):
+                    ax.plot (con[i, :], label = self.para['chan'][0][0] + '——' +
+                                                str(self.para['chan'][1][i]), marker='o',
+                             markerfacecolor='black', markersize=3)
+                    ax.legend(bbox_to_anchor=(1.01, 0), loc=3, borderaxespad=0)
+                ax.set_xlim((con_list[1][0], con_list[1][-1]))
+                plt.title(self.spec_con_method[self.method])
+                ax.set_xlabel('Frequency (Hz)')
+                ax.set_ylabel('Connectivity')
+                fig.show()
+
+
+    def plot_spec_con(self, con_list):
+        '''
+        :param con_list: list
+                There are two modes of conlist:
+                1. [con, m] for one-one, one-multi, multi-self channels with the time information
+                2. [con, freqs] for one-one, one-multi, multi-self channels without the time information
+        '''
+        self.pbar.step = 100
+        from numpy import ndarray
+        if isinstance(con_list[1], (ndarray, list)):
+            self.plot_notime(con_list)
+        else:
+            self.plot_time(con_list)
 
 
 

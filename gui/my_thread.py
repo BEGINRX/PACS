@@ -290,10 +290,10 @@ class Calculate_PSD(QThread):
         self.psd_signal.emit(self.method, psds_mean, psds_std, freqs)
 
 
-
+from spectral_connectivity import Multitaper, Connectivity
 class Cal_Spec_Con(QThread):
 
-    spec_con_signal = pyqtSignal(list, list)
+    spec_con_signal = pyqtSignal(list)
 
     def __init__(self, data, para, method, mode):
         super(Cal_Spec_Con, self).__init__()
@@ -314,35 +314,90 @@ class Cal_Spec_Con(QThread):
         if not para['chan']:
             self.indices = None
         else:
-            chanx_index = np.array([chan.index(str(para['chan'][0][0]))] * len(para['chan'][1]))
-            chany_index = np.array([chan.index (i) for i in para['chan'][1]])
-            self.indices = (chanx_index, chany_index)
+            try:
+                chanx_index = np.array([chan.index(str(para['chan'][0][0]))] * len(para['chan'][1]))
+                chany_index = np.array([chan.index (i) for i in para['chan'][1]])
+                self.indices = (chanx_index, chany_index)
+            except:
+                pass
 
     def run(self):
-
         self.data.load_data()
         if self.mode == 'Multitaper':
-            con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
-                self.data, method=self.method, mode='multitaper', sfreq=self.sfreq,
-                fmin=self.para['freq'][0], fmax=self.para['freq'][1], faverage=True, tmin=self.para['time'][0],
-                tmax=self.para['time'][1], mt_adaptive=self.para['adaptive'], indices=self.indices)
-        elif self.mode == 'Fourier':
-            con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
-                self.data, method=self.method, mode='fourier', sfreq=self.sfreq,
-                fmin=self.para['freq'][0], fmax=self.para['freq'][1], faverage=True,
-                tmin=self.para['time'][0], tmax=self.para['time'][1], indices=self.indices)
+            if not self.para['sliding'][0]:
+                self.spec_con = False
+                con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
+                    self.data, method=self.method, mode='multitaper', sfreq=self.sfreq,
+                    fmin=self.para['freq'][0], fmax=self.para['freq'][1], faverage=self.para['average'],
+                    tmin=self.para['time'][0], tmax=self.para['time'][1], mt_adaptive=True,
+                    indices=self.indices, mt_bandwidth=self.para['bandwidth'])
+                if self.para['average']:
+                    con = con[:, :, 0]
+                    con += con.T - np.diag(con.diagonal())
+                elif self.para['chan'][0] != None:
+                    if len(self.para['chan'][0]) == 1:
+                        pass
+                else:
+                    con = con.transpose((2, 0, 1))
+                    for i in range (con.shape[0]):
+                        con[i] = con[i] + (con[i].T - np.diag (con[i].diagonal ()))
+                    con = con.transpose ((1, 2, 0))
+                self.spec_con_signal.emit([con, freqs])
+            else:
+                if isinstance(self.para['chan'][1], list):
+                    epoch = self.data.filter (self.para['freq'][0], self.para['freq'][1]).\
+                        crop(tmin=self.para['time'][0], tmax=self.para['time'][1])
+                    times = epoch.times
+                    epoch_0 = epoch.copy().pick_channels(self.para['chan'][0])
+                    epoch_1 = epoch.copy().pick_channels(self.para['chan'][1])
+                    data = {i: np.zeros ((epoch_1._data.shape[2], epoch_1._data.shape[0], 2))
+                            for i in range (len (['A1', 'A2', 'C3']))}
+                    for i in range (len (data)):
+                        data[i][:, :, 0] = epoch_0._data.reshape (-1, epoch_0._data.shape[0])
+                        data[i][:, :, 1] = epoch_1._data[:, i, :].reshape (-1, epoch_1._data.shape[0])
+                    result = {i: None for i in range(len(data))}
+
+                    for i in range(len (data)):
+                        data_use = data[i]
+                        m = Multitaper (data_use,
+                                        sampling_frequency=self.sfreq,
+                                        time_halfbandwidth_product=self.para['bandwidth'],
+                                        time_window_duration=self.para['sliding'][1],
+                                        time_window_step=self.para['sliding'][2],
+                                        start_time=self.para['time'][0])
+                        c = Connectivity (fourier_coefficients=m.fft(),
+                                          frequencies=m.frequencies,
+                                          time=m.time)
+                        result[i] = [c, m]
+                    self.spec_con_signal.emit ([result, data, times])
+                else:
+                    epoch_1 = self.data.filter(self.para['freq'][0], self.para['freq'][1])
+                    epoch_1 = epoch_1.crop(tmin=self.para['time'][0], tmax=self.para['time'][1])
+                    print(type(self.para['chan'][0]))
+                    epoch_1 = epoch_1.pick_channels(self.para['chan'][0])
+                    n_signals = len(self.para['chan'][0])
+                    data = np.zeros((epoch_1._data.shape[2], epoch_1._data.shape[0], n_signals))
+                    for i in range(n_signals):
+                        data[:, :, i] = epoch_1._data[:, i, :].reshape(-1, epoch_1._data.shape[0])
+                    m = Multitaper(data,
+                                    sampling_frequency=self.sfreq,
+                                    time_halfbandwidth_product=self.para['bandwidth'],
+                                    time_window_duration=self.para['sliding'][1],
+                                    time_window_step=self.para['sliding'][2],
+                                    start_time=self.para['time'][0])
+                    con = Connectivity(fourier_coefficients=m.fft(),
+                                      frequencies=m.frequencies,
+                                      time=m.time)
+                    self.spec_con_signal.emit([con, m])
         elif self.mode == 'Morlet':
-            self.cwt_freq = np.arange(self.freq, num=self.num)
+            self.cwt_freq = np.linspace(self.freq, num=self.num)
             con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
                 self.data, method=self.method, mode='cwt_morlet', sfreq=self.sfreq, cwt_freqs=self.cwt_freq,
-                cwt_n_cycles=self.cwt_freq/2, faverage=True, tmin=0., indices=self.indices)
-        if len(con.shape) == 3:
-            con = con[:, :, 0]
-            con += con.T - np.diag (con.diagonal ())
-        else:
-            con = con.reshape(1, -1)
+                cwt_n_cycles=self.cwt_freq/2, faverage=True, tmin=self.para['time'][0],
+                tmax=self.para['time'][1], indices=self.indices)
+            self.spec_con_signal.emit ([con, times, freqs], self.para['plot_mode'])
 
-        self.spec_con_signal.emit([con, times], self.para['plot_mode'])
+
 
 
 
