@@ -771,7 +771,7 @@ class MainWindow(QMainWindow):
                                        triggered=self.plot_raw_data)
 
         self.remove_bad_action = QAction('Remove bad channels', self,
-                                         triggered=self.drop_bad)
+                                         triggered=self.drop_bad_chan)
         self. interpolate_bad_action = QAction('Interpolate bad channels', self,
                                                triggered=self.interpolate_bad)
 
@@ -818,9 +818,12 @@ class MainWindow(QMainWindow):
                                        triggered=self.display_electrodes)
         self.visual_evoke_brain_action = QAction('Visualize Evoke data on a MNI brain', self,
                                                  triggered=self.choose_evoke)
-
         self.plot_epoch_action = QAction('Plot epoch', self,
                                          triggered=self.plot_raw_data)
+        self.drop_bad_chan_action = QAction('Drop bad channels', self,
+                                            triggered=self.drop_bad_chan)
+        self.drop_bad_action = QAction('Drop bad epochs', self,
+                                       triggered=self.drop_bad_epochs)
 
 
         self.t_f_analy_action = QAction('Time frequency analysis', self,
@@ -890,8 +893,10 @@ class MainWindow(QMainWindow):
                                                  self.select_event_action,
                                                  self.set_montage_action,
                                                  self.disp_electro_action,
-                                                 self.visual_evoke_brain_action])
-                self.tree_right_menu.addActions([self.plot_epoch_action,
+                                                 self.visual_evoke_brain_action,
+                                                 self.drop_bad_chan_action,
+                                                 self.drop_bad_action,
+                                                 self.plot_epoch_action,
                                                  self.t_f_analy_action,
                                                 self.connect_analy_action])
                 self.tree_right_menu.addMenu(self.epoch_save_menu)
@@ -1542,8 +1547,15 @@ class MainWindow(QMainWindow):
 
 
     def get_event(self, event_select):
-
-        pass
+        data = self.current_data['data']
+        print(len(event_select))
+        if len(event_select) == 1:
+            for i in data.event_id:
+                if data.event_id[i] == int(event_select[0]):
+                    data_sel =data[str(i)]
+        else:
+            pass
+        self.get_seeg_data(data_sel)
 
 
     # Time analysis
@@ -1734,10 +1746,19 @@ class MainWindow(QMainWindow):
             self.show_error(error)
 
 
-    def drop_bad(self):
+    def drop_bad_chan(self):
         data = self.current_data['data'].copy()
-        data.drop_channels(data.info['bads'])
-        data.info['bads'] = []
+        if len(data.info['bads']):
+            data.drop_channels(data.info['bads'])
+            data.info['bads'] = []
+            self.get_seeg_data(data)
+        else:
+            pass
+
+
+    def drop_bad_epochs(self):
+        data = self.current_data['data'].copy()
+        data.drop_bad()
         self.get_seeg_data(data)
 
 

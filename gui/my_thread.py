@@ -53,6 +53,7 @@ class Import_Thread(QThread):
             self.import_data()
             print('data loaded')
             self.seeg_data.set_channel_types({ch_name: 'seeg' for ch_name in self.seeg_data.ch_names})
+            self.seeg_data.load_data()
             self.trigger.emit(self.seeg_data)
             self.data_path = ''
             self.seeg_data = ''
@@ -78,6 +79,7 @@ class Load_Epoched_Data_Thread(QThread):
             self.seeg_data = io.read_epochs_eeglab(self.data_path)
         elif self.data_path[-3:] == 'fif':
             self.seeg_data = mne.read_epochs(self.data_path)
+        self.seeg_data.set_channel_types ({ch_name: 'seeg' for ch_name in self.seeg_data.ch_names})
 
 
     def run(self):
@@ -85,6 +87,7 @@ class Load_Epoched_Data_Thread(QThread):
         try:
             self.load_data()
             print('data loaded')
+            self.seeg_data.load_data()
             self.load.emit(self.seeg_data)
             self.data_path = ''
             self.seeg_data = ''

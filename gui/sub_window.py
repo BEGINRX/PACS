@@ -832,7 +832,10 @@ class Select_Event(QMainWindow):
         self.event_select.append([item.text() for item in list(event_select)])
         self.event_select = self.event_select[0]
         print(self.event_select)
-        self.event_signal.emit(self.event_select)
+        if len(self.event_select):
+            self.event_signal.emit(self.event_select)
+        else:
+            self.close()
 
 
     def create_layout(self):
@@ -3017,11 +3020,16 @@ class Time_Freq_Win(QMainWindow):
         self.event_win.show()
 
     def plot_erpim_topo(self, event, value):
-        if not value[0] and not value[1]:
-            mne.viz.plot_topo_image_epochs(self.data[event])
-        else:
-            mne.viz.plot_topo_image_epochs(self.data[event],
-                                           vmin=value[0], vmax=value[1])
+        try:
+            if not value[0] and not value[1]:
+                mne.viz.plot_topo_image_epochs(self.data[event])
+            else:
+                mne.viz.plot_topo_image_epochs(self.data[event],
+                                               vmin=value[0], vmax=value[1])
+        except Exception as error:
+            if error.args[0] == "ValueError: Cannot determine location of MEG/EOG/ECG channels " \
+                                "using digitization points.":
+                QMessageBox.warning(self, 'No location','Please load MNI coordinates')
 
 
     def evoke_joint(self):
@@ -4198,6 +4206,7 @@ class Time_Con_Win(QMainWindow):
         pass
 
 
+
 class Con_Win(QMainWindow):
 
     def __init__(self, data, subject):
@@ -4810,7 +4819,7 @@ class Con_Win(QMainWindow):
                 ax[0].set_xlabel('Time(s)')
                 ax[0].set_ylabel('Amplitude')
                 ax[0].set_xlim(time_extent)
-                ax[0].axvline (self.data.baseline[1], color='black')
+                ax[0].axvline (0., color='black')
 
                 time_grid, freq_grid = np.meshgrid (
                     np.append(con.time, time_extent[-1]),
@@ -4837,7 +4846,7 @@ class Con_Win(QMainWindow):
                                          vmin=0.0, vmax=1.0, cmap='viridis')
                 ax[1].set_ylim((0, 300))
                 ax[1].set_xlim(time_extent)
-                ax[1].axvline(self.data.baseline[1], color='black')
+                ax[1].axvline(0., color='black')
                 ax[1].set_xlabel('Time(s)')
                 ax[1].set_ylabel('Frequency(Hz)')
                 ax[1].set_title('Connectivity', fontweight='bold')
@@ -4959,13 +4968,9 @@ class Con_Win(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-
-    # GUI = Spec_Con_Win(['blue', 'red'], 'pli')
-    # con = np.random.random((30, 40, 10))
-    # times = np.arange(10).reshape(10, 1)
-
     import mne
     data = mne.read_epochs('D:\SEEG_Cognition\data\color_epoch.fif')
+    # data = mne.io.read_epochs_eeglab('D:\SEEG_Cognition\data\yangtingtingFear+甲.set')
     GUI = Con_Win(data=data, subject='曹海娟')
     GUI.show()
     app.exec_()
