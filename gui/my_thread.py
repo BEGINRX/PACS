@@ -434,6 +434,74 @@ class Cal_Spec_Con(QThread):
 
 
 
+class Cal_Dir_Con(QThread):
+
+    spec_con_signal = pyqtSignal(list)
+
+    def __init__(self, data, para):
+        super(Cal_Dir_Con, self).__init__()
+        '''
+        para['freq'] = [fmin, fmax]                 [float, float]
+        para['time'] = [tmin, tmax]                 [float, float]
+        para['bandwidth'] = bandwidth               float
+        para['adaptive'] = use_adaptive             bool
+        para['chan'] = [chanx_get, chany_get]       
+        '''
+        self.data = data
+        self.para = para
+        self.sfreq = self.data.info['sfreq']
+
+        print(self.indices)
+
+
+    def run(self):
+        self.data.load_data()
+        epoch = self.data.crop(tmin=self.para['time'][0], tmax=self.para['time'][1])
+        times = epoch.times
+        epoch_0 = epoch.copy().pick_channels(self.para['chan'][0])
+        epoch_1 = epoch.copy().pick_channels(self.para['chan'][1])
+        data = {i: np.zeros ((epoch_1._data.shape[2], epoch_1._data.shape[0], 2))
+                for i in range (len (self.para['chan'][1]))}
+        for i in range (len (data)):
+            data[i][:, :, 0] = epoch_0._data.reshape (-1, epoch_0._data.shape[0])
+            data[i][:, :, 1] = epoch_1._data[:, i, :].reshape (-1, epoch_1._data.shape[0])
+        result = {i: None for i in range(len(data))}
+        if self.para['sliding'][0]:
+            for i in range(len (data)):
+                data_use = data[i]
+                if self.para['bandwidth'] == None:
+                    self.para['bandwidth'] = 3
+                m = Multitaper(data_use,
+                                sampling_frequency=self.sfreq,
+                                time_halfbandwidth_product=self.para['bandwidth'],
+                                time_window_duration=self.para['sliding'][1],
+                                time_window_step=self.para['sliding'][2],
+                                start_time=self.para['time'][0])
+                c = Connectivity (fourier_coefficients=m.fft(),
+                                  frequencies=m.frequencies,
+                                  time=m.time)
+                result[i] = [c, m]
+            self.spec_con_signal.emit([result, data, times])
+        else:
+            for i in range(len (data)):
+                data_use = data[i]
+                if self.para['bandwidth'] == None:
+                    self.para['bandwidth'] = 3
+                m = Multitaper(data_use,
+                                sampling_frequency=self.sfreq,
+                                time_halfbandwidth_product=self.para['bandwidth'],
+                                start_time=self.para['time'][0])
+                c = Connectivity (fourier_coefficients=m.fft(),
+                                  frequencies=m.frequencies,
+                                  time=m.time)
+                result[i] = [c, m]
+            self.spec_con_signal.emit ([result, data, times])
+
+
+
+
+
+
 
 class Cal_Time_Con(QThread):
     from numpy import ndarray

@@ -21,11 +21,11 @@ import mne
 try:
     from gui.re_ref import get_chan_group
     from gui.my_func import new_layout
-    from gui.my_thread import Calculate_Power, Calculate_PSD, Cal_Spec_Con
+    from gui.my_thread import Calculate_Power, Calculate_PSD, Cal_Spec_Con, Cal_Dir_Con
 except:
     from re_ref import get_chan_group
     from my_func import new_layout
-    from my_thread import Calculate_Power, Calculate_PSD, Cal_Spec_Con
+    from my_thread import Calculate_Power, Calculate_PSD, Cal_Spec_Con, Cal_Dir_Con
 
 def show_error(error):
     print('*********************************************************************')
@@ -4377,7 +4377,7 @@ class Con_Win(QMainWindow):
         self.spec_con_method['pli2_unbiased'] = 'Unbiased estimator of squared PLI'
         self.spec_con_method['wpli'] = 'Weighted Phase Lag Index (WPLI)'
         self.spec_con_method['wpli2_debiased'] = 'Debiased estimator of squared WPLI'
-
+        self.spec_con_method['psi'] = 'Phase Slope Index'
         self.init_ui()
 
 
@@ -4569,15 +4569,18 @@ class Con_Win(QMainWindow):
         self.dswpli_btn.setFixedSize(230, 28)
         self.dswpli_btn.clicked.connect(self.use_debiased_wpli)
         # directional
+        self.dir_pli_btn = QPushButton(self)
+        self.dir_pli_btn.setText('Phase Lag Index')
+        self.dir_pli_btn.setFixedSize(300, 28)
+        self.dir_pli_btn.clicked.connect(self.dir_con)
         self.psi_btn = QPushButton(self)
         self.psi_btn.setText('Phase Slope Index')
         self.psi_btn.setFixedSize(300, 28)
-        self.para_granger_btn = QPushButton(self)
-        self.para_granger_btn.setText('Parametric Granger Causality')
-        self.para_granger_btn.setFixedSize(300, 28)
-        self.non_para_granger_btn = QPushButton(self)
-        self.non_para_granger_btn.setText('Non-parametric Granger Causality')
-        self.non_para_granger_btn.setFixedSize(300, 28)
+        self.psi_btn.clicked.connect (self.dir_con)
+        self.psg_btn = QPushButton(self)
+        self.psg_btn.setText('Pairwise Spectral Granger')
+        self.psg_btn.setFixedSize(300, 28)
+        self.psg_btn.clicked.connect (self.dir_con)
 
 
     def create_layout(self):
@@ -4642,9 +4645,9 @@ class Con_Win(QMainWindow):
         freq_layout_3.addLayout(freq_layout_2)
         self.func1_box.setLayout(freq_layout_3)
         freq_layout_4 = QVBoxLayout()
+        freq_layout_4.addWidget(self.dir_pli_btn)
         freq_layout_4.addWidget(self.psi_btn)
-        freq_layout_4.addWidget(self.para_granger_btn)
-        freq_layout_4.addWidget(self.non_para_granger_btn)
+        freq_layout_4.addWidget(self.psg_btn)
         self.direct1_box.setLayout(freq_layout_4)
         layout_5 = QHBoxLayout()
         layout_5.addWidget(self.func1_box)
@@ -4944,10 +4947,9 @@ class Con_Win(QMainWindow):
         epoch = self.data[para['event']]
         self.para = para
         if mode == 'Multitaper':
-            if self.para['freq'][1] and self.para['bandwidth']:
-                self.calcu_con = Cal_Spec_Con(epoch, para=self.para, method=self.method, mode=mode)
-                self.calcu_con.spec_con_signal.connect(self.plot_spec_con)
-                self.calcu_con.start()
+            self.calcu_con = Cal_Spec_Con(epoch, para=self.para, method=self.method, mode=mode)
+            self.calcu_con.spec_con_signal.connect(self.plot_spec_con)
+            self.calcu_con.start()
         else:
             self.calcu_con = Cal_Spec_Con(epoch, para=self.para, method=self.method, mode=mode)
             self.calcu_con.spec_con_signal.connect(self.plot_morlet_con)
@@ -4983,7 +4985,7 @@ class Con_Win(QMainWindow):
                 elif self.method == 'imcoh':
                     con_ = con.imaginary_coherence ()[..., 0, 1].squeeze ().T
                 elif self.method == 'plv':
-                    con_ = abs (con.phase_locking_value ())[..., 0, 1].squeeze ().T
+                    con_ = abs(con.phase_locking_value ())[..., 0, 1].squeeze ().T
                 elif self.method == 'ciplv':
                     pass
                 elif self.method == 'ppc':
@@ -5009,7 +5011,6 @@ class Con_Win(QMainWindow):
                                    shrink=.5, aspect=15, pad=0.1, label='Coherence')
                 cb.outline.set_linewidth(0)
                 fig.show()
-
         else:
             con = con_list[0]
             m = con_list[1]
@@ -5138,8 +5139,26 @@ class Con_Win(QMainWindow):
             fig.show()
 
 
+    def dir_con(self):
+        self.method = 'psi'
+        event_id = list (self.data.event_id.keys ())
+        self.con_win = Multitaper_Con_Win(event=event_id, chan=self.data.ch_names,
+                                            time=[self.data.tmin, self.data.tmax])
+        self.con_win.spec_con_signal.connect(self.cal_dir_con)
+        self.con_win.show ()
 
 
+    def cal_dir_con(self, para, mode):
+        self.show_pbar()
+        epoch = self.data[para['event']]
+        self.para = para
+        self.cal_con = Cal_Dir_Con(data=epoch, para=para)
+        self.cal_con.spec_con_signal.connect(self.plot_dir_con)
+        self.cal_con.start()
+
+
+    def plot_dir_con(self):
+        pass
 
 
 
