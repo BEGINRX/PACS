@@ -328,6 +328,7 @@ class Cal_Spec_Con(QThread):
         self.data.load_data()
         if self.mode == 'Multitaper':
             if not self.para['sliding'][0]:
+                self.data = self.data.copy ().crop (self.para['time'][0], self.para['time'][1])
                 con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
                     self.data, method=self.method, mode='multitaper', sfreq=self.sfreq,
                     fmin=self.para['freq'][0], fmax=self.para['freq'][1], faverage=self.para['average'],
@@ -347,13 +348,12 @@ class Cal_Spec_Con(QThread):
                 self.spec_con_signal.emit([con, freqs])
             else:
                 if isinstance(self.para['chan'][1], list):
-                    epoch = self.data.filter (self.para['freq'][0], self.para['freq'][1]).\
-                        crop(tmin=self.para['time'][0], tmax=self.para['time'][1])
+                    epoch = self.data.crop(tmin=self.para['time'][0], tmax=self.para['time'][1])
                     times = epoch.times
                     epoch_0 = epoch.copy().pick_channels(self.para['chan'][0])
                     epoch_1 = epoch.copy().pick_channels(self.para['chan'][1])
                     data = {i: np.zeros ((epoch_1._data.shape[2], epoch_1._data.shape[0], 2))
-                            for i in range (len (['A1', 'A2', 'C3']))}
+                            for i in range (len (self.para['chan'][1]))}
                     for i in range (len (data)):
                         data[i][:, :, 0] = epoch_0._data.reshape (-1, epoch_0._data.shape[0])
                         data[i][:, :, 1] = epoch_1._data[:, i, :].reshape (-1, epoch_1._data.shape[0])
@@ -395,12 +395,41 @@ class Cal_Spec_Con(QThread):
                     print('come  here')
                     self.spec_con_signal.emit([con, m])
         elif self.mode == 'Morlet':
-            self.cwt_freq = np.linspace(self.freq, num=self.num)
-            con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
-                self.data, method=self.method, mode='cwt_morlet', sfreq=self.sfreq, cwt_freqs=self.cwt_freq,
-                cwt_n_cycles=self.cwt_freq/2, faverage=True, tmin=self.para['time'][0],
-                tmax=self.para['time'][1], indices=self.indices)
-            self.spec_con_signal.emit ([con, times, freqs], self.para['plot_mode'])
+            try:
+                self.data = self.data.copy().crop(self.para['time'][0], self.para['time'][1])
+            except:
+                pass
+            freq = self.para['freq']
+            self.cwt_freq = np.linspace(start=freq[0], stop=freq[1], num=8)
+            if (self.para['chan'][0] != None and len(self.para['chan'][0]) > 1) or \
+                self.para['plot_all']:
+                try:
+                    self.data = self.data.pick_channels(self.para['chan'][0])
+                except:
+                    pass
+                if self.para['time'][1] == self.data.tmax:
+                    self.para['time'][1] = None
+                con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
+                    self.data, method=self.method, mode='cwt_morlet', sfreq=self.sfreq, cwt_freqs=self.cwt_freq,
+                    cwt_n_cycles=self.cwt_freq/2, faverage=True, tmin=self.para['time'][0],
+                    tmax=self.para['time'][1])
+                con = con[:, :, 0, :]
+                con = con.transpose ((2, 0, 1))
+                for i in range(con.shape[0]):
+                    con[i] = con[i] + (con[i].T - np.diag (con[i].diagonal ()))
+                con = con.transpose ((1, 2, 0))
+            else:
+                if self.para['time'][0] == self.data.tmin:
+                    if self.para['time'][1] == self.data.tmax:
+                        self.para['time'][1] = None
+                else:
+                    pass
+                con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
+                    self.data, method=self.method, mode='cwt_morlet', sfreq=self.sfreq, cwt_freqs=self.cwt_freq,
+                    cwt_n_cycles=self.cwt_freq/2, faverage=True, tmin=self.para['time'][0],
+                    tmax=self.para['time'][1], indices=self.indices)
+                con = con[:, 0, :]
+            self.spec_con_signal.emit ([con, times, freqs])
 
 
 
