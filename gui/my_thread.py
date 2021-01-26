@@ -451,7 +451,6 @@ class Cal_Dir_Con(QThread):
         self.para = para
         self.sfreq = self.data.info['sfreq']
 
-        print(self.indices)
 
 
     def run(self):

@@ -4961,17 +4961,18 @@ class Con_Win(QMainWindow):
         from itertools import product
         if len(self.para['chan'][0]) == 1:
             result = con_list[0]
-            con = result[0][0]
-            m = result[0][1]
             time_extent = (self.para['time'][0], self.para['time'][1])
             data = con_list[1]
             times = con_list[2]
             for i in range (len (result)):
+                con = result[i][0]
+                m = result[i][1]
                 import matplotlib.pyplot as plt
                 fig, ax = plt.subplots (nrows=2, ncols=1, figsize=(15, 9))
                 ax[0].set_title('Stereo-EEG: ' + str(self.para['chan'][0][0]) + '—' +
                                 str(self.para['chan'][1][i]), fontweight='bold')
-                ax[0].plot(times, data[i][:, i, :])
+                ax[0].plot(times, data[i][:, :, 0], color='b')
+                ax[0].plot(times, data[i][:, :, 1], color='g')
                 ax[0].set_xlabel('Time(s)')
                 ax[0].set_ylabel('Amplitude')
                 ax[0].set_xlim(time_extent)
@@ -5008,7 +5009,7 @@ class Con_Win(QMainWindow):
                 ax[1].set_title('Connectivity', fontweight='bold')
                 fig.tight_layout(pad=4)
                 cb = fig.colorbar(mesh, ax=ax.ravel ().tolist (), orientation='horizontal',
-                                   shrink=.5, aspect=15, pad=0.1, label='Coherence')
+                                   shrink=.5, aspect=15, pad=0.1, label=self.spec_con_method[self.method])
                 cb.outline.set_linewidth(0)
                 fig.show()
         else:
@@ -5157,8 +5158,40 @@ class Con_Win(QMainWindow):
         self.cal_con.start()
 
 
-    def plot_dir_con(self):
-        pass
+    def plot_dir_con(self, con_list):
+        self.pbar.step = 100
+        import matplotlib.pyplot as plt
+        if not self.para['sliding'][0]:
+            result = con_list[0]
+            data = con_list[1]
+            times = con_list[2]
+            time_extent = (self.para['time'][0], self.para['time'][1])
+            for i in range(len(result)):
+                con = result[i][0]
+                m = result[i][1]
+                fig, ax = plt.subplots(2, 1, figsize=(12, 9))
+                ax[0].set_title('Stereo-EEG: ' + str(self.para['chan'][0][0]) + '—' +
+                                    str(self.para['chan'][1][i]), fontweight='bold')
+                ax[0].plot(times, data[i][:, :, 0], color='blue')
+                ax[0].plot(times, data[i][:, :, 1], color='green')
+                ax[0].set_xlabel('Time(s)')
+                ax[0].set_ylabel('Amplitude')
+                ax[0].set_xlim(time_extent)
+                ax[0].axvline(0, color='black')
+
+                freq = self.para['freq']
+                if self.method == 'psi':
+                    psi = con.phase_slope_index(frequencies_of_interest=freq, frequency_resolution=m.frequency_resolution)
+                    ax[1].bar([1, 2], [psi[..., 0, 1].squeeze(), psi[..., 1, 0].squeeze()], color=['b', 'g'])
+                ax[1].set_title(self.spec_con_method[self.method])
+                ax[1].set_xlim(time_extent)
+                ax[1].axhline(0, color='black')
+                plt.tight_layout(pad=2)
+                fig.show()
+        else:
+            result = con_list[0]
+            data = con_list[1]
+            times = con_list[2]
 
 
 
