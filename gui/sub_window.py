@@ -661,7 +661,7 @@ class Select_Chan(QMainWindow):
     def init_ui(self):
 
         self.setFixedWidth(170)
-        self.setMinimumHeight(950)
+        self.setMinimumHeight(750)
         self.setWindowModality(Qt.ApplicationModal)
         self.center()
         self.set_font()
