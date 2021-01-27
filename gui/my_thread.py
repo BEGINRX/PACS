@@ -328,7 +328,7 @@ class Cal_Spec_Con(QThread):
         self.data.load_data()
         if self.mode == 'Multitaper':
             if not self.para['sliding'][0]:
-                self.data = self.data.copy ().crop (self.para['time'][0], self.para['time'][1])
+                self.data = self.data.copy().crop (self.para['time'][0], self.para['time'][1])
                 con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
                     self.data, method=self.method, mode='multitaper', sfreq=self.sfreq,
                     fmin=self.para['freq'][0], fmax=self.para['freq'][1], faverage=self.para['average'],
@@ -337,9 +337,8 @@ class Cal_Spec_Con(QThread):
                 if self.para['average']:
                     con = con[:, :, 0]
                     con += con.T - np.diag(con.diagonal())
-                elif self.para['chan'][0] != None:
-                    if len(self.para['chan'][0]) == 1:
-                        pass
+                elif self.para['chan'][0] != None and len(self.para['chan'][0]) == 1:
+                    pass
                 else:
                     con = con.transpose((2, 0, 1))
                     for i in range (con.shape[0]):

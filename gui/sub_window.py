@@ -268,6 +268,7 @@ class Choose_Window(QMainWindow):
         self.create_layout()
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
+        self.setWindowFlags (Qt.WindowStaysOnTopHint)
 
 
     def center(self):
@@ -415,6 +416,7 @@ class Event_Window(QMainWindow):
         self.create_layout()
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
+        self.setWindowFlags (Qt.WindowStaysOnTopHint)
 
 
     def center(self):
@@ -542,6 +544,7 @@ class Select_Time(QMainWindow):
         self.create_layout()
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
+        self.setWindowFlags (Qt.WindowStaysOnTopHint)
 
 
     def center(self):
@@ -669,7 +672,8 @@ class Select_Chan(QMainWindow):
         self.create_widget()
         self.create_layout()
         self.set_style()
-        # QApplication.setStyle(QStyleFactory.create('Fusion'))
+        self.setWindowFlags (Qt.WindowStaysOnTopHint |
+                             Qt.FramelessWindowHint)
 
 
     def center(self):
@@ -777,7 +781,7 @@ class Select_Event(QMainWindow):
         self.create_button()
         self.create_layout()
         self.set_style()
-        # QApplication.setStyle(QStyleFactory.create('Fusion'))
+        self.setWindowFlags (Qt.WindowStaysOnTopHint)
 
 
 
@@ -3464,6 +3468,7 @@ class Multitaper_Con_Win(QMainWindow):
         QApplication.setStyle(QStyleFactory.create('Fusion'))
 
 
+
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
         qr = self.frameGeometry()
@@ -3827,6 +3832,8 @@ class Morlet_Con_Win(QMainWindow):
         self.create_widget()
         self.create_layout()
         self.set_style()
+        self.setWindowFlags (Qt.WindowStaysOnTopHint)
+
 
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
@@ -4042,7 +4049,6 @@ class Morlet_Con_Win(QMainWindow):
 
 
 
-
 class Freq_Con_Method_Win(QMainWindow):
 
     con_signal = pyqtSignal(dict, str)
@@ -4068,6 +4074,7 @@ class Freq_Con_Method_Win(QMainWindow):
         self.create_layout()
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
+        self.setWindowFlags (Qt.WindowStaysOnTopHint)
 
 
     def center(self):
@@ -4167,6 +4174,7 @@ class Time_Con_Win(QMainWindow):
         self.create_layout()
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
+        self.setWindowFlags(Qt.WindowStaysOnTopHint)
 
 
     def center(self):

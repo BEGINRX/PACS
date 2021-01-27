@@ -37,7 +37,7 @@ class SplashPanel(QSplashScreen):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-    def mousePressEvent(self, evt):
+    def mousePressEvent(self, event):
         pass
         # 重写鼠标点击事件，防止点击后消失
 
