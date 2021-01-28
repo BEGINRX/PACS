@@ -499,8 +499,6 @@ class Cal_Dir_Con(QThread):
 
 
 
-
-
 class Cal_Time_Con(QThread):
     from numpy import ndarray
     con_signal = pyqtSignal(ndarray, list, list)
@@ -548,10 +546,10 @@ class Cal_Time_Con(QThread):
             if not self.para['plot_mode'][0]:
                 epochx = data.copy().pick_channels(self.para['chan'][0])
                 epochy = data.copy().pick_channels(self.para['chan'][1])
-                con = get_corr(epochx, epochy, baseline=self.para['baseline'], mode='full')
+                con = get_corr(epochx, epochy, baseline=self.para['baseline'], mode='same')
             else:
                 epochx, epochy = data, data
-                con = get_corr(data, data, baseline=self.para['baseline'], mode='full')
+                con = get_corr(data, data, baseline=self.para['baseline'], mode='same')
         elif self.method == 'granger causality':
             data = self.data[self.para['event']]
             if not self.para['plot_mode'][0]:

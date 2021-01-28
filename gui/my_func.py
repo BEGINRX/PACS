@@ -176,7 +176,7 @@ def get_spec_pearson(epochx, epochy):
     return pearson
 
 
-def get_corr(epoch1, epoch2, baseline, normal=False, mode='valid', norm=True):
+def get_corr(epoch1, epoch2, baseline, normal=False, mode='same', norm=True):
     from scipy.signal import correlate
 
     sta_epoch1 = standardize_epoch(epoch1, baseline, normal=normal)
@@ -203,26 +203,43 @@ def get_corr(epoch1, epoch2, baseline, normal=False, mode='valid', norm=True):
             corr = np.concatenate((corr, np.expand_dims(corr_tmp, 0)), axis=0)
         corr = np.delete(corr, 0, axis=0)
         corr = np.mean(corr, axis=0)
-    elif mode == 'same':
-        pass
     elif mode == 'full':
-        corr = np.zeros((1, epoch2._data.shape[1], 2 * epoch2._data.shape[2] - 1))
-        for i in range(len(epoch1)):
-            corr_tmp = correlate(epoch1._data[i], epoch2._data[i], mode='full')
-            corr = np.vstack((corr, np.expand_dims(corr_tmp, 0)))
-        corr = np.delete(corr, 0, axis=0).astype(np.float64)
+        corr = np.zeros((data2.shape[0], data2.shape[1], 2 * data2.shape[2] - 1))
+        for i in range (len (data1)):
+            for j in range (data2.shape[1]):
+                corr_tmp = correlate(data1[i, 0, :], data2[i, j, :], mode=mode)
+                corr[i, j, :] = np.expand_dims(corr_tmp, 0)
         if norm:
-            print('calculate normalized cross-correlation')
-            trans = np.zeros((1, len(epoch2.ch_names), 1))
-            for i in range(data2.shape[0]):
-                trans_tmp = np.array([])
-                for j in range(data2.shape[1]):
-                    n = np.sqrt(np.dot(data1[i, 0, :], data1[i, 0, :].T) *
-                                np.dot(data2[i, j, :], data2[i, j, :].T))
-                    trans_tmp = np.expand_dims(np.append(trans_tmp, np.array([n])), axis=1)
-                trans = np.vstack((trans, np.expand_dims(trans_tmp, axis=0)))
-            trans = np.delete(trans, 0, axis=0)
-            corr = np.true_divide(corr, trans)
+            print ('calculate normalized cross-correlation')
+            trans = np.zeros ((1, len (epoch2.ch_names), 1))
+            for i in range (data2.shape[0]):
+                trans_tmp = np.array ([])
+                for j in range (data2.shape[1]):
+                    n = np.sqrt (np.dot (data1[i, 0, :], data1[i, 0, :].T) *
+                                 np.dot (data2[i, j, :], data2[i, j, :].T))
+                    trans_tmp = np.expand_dims (np.append (trans_tmp, np.array ([n])), axis=1)
+                trans = np.vstack ((trans, np.expand_dims (trans_tmp, axis=0)))
+            trans = np.delete (trans, 0, axis=0)
+            corr = np.true_divide (corr, trans)
+        corr = np.mean(corr, axis=0)
+    else:
+        corr = np.zeros((data2.shape[0], data2.shape[1], data2.shape[2]))
+        for i in range (len (data1)):
+            for j in range (data2.shape[1]):
+                corr_tmp = correlate(data1[i, 0, :], data2[i, j, :], mode='same')
+                corr[i, j, :] = np.expand_dims(corr_tmp, 0)
+        if norm:
+            print ('calculate normalized cross-correlation')
+            trans = np.zeros ((1, len (epoch2.ch_names), 1))
+            for i in range (data2.shape[0]):
+                trans_tmp = np.array ([])
+                for j in range (data2.shape[1]):
+                    n = np.sqrt (np.dot (data1[i, 0, :], data1[i, 0, :].T) *
+                                 np.dot (data2[i, j, :], data2[i, j, :].T))
+                    trans_tmp = np.expand_dims (np.append (trans_tmp, np.array ([n])), axis=1)
+                trans = np.vstack ((trans, np.expand_dims (trans_tmp, axis=0)))
+            trans = np.delete (trans, 0, axis=0)
+            corr = np.true_divide (corr, trans)
         corr = np.mean(corr, axis=0)
     return corr
 
