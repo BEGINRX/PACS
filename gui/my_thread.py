@@ -544,7 +544,7 @@ class Cal_Time_Con(QThread):
         elif self.method == 'cross correlation':
             data = self.data[self.para['event']]
             if not self.para['plot_mode'][0]:
-                epochx = data.copy().pick_channels(self.para['chan'][0])
+                epochx = data.copy().pick_channels(list(self.para['chan'][0]))
                 epochy = data.copy().pick_channels(self.para['chan'][1])
                 con = get_corr(epochx, epochy, baseline=self.para['baseline'], mode='same')
             else:
