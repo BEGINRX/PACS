@@ -77,7 +77,6 @@ def get_chan_group_old(raw):
     return ch_group_cont
 
 
-
 def get_chan_group(raw):
     '''
     :param raw: instance of Raw
