@@ -415,7 +415,7 @@ class Event_Window(QMainWindow):
         self.create_layout()
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
-        self.setWindowFlags (Qt.WindowStaysOnTopHint)
+
 
 
     def center(self):
@@ -543,7 +543,6 @@ class Select_Time(QMainWindow):
         self.create_layout()
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
-        self.setWindowFlags (Qt.WindowStaysOnTopHint)
 
 
     def center(self):
@@ -671,8 +670,7 @@ class Select_Chan(QMainWindow):
         self.create_widget()
         self.create_layout()
         self.set_style()
-        self.setWindowFlags (Qt.WindowStaysOnTopHint |
-                             Qt.FramelessWindowHint)
+        self.setWindowFlags(Qt.FramelessWindowHint)
 
 
     def center(self):
@@ -780,7 +778,7 @@ class Select_Event(QMainWindow):
         self.create_button()
         self.create_layout()
         self.set_style()
-        self.setWindowFlags (Qt.WindowStaysOnTopHint)
+
 
 
 
