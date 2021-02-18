@@ -28,7 +28,8 @@ from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QAction, QMenu, \
 from PyQt5.QtCore import Qt, pyqtSignal, QUrl
 from PyQt5.Qt import QCursor
 from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
-from mne import Annotations, events_from_annotations, Epochs
+from mne import Annotations, events_from_annotations, BaseEpochs, Epochs
+from mne.io import BaseRaw
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power, \
                           Calculate_PSD, Cal_Spec_Con
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
@@ -37,6 +38,9 @@ from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
 from gui.data_io import write_raw_edf, write_raw_set
 from gui.my_func import new_layout
+from gui.my_class import Subject, SEEG
+
+
 
 class MainWindow(QMainWindow):
     '''
@@ -50,36 +54,16 @@ class MainWindow(QMainWindow):
 
         self.flag = 0
         self.tree_dict = dict()
-        # tree_raw_item has the tree items in raw sEEG data
+        # tree_item has the tree items of sEEG data
         self.tree_item = dict()
+        # all the subjects information in this protocol
+        # - key:subject name
+        self.subject = dict()
         # data info save the basic information of sEEG data to show in the main window
         self.data_info = dict()
-        # subject dict should have this structure:
-        # 1. key(subject) - the name of the subject
-        # 2. seeg(dict) - the sEEG data structure
-        # 4. MRI - the MRI of this subject
-        # 5. MNI coordinates - to plot the depth electrodes on 'fsaverage' brain
-        self.subject_data = dict()
-        # sEEG dict should have this structure:
-        # key0(user set) - data's name
-        # key0-data(dict) - sEEG data; sEEG's path; sEEG's mode(raw or epoch)
-        # key1(user set) - processed data's name
-        # key1-data(dict) - processed sEEG data; processed sEEG's path; processed sEEG's mode(raw or epoch)
-        # key2 ...
-        self.seeg = dict()
         # current_data tells us which seeg data we want to use by choosing
-        # the 'key' in current subject's protocol
+        # the 'key' in the subject
         self.current_data = dict()
-        # mri dict should have this structure:
-        # key0 - mri_0
-        # key1 - mri_1
-        # key2 ...
-        self.mri = dict()
-        # current mri tells us which mri we wnt to use by choosing the 'key'
-        # in current subject's protocol
-        self.current_mri = dict()
-        # tell us the mode of the target sEEG data(raw or epoch)
-        self.data_mode = None
         self.event_set = dict()
         self.event = None
         self.cavans_tmp = None
@@ -134,16 +118,6 @@ class MainWindow(QMainWindow):
         self.resample_worker.resample.connect(self.get_seeg_data)
         self.filter_worker = Filter_Thread()
         self.filter_worker.filter_signal.connect(self.get_seeg_data)
-
-
-    def create_sub_windows(self):
-
-        self.fir_filter_window = Choose_Window('fir')
-        self.fir_filter_window.signal.connect(self.filter_subwindow_para)
-        self.fir_filter_window.notch_signal.connect(self.filter_subwindow_para)
-        self.iir_filter_window = Choose_Window('iir')
-        self.iir_filter_window.signal.connect(self.filter_subwindow_para)
-        self.iir_filter_window.notch_signal.connect(self.filter_subwindow_para)
 
 
     def create_action(self):
@@ -251,7 +225,7 @@ class MainWindow(QMainWindow):
         self.plot_button.clicked.connect(self.plot_raw_data)
 
         self.event_button = QPushButton(self)
-        self.event_button.setText('Event')
+        self.event_button.setText('Marker')
         self.event_button.setToolTip('Select the events')
         self.event_button.setProperty('name', 'func')
         self.event_button.setEnabled(False)
@@ -653,8 +627,7 @@ class MainWindow(QMainWindow):
                     self.ptc_stack.removeWidget(self.tree)
                 except Exception as error:
                     pass
-                self.subject_data[self.ptc_name] = dict()
-                self.subject_data[self.ptc_name]['sEEG'] = dict()
+                self.subject[self.ptc_name] = Subject(name=self.ptc_name)
                 self.ptc_cb.addItem(self.ptc_name)
                 self.ptc_cb.setCurrentText(self.ptc_name)
                 self.tree = QTreeWidget()
@@ -968,14 +941,14 @@ class MainWindow(QMainWindow):
     def get_raw_fig(self, data):
 
         try:
-            if data['data_mode'] == 'raw':
-                self.fig = mne.viz.plot_raw(data['data'], n_channels=20, scalings={'eeg':100e-6}, title='',
+            if isinstance(data, BaseRaw):
+                self.fig = mne.viz.plot_raw(data, n_channels=20, scalings={'eeg':100e-6}, title='',
                                        show=False, duration=10.0)
                 self.fig.canvas.manager.full_screen_toggle()
                 plt.close()
                 print('Raw data 绘制完毕')
-            elif data['data_mode'] == 'epoch':
-                self.fig = mne.viz.plot_epochs(data['data'], n_channels=20, scalings={'eeg':100e-6}, title='',
+            elif isinstance(data, BaseEpochs):
+                self.fig = mne.viz.plot_epochs(data, n_channels=20, scalings={'eeg':100e-6}, title='',
                                           show=False)
                 self.fig.canvas.manager.full_screen_toggle()
                 plt.close()
@@ -1002,7 +975,6 @@ class MainWindow(QMainWindow):
             self.canvas_tmp.setFocusPolicy(Qt.StrongFocus)
             self.canvas_tmp.setFocus()
             self.fig_stack.addWidget(self.canvas_tmp)
-            # self.fig_stack.setVisible()
         except Exception as error:
             if error.args[0] == "'RawEEGLAB' object has no attribute 'drop_bad'":
                 pass
@@ -1022,14 +994,17 @@ class MainWindow(QMainWindow):
                     self.key += '_raw'
                 elif self.data_mode == 'epoch':
                     self.key += '_epoch'
-                self.seeg[self.key] = dict()
-                self.seeg[self.key]['data'] =  seeg_data
-                self.seeg[self.key]['data_path'] = self.data_path
-                self.seeg[self.key]['data_mode'] = self.data_mode
                 subject_name = self.ptc_cb.currentText()
+
+                self.subject[subject_name].seeg[self.key] = SEEG(name=self.key, data=seeg_data,
+                                                                 mode=self.data_mode)
+                self.subject[subject_name].seeg[self.key].data_para['path'] = self.data_path
                 child = self.get_all_items()
                 if self.data_mode == 'raw':
-                    self.seeg[self.key]['event'], _ = events_from_annotations(seeg_data)
+                    des = list (set(seeg_data._annotations.description))
+                    event_id = {str(mark): int(mark) for mark in des}
+                    events, _ = mne.events_from_annotations(seeg_data, event_id=event_id)
+                    self.subject[subject_name].seeg[self.key].events = events
                     if 'raw sEEG data' in child:
                         self.node_20 = QTreeWidgetItem(self.tree_item[subject_name]['raw'])
                         self.node_20.setText(0, self.key)
@@ -1045,7 +1020,7 @@ class MainWindow(QMainWindow):
                         self.tree_item[subject_name]['raw'] = self.node_10
                         self.tree.expandAll()
                 elif self.data_mode == 'epoch':
-                    self.seeg[self.key]['event'] = seeg_data.events
+                    self.subject[subject_name].seeg[self.key].events = seeg_data.events
                     if 'Epoch sEEG data' in child:
                         self.node_20 = QTreeWidgetItem(self.tree_item[subject_name]['epoch'])
                         self.node_20.setText(0, self.key)
@@ -1059,8 +1034,8 @@ class MainWindow(QMainWindow):
                         self.node_20.setIcon(0, QIcon('image/sEEG.jpg'))
                         self.tree_item[subject_name]['epoch'] = self.node_11
                         self.tree.expandAll()
-                self.event = self.seeg[self.key]['event']
-                self.subject_data[subject_name]['sEEG'][self.key] = self.seeg[self.key]
+                self.subject[subject_name].seeg[self.key].get_para()
+                self.event = self.subject[subject_name].seeg[self.key].events
                 self.set_current_data(key=self.key)
                 del seeg_data
                 gc.collect()
@@ -1079,12 +1054,13 @@ class MainWindow(QMainWindow):
 
     def set_current_data(self, key):
         '''set the curent seeg data'''
-        self.current_data = self.seeg[key]
-        self.data_mode = self.current_data['data_mode']
+        subject_name = self.ptc_cb.currentText ()
+        self.current_data = self.subject[subject_name].seeg[self.key]
+        self.data_mode = self.subject[subject_name].seeg[self.key].mode
         print('----------------------------')
         print("current data\'s key:", key)
         print('----------------------------')
-        if self.current_data['data_mode'] == 'raw':
+        if self.data_mode == 'raw':
             self.re_ref_button.setEnabled(True)
             self.resample_button.setEnabled(True)
             self.filter_button.setEnabled(True)
@@ -1102,8 +1078,7 @@ class MainWindow(QMainWindow):
             self.plot_button.setEnabled(True)
             self.event_button.setEnabled(True)
             self.save_button.setEnabled(True)
-        self.get_data_info()
-        self.get_raw_fig(self.current_data)
+        self.get_raw_fig(self.current_data.data)
 
 
     def change_current_data(self, index):
@@ -1112,16 +1087,16 @@ class MainWindow(QMainWindow):
             parent = self.tree.currentItem().parent().text(0)
             if 'raw sEEG data' == parent or 'Epoch sEEG data' == parent :
                 subject_name = self.ptc_cb.currentText()
-                self.current_sub = self.subject_data[subject_name]
+                self.current_sub = self.subject[subject_name]
                 key = self.tree.currentItem().text(0)
-                self.current_data = self.current_sub['sEEG'][key]
-                self.data_mode = self.current_data['data_mode']
+                self.current_data = self.current_sub.seeg[key]
+                self.data_mode = self.current_data.mode
                 print('----------------------------')
                 print('change current data to ', key)
                 print('----------------------------')
                 # print('current data : ', self.current_data)
                 # print('----------------------------')
-                if self.current_data['data_mode'] == 'raw':
+                if self.current_data.mode == 'raw':
                     self.re_ref_button.setEnabled(True)
                     self.resample_button.setEnabled(True)
                     self.filter_button.setEnabled(True)
@@ -1139,50 +1114,13 @@ class MainWindow(QMainWindow):
                     self.plot_button.setEnabled(True)
                     self.event_button.setEnabled(True)
                     self.save_button.setEnabled(True)
-                self.get_data_info()
-                self.get_raw_fig(self.current_data)
-            if 'MRI or CT' == parent:
-                pass
+                self.get_raw_fig(self.current_data.data)
         except Exception as error:
             if error.args[0] == "'NoneType' object has no attribute 'text'":
                 pass
             else:
                 self.show_error(error)
 
-
-    def get_data_info(self):
-        '''get seeg data information'''
-        try:
-            if self.current_data['data_mode'] == 'raw':
-                self.data_info['data_path'] = self.current_data['data_path']
-                self.data_info['epoch_number'] = 1
-                self.data_info['sampling_rate'] = self.current_data['data'].info['sfreq']
-                self.data_info['chan_number'] = str(self.current_data['data'].info['nchan'])
-                self.data_info['epoch_start'] = self.current_data['data']._first_time
-                self.data_info['epoch_end'] = round(self.current_data['data']._last_time, 2)
-                self.data_info['time_point'] = self.current_data['data'].n_times
-                self.data_info['events'], _ = events_from_annotations(self.current_data['data'])
-                self.data_info['event_class'] = len(set(self.data_info['events'][:,2]))
-                self.data_info['event_number'] = len(self.data_info['events'])
-                self.data_info['data_size'] = round(0.5 * (self.current_data['data']._size / ((2**10)**2)), 2)
-            elif self.current_data['data_mode'] == 'epoch':
-                self.data_info['data_path'] = self.current_data['data_path']
-                self.data_info['epoch_number'] = self.current_data['data'].events.shape[0]
-                self.data_info['sampling_rate'] = self.current_data['data'].info['sfreq']
-                self.data_info['chan_number'] = self.current_data['data'].info['nchan']
-                self.data_info['epoch_start'] = self.current_data['data'].tmin
-                self.data_info['epoch_end'] = self.current_data['data'].tmax
-                self.data_info['time_point'] = len(self.current_data['data']._raw_times)
-                self.data_info['event_class'] = len(set(self.current_data['data'].events[:, 2]))
-                self.data_info['event_number'] = len(self.current_data['data'].events)
-                self.data_info['data_size'] = round(0.5 * (self.current_data['data']._size / ((2 ** 10) ** 2)), 2)
-        except Exception as error:
-            print('Error is:', type(error), error.args[0])
-            QMessageBox.warning(self, 'Data Save to EDF Error', error.args[0])
-        finally:
-            self.data_info_signal.connect(self.update_func)
-            self.data_info_signal.emit(self.data_info)
-            self.create_sub_windows()
 
 
     def import_mri_ct(self):
@@ -1196,7 +1134,7 @@ class MainWindow(QMainWindow):
 
         self.save_path, _ = QFileDialog.getSaveFileName(self, 'Save data to EDF')
         try:
-            write_raw_edf(self.save_path, self.current_data['data'])
+            write_raw_edf(self.save_path, self.current_data.data)
         except Exception as error:
             self.show_error(error)
 
@@ -1205,7 +1143,7 @@ class MainWindow(QMainWindow):
 
         self.save_path, _ = QFileDialog.getSaveFileName(self, 'Save data to EDF')
         try:
-            write_raw_set(self.save_path + '.set', self.current_data['data'])
+            write_raw_set(self.save_path + '.set', self.current_data.data)
         except Exception as error:
             self.show_error(error)
 
@@ -1214,7 +1152,7 @@ class MainWindow(QMainWindow):
         '''save as .fif data'''
         self.save_path, _ = QFileDialog.getSaveFileName(self, 'Save data')
         try:
-            self.current_data['data'].save(self.save_path + '.fif')
+            self.current_data.data.save(self.save_path + '.fif')
         except Exception as error:
             self.show_error(error)
 
@@ -1228,8 +1166,8 @@ class MainWindow(QMainWindow):
 
         save_path, _ = QFileDialog.getSaveFileName(self, 'Save data')
         try:
-            np.save(save_path + '_data', self.current_data['data'])
-            np.save(save_path + '_label', self.current_data['event'])
+            np.save(save_path + '_data', self.current_data.data)
+            np.save(save_path + '_label', self.current_data.events)
         except Exception as error:
             self.show_error(error)
 
@@ -1237,10 +1175,10 @@ class MainWindow(QMainWindow):
     def export_mat(self):
 
         try:
-            self.current_data['data'].load_data()
+            self.current_data.data.load_data()
             save_path, _ = QFileDialog.getSaveFileName(self, 'Save data')
-            sio.savemat(self.save_path + '_data.mat', {'seeg_data':self.current_data['data']._data})
-            sio.savemat(self.save_path + '_label.mat', {'label':self.current_data['event']})
+            sio.savemat(self.save_path + '_data.mat', {'seeg_data':self.current_data.data._data})
+            sio.savemat(self.save_path + '_label.mat', {'label':self.current_data.events})
         except Exception as error:
             self.show_error(error)
 
@@ -1248,17 +1186,13 @@ class MainWindow(QMainWindow):
     def clear_all(self):
         '''clear the whole workshop'''
         try:
-            del self.flag, self.tree_dict, self.tree_item, self.data_info, self.subject_data, self.seeg, self.event
+            del self.flag, self.tree_dict, self.tree_item, self.data_info, self.subject, self.seeg, self.event
             del self.current_data, self.mri, self.current_mri, self.data_mode, self.event_set, self.cavans_tmp
             gc.collect()
             self.tree_dict = dict()
             self.tree_item = dict()
+            self.subject = dict()
             self.data_info = dict()
-            self.subject_data = dict()
-            self.seeg = dict()
-            self.current_data = dict()
-            self.mri = dict()
-            self.current_mri = dict()
             self.event_set = dict()
             self.ptc_cb.clear()
             self.ptc_cb.setCurrentText('')
@@ -1317,7 +1251,7 @@ class MainWindow(QMainWindow):
 
     def car_reref(self):
         '''Reference sEEG data using Common Average Reference(CAR)'''
-        data = self.current_data['data'].copy()
+        data = self.current_data.data.copy()
         print(data)
         raw = car_ref(data, data_class=self.data_mode)
         self.get_seeg_data(raw)
@@ -1325,7 +1259,7 @@ class MainWindow(QMainWindow):
 
     def gwr_reref(self):
         '''Reference sEEG data using Gray-white Matter Reference(GWR)'''
-        data = self.current_data['data'].copy()
+        data = self.current_data.data.copy()
         self.coord_path, _ = QFileDialog.getOpenFileName(self, 'Load MNI Coornidates')
         print(self.coord_path)
         try:
@@ -1337,7 +1271,7 @@ class MainWindow(QMainWindow):
 
     def esr_reref(self):
         '''Reference sEEG data using Electrode Shaft Reference(ESR)'''
-        data = self.current_data['data'].copy()
+        data = self.current_data.data.copy()
         try:
             raw = esr_ref(data, data_class=self.data_mode)
             self.get_seeg_data(raw)
@@ -1347,7 +1281,7 @@ class MainWindow(QMainWindow):
 
     def bipolar_reref(self):
         '''Reference sEEG data using Bipolar Reference'''
-        data = self.current_data['data'].copy()
+        data = self.current_data.data.copy()
         try:
             raw, _ = bipolar_ref(data, data_class=self.data_mode)
             self.get_seeg_data(raw)
@@ -1357,14 +1291,14 @@ class MainWindow(QMainWindow):
 
     def monopolar_reref(self):
 
-        self.chan_win = Select_Chan(chan_name=self.current_data['data'].ch_names)
+        self.chan_win = Select_Chan(chan_name=self.current_data.data.ch_names)
         self.chan_win.chan_signal.connect(self.start_monopolar)
         self.chan_win.show()
 
 
     def start_monopolar(self, ref_chan):
         '''Reference sEEG data using Monopolar Reference'''
-        data = self.current_data['data'].copy()
+        data = self.current_data.data.copy()
         try:
             raw = monopolar_ref(data, data_class=self.data_mode, ref_chan=ref_chan)
             self.get_seeg_data(raw)
@@ -1374,7 +1308,7 @@ class MainWindow(QMainWindow):
 
     def laplacian_reref(self):
         '''Reference sEEG data using Laplacian Reference'''
-        data = self.current_data['data'].copy()
+        data = self.current_data.data.copy()
         try:
             raw, _ = laplacian_ref(data, data_class=self.data_mode)
             self.get_seeg_data(raw)
@@ -1385,7 +1319,7 @@ class MainWindow(QMainWindow):
     # select sub-time
     def select_time(self):
 
-        time_end = round(self.current_data['data']._last_time, 2)
+        time_end = round(self.current_data.data._last_time, 2)
         self.select_time_win = Select_Time(time_end)
         self.select_time_win.time_signal.connect(self.get_time)
         self.select_time_win.show()
@@ -1395,7 +1329,7 @@ class MainWindow(QMainWindow):
 
         self.time_new = time
         print('Time selected', self.time_new)
-        crop_data = self.current_data['data'].copy().crop(self.time_new[0], self.time_new[1])
+        crop_data = self.current_data.data.copy().crop(self.time_new[0], self.time_new[1])
         self.get_seeg_data(crop_data)
 
 
@@ -1423,7 +1357,7 @@ class MainWindow(QMainWindow):
         marker_chan_1 = ['DC09', 'DC10', 'DC11', 'DC12',
                          'DC13', 'DC14', 'DC15']
         try:
-            mark_data = self.current_data['data'].copy().pick_channels(marker_chan_0)._data * 1e6
+            mark_data = self.current_data.data.copy().pick_channels(marker_chan_0)._data * 1e6
         except Exception as error:
             QMessageBox.warning(self, 'Marker Calculating Error', 'No channels match the selection')
             print('*****************************')
@@ -1446,13 +1380,13 @@ class MainWindow(QMainWindow):
             self.event_latency = np.array(np.where(event_tmp > 0), dtype=np.int64)
             self.event_id = event_id_tmp[self.event_latency].astype(np.int64)
 
-            freq = self.current_data['data'].info['sfreq']
+            freq = self.current_data.data.info['sfreq']
             event_onset = (self.event_latency / freq).astype(np.float64)
             self.my_annot = Annotations(
                 onset=event_onset[0, :], duration=np.zeros(event_onset[0, :].shape[0]),
                 description=self.event_id[0, :])
-            annot_data = self.current_data['data'].copy().set_annotations(self.my_annot)
-            self.event, _ = events_from_annotations(self.current_data['data'])
+            annot_data = self.current_data.data.copy().set_annotations(self.my_annot)
+            self.event, _ = events_from_annotations(self.current_data.data)
 
             self.event_test = np.zeros((self.event_id.shape[1], 3)).astype(np.int32)
             self.event_test[:, 0], self.event_test[:, 2] = self.event_latency, self.event_id
@@ -1474,7 +1408,7 @@ class MainWindow(QMainWindow):
     # set event id_dict
     def get_event_name(self):
 
-        para = list(set(self.current_data['event'][:, 2]))
+        para = list(set(self.current_data.events[:, 2]))
         print(para)
         self.event_window = Event_Window(para)
         self.event_window.line_edit_signal.connect(self.set_event)
@@ -1501,12 +1435,15 @@ class MainWindow(QMainWindow):
     def get_epoch_data(self, tmin, tmax, base_tmin, base_tmax):
 
         try:
-            if self.current_data['data_mode'] == 'raw':
+            if self.current_data.mode == 'raw':
                 if tmin < 0 and tmax >= 0:
-                    # data = self.current_data['data'].copy()
-                    epoch_data = Epochs(self.current_data['data'], self.current_data['event'],
-                                            event_id=self.event_set, tmin=tmin, tmax=tmax,
-                                        baseline=(base_tmin, base_tmax))
+                    if len(self.event_set):
+                        epoch_data = Epochs(self.current_data.data, self.current_data.events,
+                                                event_id=self.event_set, tmin=tmin, tmax=tmax,
+                                            baseline=(base_tmin, base_tmax))
+                    else:
+                        epoch_data = Epochs(self.current_data.data, self.current_data.events,
+                                            tmin=tmin, tmax=tmax, baseline=(base_tmin, base_tmax))
                     self.data_mode = 'epoch'
                     self.get_seeg_data(epoch_data)
         except Exception as error:
@@ -1525,8 +1462,8 @@ class MainWindow(QMainWindow):
 
     def apply_base(self, tmin, tmax):
 
-        raw = self.current_data['data'].copy()
-        data_mode = self.current_data['data_mode']
+        raw = self.current_data.data.copy()
+        data_mode = self.current_data.mode
         if data_mode == 'epoch':
             try:
                 print('---------------correcting epochs---------------')
@@ -1540,14 +1477,14 @@ class MainWindow(QMainWindow):
     # select sub-event
     def select_event(self):
 
-        event = list(set(self.current_data['event'][:, 2]))
+        event = list(set(self.current_data.events[:, 2]))
         self.select_event_win = Select_Event(event)
         self.select_event_win.event_signal.connect(self.get_event)
         self.select_event_win.show()
 
 
     def get_event(self, event_select):
-        data = self.current_data['data']
+        data = self.current_data.data
         print(len(event_select))
         if len(event_select) == 1:
             for i in data.event_id:
@@ -1562,7 +1499,7 @@ class MainWindow(QMainWindow):
     #
     # EP
     def choose_evoke(self):
-        data = self.current_data['data'].copy()
+        data = self.current_data.data.copy()
         self.event = data.event_id
         del data
         self.choose_evoke_win = Select_Event(list(self.event.keys()))
@@ -1576,7 +1513,7 @@ class MainWindow(QMainWindow):
         from mne.coreg import get_mni_fiducials
         from mne.channels import make_dig_montage
 
-        evoke = self.current_data['data'][event].average()
+        evoke = self.current_data.data[event].average()
 
         subjects_dir = 'datasets/subjects'
         subject = 'fsaverage'
@@ -1585,7 +1522,7 @@ class MainWindow(QMainWindow):
 
         subject_name = self.ptc_cb.currentText()
         try:
-            self.ch_coords = self.subject_data[subject_name]['MNI']
+            self.ch_coords = self.subject[subject_name].coord
 
             lpa, nasion, rpa = get_mni_fiducials(
                 subject, subjects_dir=subjects_dir)
@@ -1613,14 +1550,14 @@ class MainWindow(QMainWindow):
 
 
     def show_tf_win(self):
-        data = self.current_data['data']
+        data = self.current_data.data
         subject = self.ptc_cb.currentText()
         self.tf_win = Time_Freq_Win(data, subject)
         self.tf_win.show()
 
 
     def show_con_win(self):
-        data = self.current_data['data']
+        data = self.current_data.data
         subject = self.ptc_cb.currentText()
         self.con_win = Con_Win(data, subject)
         self.con_win.show()
@@ -1633,7 +1570,7 @@ class MainWindow(QMainWindow):
     # select sub-channel
     def select_chan(self):
 
-        self.select_chan_win = Select_Chan(chan_name=self.current_data['data'].ch_names)
+        self.select_chan_win = Select_Chan(chan_name=self.current_data.data.ch_names)
         self.select_chan_win.chan_signal.connect(self.get_sel_chan)
         self.select_chan_win.show()
 
@@ -1641,8 +1578,8 @@ class MainWindow(QMainWindow):
     def get_sel_chan(self, chan):
 
         self.chan_sel = chan
-        self.current_data['data'].load_data()
-        sel_chan_data = self.current_data['data'].copy().pick_channels(self.chan_sel)
+        self.current_data.data.load_data()
+        sel_chan_data = self.current_data.data.copy().pick_channels(self.chan_sel)
         self.get_seeg_data(sel_chan_data)
 
 
@@ -1650,8 +1587,8 @@ class MainWindow(QMainWindow):
     def rename_chan(self):
         '''delete the 'POL' in channels' name '''
         try:
-            rename_chan_data = self.current_data['data'].copy().\
-                rename_channels({chan: chan[4:] for chan in self.current_data['data'].ch_names
+            rename_chan_data = self.current_data.data.copy().\
+                rename_channels({chan: chan[4:] for chan in self.current_data.data.ch_names
                                  if 'POL' in chan})
             rename_chan_data = rename_chan_data.rename_channels({chan: chan[4:6] for chan in rename_chan_data.ch_names
                                  if 'Ref' in chan})
@@ -1665,12 +1602,12 @@ class MainWindow(QMainWindow):
     def execute_resample_data(self):
 
         try:
-            if self.data_info['data_path']:
+            if self.current_data.data is not None:
                 self.resample_worker.resampling_rate,_ = self.value, _ = QInputDialog.getInt(self, 'Resample Data', 'Resample Rate (Hz)', 0, 0)
                 print(self.resample_worker.resampling_rate)
                 if self.resample_worker.resampling_rate > 0:
                     print('开始重采样')
-                    self.resample_worker.data = self.current_data['data']
+                    self.resample_worker.data = self.current_data.data
                     self.resample_worker.start()
         except Exception as error:
             print('*********************************************************************')
@@ -1680,14 +1617,18 @@ class MainWindow(QMainWindow):
 
     # filt sEEG data with fir filter
     def filter_data_fir(self):
-
+        self.fir_filter_window = Choose_Window('fir')
+        self.fir_filter_window.signal.connect(self.filter_subwindow_para)
+        self.fir_filter_window.notch_signal.connect(self.filter_subwindow_para)
         self.filter_worker.filter_mode = 'fir'
         self.fir_filter_window.show()
 
 
     # filt sEEG data with iir filter
     def filter_data_iir(self):
-
+        self.iir_filter_window = Choose_Window('iir')
+        self.iir_filter_window.signal.connect(self.filter_subwindow_para)
+        self.iir_filter_window.notch_signal.connect(self.filter_subwindow_para)
         self.filter_worker.filter_mode = 'iir'
         self.iir_filter_window.show()
 
@@ -1723,7 +1664,7 @@ class MainWindow(QMainWindow):
                   self.filter_worker.notch_freq)
             if self.filter_worker.low_freq or self.filter_worker.high_freq or \
                 self.filter_worker.notch_freq:
-                self.filter_worker.seeg_data = self.current_data['data']
+                self.filter_worker.seeg_data = self.current_data.data
                 self.filter_worker.start()
         except Exception as error:
             self.show_error(error)
@@ -1733,21 +1674,21 @@ class MainWindow(QMainWindow):
     def plot_raw_data(self):
 
         try:
-            if self.current_data['data_mode'] == 'raw':
+            if self.current_data.mode == 'raw':
                 print('画图了')
                 self.canvas = None
-                self.current_data['data'].plot(duration=5.0, n_channels=20, title='Raw sEEG data')
+                self.current_data.data.plot(duration=5.0, n_channels=20, title='Raw sEEG data')
                 plt.get_current_fig_manager().window.showMaximized()
-            elif self.current_data['data_mode'] == 'epoch':
+            elif self.current_data.mode == 'epoch':
                 self.canvas = None
-                self.current_data['data'].plot(n_channels=20, n_epochs=5, scalings={'eeg':100e-6}, title='Epoched sEEG data')
+                self.current_data.data.plot(n_channels=20, n_epochs=5, scalings={'eeg':100e-6}, title='Epoched sEEG data')
                 plt.get_current_fig_manager().window.showMaximized()
         except Exception as error:
             self.show_error(error)
 
 
     def drop_bad_chan(self):
-        data = self.current_data['data'].copy()
+        data = self.current_data.data.copy()
         if len(data.info['bads']):
             data.drop_channels(data.info['bads'])
             data.info['bads'] = []
@@ -1757,13 +1698,13 @@ class MainWindow(QMainWindow):
 
 
     def drop_bad_epochs(self):
-        data = self.current_data['data'].copy()
+        data = self.current_data.data.copy()
         data.drop_bad()
         self.get_seeg_data(data)
 
 
     def interpolate_bad(self):
-        data = self.current_data['data'].copy()
+        data = self.current_data.data.copy()
         data.load_data()
         data.interpolate_bads()
         self.get_seeg_data(data)
@@ -1772,8 +1713,8 @@ class MainWindow(QMainWindow):
     def plot_topo_psd(self):
 
         try:
-            if self.current_data['data_mode']:
-                self.current_data['data'].plot_psd_topo(n_jobs=2)
+            if self.current_data.mode:
+                self.current_data.data.plot_psd_topo(n_jobs=2)
         except Exception as error:
             self.show_error(error)
 
@@ -1783,7 +1724,7 @@ class MainWindow(QMainWindow):
         import pandas as pd
         subject = 'fsaverage'
         subjects_dir = 'D:\SEEG_Cognition\datasets\subjects'
-        raw = self.current_data['data'].copy()
+        raw = self.current_data.data.copy()
 
         self.mni_path, _ = QFileDialog.getOpenFileName(self, 'Load MNI Coornidates')
 
@@ -1797,8 +1738,7 @@ class MainWindow(QMainWindow):
                 ch_coords = ch_coords / 1000.
                 # create dictionary of channels and their xyz coordinates (now in MNI space)
                 self.ch_pos = dict(zip(ch_names, ch_coords))
-                self.subject_data[subject_name]['MNI'] = self.ch_pos
-
+                self.subject[subject_name].coord = self.ch_pos
 
                 lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
                     subject, subjects_dir=subjects_dir)
@@ -1812,12 +1752,12 @@ class MainWindow(QMainWindow):
 
         except Exception as error:
             if error.args[0] == 'No channels match the selection.':
-                raw = self.current_data['data']
+                raw = self.current_data.data
                 self.show_error(error)
             else:
                 self.show_error(error)
         finally:
-            self.current_data['data'] = raw
+            self.current_data.data = raw
 
 
     def display_electrodes(self):
@@ -1832,11 +1772,11 @@ class MainWindow(QMainWindow):
         sample_path = 'datasets/'
         subject = 'fsaverage'
         subjects_dir = sample_path + '/subjects'
-        data = self.current_data['data'].copy()
+        data = self.current_data.data.copy()
         try:
             fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)
             subject_name = self.ptc_cb.currentText()
-            self.ch_coords = self.subject_data[subject_name]['MNI']
+            self.ch_coords = self.subject[subject_name].coord
             lpa, nasion, rpa = get_mni_fiducials(
                 subject, subjects_dir=subjects_dir)
             lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
@@ -1891,17 +1831,18 @@ class MainWindow(QMainWindow):
     def update_func(self, data_info):
         '''update label text'''
         try:
-            if self.current_data['data'].ch_names:
-                self.file_name_cont_label.setText(str(data_info['data_path']))
-                self.epoch_num_cont_label.setText(str(data_info['epoch_number']))
-                self.samp_rate_cont_label.setText(str(round(data_info['sampling_rate'])))
-                self.chan_cont_label.setText(str(data_info['chan_number']))
-                self.start_cont_label.setText(str(round(data_info['epoch_start'])))
-                self.end_cont_label.setText(str(round(data_info['epoch_end'])))
-                self.event_class_cont_label.setText(str(data_info['event_class']))
-                self.event_num_cont_label.setText(str(data_info['event_number']))
-                self.time_point_cont_label.setText(str(data_info['time_point']))
-                self.data_size_cont_label.setText(str(data_info['data_size']))
+            if self.current_data.data is not None:
+                para = self.current_data.data_para
+                self.file_name_cont_label.setText(para['data_path'])
+                self.epoch_num_cont_label.setText(para['epoch_number'])
+                self.samp_rate_cont_label.setText(para['sfreq'])
+                self.chan_cont_label.setText(para['chan_num'])
+                self.start_cont_label.setText(para['epoch_start'])
+                self.end_cont_label.setText(para['epoch_end'])
+                self.event_class_cont_label.setText(para['event_class'])
+                self.event_num_cont_label.setText(para['event_num'])
+                self.time_point_cont_label.setText(para['time_point'])
+                self.data_size_cont_label.setText(para['data_size'])
         except:
             self.file_name_cont_label.setText('')
             self.epoch_num_cont_label.setText('')

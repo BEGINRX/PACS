@@ -8,6 +8,58 @@
 import numpy as np
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
+from mne import BaseEpochs
+from mne.io import BaseRaw
+
+
+class SEEG(object):
+
+    def __init__(self, name=None, data=None, events=None, mode=None):
+        super(SEEG, self).__init__()
+        self.name = name
+        self.data = data
+        self.mode = mode
+        self.events = events
+        self.data_para = dict()
+
+
+    def get_para(self):
+        if self.mode == 'raw':
+            self.data_para['epoch_num'] = 1
+            self.data_para['sfreq'] = self.data.info['sfreq']
+            self.data_para['chan_num'] = str(self.data.info['nchan'])
+            self.data_para['epoch_start'] = str(self.data._first_time)
+            self.data_para['epoch_end'] = str(round(self.data._last_time, 2))
+            self.data_para['time_point'] = str(self.data.n_times)
+            self.data_para['event_class'] = str(len(set(self.events[:, 2])))
+            self.data_para['event_num'] = str(len(self.events))
+            self.data_para['data_size'] = str(round(0.5 * (self.data._size / ((2 ** 10) ** 2)), 2))
+        else:
+            self.data_para['epoch_num'] = self.events.shape[0]
+            self.data_para['sfreq'] = self.data.info['sfreq']
+            self.data_para['chan_num'] = str(self.data.info['nchan'])
+            self.data_para['epoch_start'] = str(self.data.tmin)
+            self.data_para['epoch_end'] = str(self.data.tmax)
+            self.data_para['time_point'] = str(self.data._raw_times)
+            self.data_para['event_class'] = str(len(set(self.events[:, 2])))
+            self.data_para['event_num'] = str(len(self.events))
+            self.data_para['data_size'] = str(round(0.5 * (self.data._size / ((2 ** 10) ** 2)), 2))
+
+
+
+class Subject(object):
+
+    def __init__(self, name=None, coord=None, mri=None):
+
+        super(Subject, self).__init__()
+        # key in seeg is the name of the data
+        self.seeg = dict()
+        self.name = name
+        self.coord = coord
+        self.image = dict()
+
+
+
 
 
 class Change_Figure(Figure):

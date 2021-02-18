@@ -268,7 +268,6 @@ class Choose_Window(QMainWindow):
         self.create_layout()
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
-        self.setWindowFlags (Qt.WindowStaysOnTopHint)
 
 
     def center(self):
@@ -458,9 +457,9 @@ class Event_Window(QMainWindow):
 
     def create_labels(self):
 
-        self.event_name_label = QLabel('Event Name', self)
+        self.event_name_label = QLabel('Marker', self)
         self.event_name_label.setAlignment(Qt.AlignCenter)
-        self.event_id_label = QLabel('Event ID', self)
+        self.event_id_label = QLabel('Event', self)
         self.event_id_label.setAlignment(Qt.AlignCenter)
 
 
@@ -485,10 +484,10 @@ class Event_Window(QMainWindow):
         self.label_layout.addWidget(self.event_name_label)
         self.label_layout.addWidget(self.event_id_label)
 
-        self.line_edit_layout = QFormLayout(self)
+        self.line_edit_layout = QFormLayout()
         for i in range(len(self.event_name_edit_group)):
-            self.line_edit_layout.addRow(self.event_id_edit_group[i],
-                                         self.event_name_edit_group[i])
+            self.line_edit_layout.addRow(self.event_name_edit_group[i],
+                                         self.event_id_edit_group[i])
         self.stack_widgets.setLayout(self.line_edit_layout)
 
         self.button_layout = QHBoxLayout()
