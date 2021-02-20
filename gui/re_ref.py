@@ -77,24 +77,27 @@ def get_chan_group_old(raw):
     return ch_group_cont
 
 
-def get_chan_group(raw):
+def get_chan_group(raw=None, chans=None):
     '''
     :param raw: instance of Raw
                 raw data
     :return: dict
              electrodes in the same shaft
     '''
-    chans = raw.ch_names
-    try:
-        raw.rename_channels({chan: chan[4:] for chan in raw.ch_names
-                             if 'POL' in chan})
-        raw.rename_channels({chan: chan[4:6] for chan in raw.ch_names
-                             if 'Ref' in chan})
-        useless_chan = [chan for chan in raw.ch_names if 'DC' in chan or 'BP' in chan
-                        or 'EKG' in chan or 'EMG' in chan]
-        raw.drop_channels(useless_chan)
-    except:
-        traceback.print_exc()
+    if raw is not None and chan is None:
+        chans = raw.ch_names
+        try:
+            raw.rename_channels({chan: chan[4:] for chan in raw.ch_names
+                                 if 'POL' in chan})
+            raw.rename_channels({chan: chan[4:6] for chan in raw.ch_names
+                                 if 'Ref' in chan})
+            useless_chan = [chan for chan in raw.ch_names if 'DC' in chan or 'BP' in chan
+                            or 'EKG' in chan or 'EMG' in chan]
+            raw.drop_channels(useless_chan)
+        except:
+            traceback.print_exc()
+    else:
+        pass
 
     key = list(set([ch[0] for ch in chans]))
     key += [k + '\'' for k in key]
