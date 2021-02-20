@@ -18,6 +18,7 @@ if __name__ == "__main__":
     splash = SplashPanel()
     app.processEvents()
     app.setApplicationName('SEEG_Cognition')
+
     GUI = MainWindow()
     splash.finish(GUI)
     splash.deleteLater()

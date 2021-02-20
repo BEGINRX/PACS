@@ -12,13 +12,15 @@ import matplotlib
 matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib import pyplot as plt
+from visbrain.gui import Brain
+from visbrain.objects import BrainObj, SourceObj, TimeSeries3DObj, ConnectObj, ColorbarObj
 
 import mne
 mne.viz.set_3d_backend('pyvista')
 import numpy as np
+import pandas as pd
 import scipy.io as sio
 import gc
-import time
 
 from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QAction, QMenu, \
     QFileDialog, QLabel, QGroupBox, QVBoxLayout, QHBoxLayout,  \
@@ -30,15 +32,14 @@ from PyQt5.Qt import QCursor
 from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 from mne import Annotations, events_from_annotations, BaseEpochs, Epochs
 from mne.io import BaseRaw
-from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power, \
-                          Calculate_PSD, Cal_Spec_Con
+from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power
+
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
-                           Refer_Window, Baseline_Time, PSD_Para_Win, TFR_Win, \
-                           My_Progress, Time_Freq_Win, Con_Win
+                           Refer_Window, Baseline_Time, My_Progress, Time_Freq_Win, Con_Win
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
 from gui.data_io import write_raw_edf, write_raw_set
-from gui.my_func import new_layout
 from gui.my_class import Subject, SEEG
+
 
 
 
@@ -67,6 +68,7 @@ class MainWindow(QMainWindow):
         self.event_set = dict()
         self.event = None
         self.cavans_tmp = None
+
         self.init_ui()
 
 
@@ -733,9 +735,6 @@ class MainWindow(QMainWindow):
                                      triggered=self.select_chan)
         self.select_data_menu.addActions([self.select_time_action,
                                           self.select_chan_action])
-        self.set_montage_action = QAction('Set montage', self,
-                                          statusTip='Set SEEG\'s montage',
-                                          triggered=self.get_montage)
         self.disp_electro_action = QAction('Display depth electrodes', self,
                                        statusTip='Display depth electrodes',
                                        triggered=self.display_electrodes)
@@ -783,9 +782,6 @@ class MainWindow(QMainWindow):
         self.apply_baseline_action = QAction('Apply baseline to correct the epochs', self,
                                              statusTip='Correct the epochs with selected baseline',
                                              triggered=self.apply_base_win)
-        self.set_montage_action = QAction('Set montage', self,
-                                          statusTip='Set SEEG\'s montage',
-                                          triggered=self.get_montage)
         self.disp_electro_action = QAction('Display depth electrodes', self,
                                        statusTip='Display depth electrodes',
                                        triggered=self.display_electrodes)
@@ -849,7 +845,6 @@ class MainWindow(QMainWindow):
                 self.tree_right_menu.addActions([self.rename_chan_action,
                                                  self.cal_marker_action,
                                                  self.rename_chan_action,
-                                                 self.set_montage_action,
                                                  self.disp_electro_action])
                 self.tree_right_menu.addMenu(self.re_ref_menu)
                 self.tree_right_menu.addMenu(self.filter_sub_menu)
@@ -864,7 +859,6 @@ class MainWindow(QMainWindow):
                 self.tree_right_menu.addActions([self.apply_baseline_action,
                                                  self.select_chan_action,
                                                  self.select_event_action,
-                                                 self.set_montage_action,
                                                  self.disp_electro_action,
                                                  self.visual_evoke_brain_action,
                                                  self.drop_bad_chan_action,
@@ -1719,89 +1713,95 @@ class MainWindow(QMainWindow):
             self.show_error(error)
 
 
-    def get_montage(self):
-
-        import pandas as pd
-        subject = 'fsaverage'
-        subjects_dir = 'D:\SEEG_Cognition\datasets\subjects'
-        raw = self.current_data.data.copy()
-
-        self.mni_path, _ = QFileDialog.getOpenFileName(self, 'Load MNI Coornidates')
-
-        try:
-            if self.mni_path:
-                subject_name = self.ptc_cb.currentText()
-                self.elec_df = pd.read_csv(self.mni_path, sep='\t', header=None, index_col=None)
-                ch_names = self.elec_df[0].tolist()
-                ch_coords = self.elec_df[[1, 2, 3]].to_numpy(dtype=float)
-                # the channel coordinates were in mm, so we convert them to meters
-                ch_coords = ch_coords / 1000.
-                # create dictionary of channels and their xyz coordinates (now in MNI space)
-                self.ch_pos = dict(zip(ch_names, ch_coords))
-                self.subject[subject_name].coord = self.ch_pos
-
-                lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
-                    subject, subjects_dir=subjects_dir)
-                lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
-                montage = mne.channels.make_dig_montage(
-                    self.ch_pos, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
-
-                raw.info['bads'].extend([ch for ch in raw.ch_names if ch not in ch_names])
-                raw.drop_channels(raw.info['bads'])
-                raw.set_montage(montage)
-
-        except Exception as error:
-            if error.args[0] == 'No channels match the selection.':
-                raw = self.current_data.data
-                self.show_error(error)
-            else:
-                self.show_error(error)
-        finally:
-            self.current_data.data = raw
-
-
     def display_electrodes(self):
         '''Electrodes Visualization'''
+        from gui.re_ref import get_chan_group
+        from gui.my_func import u_color
+        # source object
+        data = self.current_data.data
+        subject_name = self.ptc_cb.currentText ()
 
-        from mne.channels import compute_native_head_t
-        from mne.viz import plot_alignment
-        from mne.datasets import fetch_fsaverage
-        from mne.coreg import get_mni_fiducials
-        from mne.channels import make_dig_montage
+        self.mni_path, _ = QFileDialog.getOpenFileName (self, 'Load MNI Coornidates')
+        coord = pd.read_csv (self.mni_path, sep='\t', header=None, index_col=None)
+        ch_names = coord[0].tolist ()
+        data.info['bads'].extend ([ch for ch in data.ch_names if ch not in ch_names])
+        data.drop_channels(data.info['bads'])
 
-        sample_path = 'datasets/'
-        subject = 'fsaverage'
-        subjects_dir = sample_path + '/subjects'
-        data = self.current_data.data.copy()
-        try:
-            fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)
-            subject_name = self.ptc_cb.currentText()
-            self.ch_coords = self.subject[subject_name].coord
-            lpa, nasion, rpa = get_mni_fiducials(
-                subject, subjects_dir=subjects_dir)
-            lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
-            montage = make_dig_montage(
-                self.ch_coords, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
-            trans = compute_native_head_t(montage)
-            ch_names = []
-            for i in self.ch_coords:
-                ch_names.append(i)
-            ch_names = ch_names[:-1]
-            data.info['bads'].extend([ch for ch in data.ch_names if ch not in ch_names])
-            data.load_data()
-            data.drop_channels(data.info['bads'])
-            data.set_montage(montage)
-            data.set_channel_types(
-                {ch_name: 'seeg' if np.isfinite(self.ch_coords[ch_name]).all() else 'misc'
-                 for ch_name in data.ch_names})
-            fig = plot_alignment(data.info, trans, 'fsaverage', surfaces=dict(pial=0.8),
-                                 subjects_dir=subjects_dir, show_axes=True, seeg=True)
+        self.subject[subject_name].coord = coord
+        ch_names = coord[0].tolist ()
+        ch_group = get_chan_group(chans=ch_names)
+        coord.set_index([0], inplace=True)
+        ch_pos = coord[[1, 2, 3]].to_numpy (dtype=float)
+        ch_coords = []
+        [ch_coords.append (ch_group[group]) for group in ch_group]
 
-        except Exception as error:
-            if error.args[0] == "MNI":
-                QMessageBox.warning(self, 'Mnotage error', 'Please import MNI Coordinates')
-            else:
-                self.show_error(error)
+        s_kwargs = {}
+
+        s_kwargs['symbol'] = 'hbar'
+        s_kwargs['radius_min'] = 10
+        s_kwargs['text_color'] = 'black'  # Set to yellow the text color
+        s_kwargs['text_size'] = 22500  # Size of the text
+        s_kwargs['text_translate'] = (0.5, 1.5, 0)
+        s_kwargs['text_bold'] = True
+
+        s_obj = [SourceObj ('Shaft ' + str(group), xyz=coord.loc[ch_group[group]].to_numpy (dtype=float),
+                            text=ch_group[group], color=u_color[index % 15], **s_kwargs)
+                 for index, group in enumerate (ch_group)]
+        s_kwargs['radius_min'] = 20
+        s_obj.append (SourceObj ('All Electrodes', xyz=ch_pos,
+                                 text=ch_names, color='black', **s_kwargs))
+
+        self.subject[subject_name].s_obj = s_obj
+
+        vb_kwargs = {}
+        vb_kwargs['brain_obj'] = self.subject[subject_name].b_obj
+        vb_kwargs['source_obj'] = self.subject[subject_name].s_obj
+        vb_kwargs['time_series_obj'] = self.subject[subject_name].ts_obj
+        vb_kwargs['connect_obj'] = self.subject[subject_name].c_obj
+        vb = Brain (bgcolor='#dcdcdc', **vb_kwargs)
+
+        vb.rotate(fixed='top')
+        vb.sources_control(name='All Electrodes', visible=False)
+        vb.show()
+        # from mne.channels import compute_native_head_t
+        # from mne.viz import plot_alignment
+        # from mne.datasets import fetch_fsaverage
+        # from mne.coreg import get_mni_fiducials
+        # from mne.channels import make_dig_montage
+        #
+        # sample_path = 'datasets/'
+        # subject = 'fsaverage'
+        # subjects_dir = sample_path + '/subjects'
+        # data = self.current_data.data.copy()
+        # try:
+        #     fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)
+        #     subject_name = self.ptc_cb.currentText()
+        #     self.ch_coords = self.subject[subject_name].coord
+        #     lpa, nasion, rpa = get_mni_fiducials(
+        #         subject, subjects_dir=subjects_dir)
+        #     lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
+        #     montage = make_dig_montage(
+        #         self.ch_coords, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
+        #     trans = compute_native_head_t(montage)
+        #     ch_names = []
+        #     for i in self.ch_coords:
+        #         ch_names.append(i)
+        #     ch_names = ch_names[:-1]
+        #     data.info['bads'].extend([ch for ch in data.ch_names if ch not in ch_names])
+        #     data.load_data()
+        #     data.drop_channels(data.info['bads'])
+        #     data.set_montage(montage)
+        #     data.set_channel_types(
+        #         {ch_name: 'seeg' if np.isfinite(self.ch_coords[ch_name]).all() else 'misc'
+        #          for ch_name in data.ch_names})
+        #     fig = plot_alignment(data.info, trans, 'fsaverage', surfaces=dict(pial=0.8),
+        #                          subjects_dir=subjects_dir, show_axes=True, seeg=True)
+        #
+        # except Exception as error:
+        #     if error.args[0] == "MNI":
+        #         QMessageBox.warning(self, 'Mnotage error', 'Please import MNI Coordinates')
+        #     else:
+        #         self.show_error(error)
 
 
 

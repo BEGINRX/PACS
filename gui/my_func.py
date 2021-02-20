@@ -10,6 +10,11 @@ import numpy as np
 from mne import BaseEpochs, Evoked
 from mne.io import BaseRaw
 
+u_color = ("#FF0000", "#CD853F", "#1E90FF", "#FF4500", "#7FFF00",
+           "#0000FF", "#8B4513", "#00FF00", "#4B0082", "#FF8C00",
+           "#40E0D0", "#FF00FF", "#FFA500", "#00FFFF", "#DC143C")
+
+
 def new_layout(chan):
     box = (0, 1, 0, 1)
     kind = 'SEEG'
@@ -246,7 +251,6 @@ def get_corr(epoch1, epoch2, baseline, normal=False, mode='same', norm=True):
 
 def get_mutual_info():
     pass
-
 
 
 
