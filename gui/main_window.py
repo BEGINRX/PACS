@@ -12,8 +12,8 @@ import matplotlib
 matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib import pyplot as plt
-from visbrain.gui import Brain
-from visbrain.objects import BrainObj, SourceObj, TimeSeries3DObj, ConnectObj, ColorbarObj, SceneObj
+# from visbrain.gui import Brain
+# from visbrain.objects import BrainObj, SourceObj, TimeSeries3DObj, ConnectObj, ColorbarObj, SceneObj
 
 import mne
 mne.viz.set_3d_backend('pyvista')
@@ -28,7 +28,6 @@ from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QAction, QMenu, \
     QApplication, QTreeWidget, QComboBox, QStackedWidget, QTreeWidgetItem, \
     QTreeWidgetItemIterator
 from PyQt5.QtCore import Qt, pyqtSignal, QUrl
-from PyQt5.Qt import QCursor
 from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 from mne import Annotations, events_from_annotations, BaseEpochs, Epochs
 from mne.io import BaseRaw
@@ -303,6 +302,7 @@ class MainWindow(QMainWindow):
         self.display_action = QAction('Display Electrodes in MNI', self,
                                        statusTip='Display Electrodes in MNI',
                                        triggered=self.display_electrodes)
+        self.display_action.setEnabled(False)
 
 
 
@@ -427,16 +427,15 @@ class MainWindow(QMainWindow):
         self.file_name_label.setAlignment(Qt.AlignLeft)
         self.file_name_label.setFixedSize(180, 33)
 
-        self.file_name_cont_label = QLabel('', self)
+        self.file_name_cont_label = QLabel('123', self)
         self.file_name_cont_label.setAlignment(Qt.AlignLeft)
-        self.file_name_cont_label.setFixedHeight(33
-                                                 )
+        self.file_name_cont_label.setFixedHeight(33)
 
         self.epoch_num_label = QLabel('Epochs', self)
         self.epoch_num_label.setProperty('name', 'group0')
         self.epoch_num_label.setAlignment(Qt.AlignCenter)
         self.epoch_num_label.setFixedSize(105, 38)
-        # self.epoch_num_label.setFixedSize(90, 38)
+
 
         self.epoch_num_cont_label = QLabel('', self)
         self.epoch_num_cont_label.setProperty('name', 'group1')
@@ -575,6 +574,9 @@ class MainWindow(QMainWindow):
         self.file_menu.addAction(self.create_subject_action)
         self.file_menu.addAction(self.rename_subject_action)
         self.file_menu.addSeparator()
+        self.file_menu.addAction(self.import_action)
+        self.file_menu.addAction(self.import_epoch_action)
+        self.file_menu.addSeparator()
         self.file_menu.addAction(self.clear_all_action)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.setting_action)
@@ -583,8 +585,7 @@ class MainWindow(QMainWindow):
 
         # Raw menu bar
         self.raw_menu = self.menuBar().addMenu('Raw')
-        self.raw_menu.addActions([self.import_action,
-                                  self.raw_action['rename_chan'],
+        self.raw_menu.addActions([self.raw_action['rename_chan'],
                                   self.raw_action['cal_marker'],
                                   self.raw_action['resample']])
         self.raw_menu.addMenu(self.raw_action['re_ref_menu'])
@@ -602,8 +603,6 @@ class MainWindow(QMainWindow):
 
         # Epoch menu bar
         self.epoch_menu = self.menuBar().addMenu('Epoch')
-        self.epoch_menu.addAction(self.import_epoch_action)
-        self.epoch_menu.addSeparator()
         self.epoch_menu.addAction(self.epoch_action['apply_baseline'])
         self.epoch_menu.addActions([self.epoch_action['select_chan'],
                                     self.epoch_action['select_event']])
@@ -830,7 +829,6 @@ class MainWindow(QMainWindow):
                 self.ptc_cb.setCurrentText(self.ptc_name)
                 self.tree = QTreeWidget()
                 self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
-                self.tree.customContextMenuRequested.connect(self.change_current_data)
                 self.tree.setProperty('name', 'ptc')
                 self.root = self.tree.invisibleRootItem()
                 self.tree.setHeaderHidden(True)  # 隐藏列标题栏
@@ -838,7 +836,7 @@ class MainWindow(QMainWindow):
                 self.node_00.setText(0, self.ptc_name)
                 self.node_00.setIcon(0, QIcon('image/subject.ico'))
                 self.tree.expandAll()
-                self.tree.clicked.connect(self.change_current_data)
+                self.tree.itemChanged.connect(self.change_current_data)
                 self.tree_dict[self.ptc_name] = self.tree
                 self.ptc_stack.addWidget(self.tree)
                 self.tree_item[self.ptc_name] = dict()
@@ -986,6 +984,7 @@ class MainWindow(QMainWindow):
                 elif self.data_mode == 'epoch':
                     self.key += '_epoch'
                     [self.epoch_action[action].setEnabled (True) for action in self.epoch_action]
+                    self.display_action.setEnabled(True)
                 subject_name = self.ptc_cb.currentText()
 
                 self.subject[subject_name].seeg[self.key] = SEEG(name=self.key, data=seeg_data,
@@ -1001,6 +1000,7 @@ class MainWindow(QMainWindow):
                         self.node_20 = QTreeWidgetItem(self.tree_item[subject_name]['raw'])
                         self.node_20.setText(0, self.key)
                         self.node_20.setIcon(0, QIcon('image/sEEG.jpg'))
+                        self.node_20.setCheckState(0, Qt.Checked)
                         self.tree.expandAll()
                     else:
                         self.node_10 = QTreeWidgetItem(self.tree_item[subject_name]['root'])
@@ -1009,6 +1009,7 @@ class MainWindow(QMainWindow):
                         self.node_20 = QTreeWidgetItem(self.node_10)
                         self.node_20.setText(0, self.key)
                         self.node_20.setIcon(0, QIcon('image/sEEG.jpg'))
+                        self.node_20.setCheckState(0, Qt.Checked)
                         self.tree_item[subject_name]['raw'] = self.node_10
                         self.tree.expandAll()
                 elif self.data_mode == 'epoch':
@@ -1017,6 +1018,7 @@ class MainWindow(QMainWindow):
                         self.node_20 = QTreeWidgetItem(self.tree_item[subject_name]['epoch'])
                         self.node_20.setText(0, self.key)
                         self.node_20.setIcon(0, QIcon('image/sEEG.jpg'))
+                        self.node_20.setCheckState(0, Qt.Checked)
                         self.tree.expandAll()
                     else:
                         self.node_11 = QTreeWidgetItem(self.tree_item[subject_name]['root'])
@@ -1024,6 +1026,7 @@ class MainWindow(QMainWindow):
                         self.node_20 = QTreeWidgetItem(self.node_11)
                         self.node_20.setText(0, self.key)
                         self.node_20.setIcon(0, QIcon('image/sEEG.jpg'))
+                        self.node_20.setCheckState(0, Qt.Checked)
                         self.tree_item[subject_name]['epoch'] = self.node_11
                         self.tree.expandAll()
                 self.subject[subject_name].seeg[self.key].get_para()
@@ -1064,23 +1067,24 @@ class MainWindow(QMainWindow):
         else:
             self.re_ref_button.setEnabled(True)
             self.resample_button.setEnabled(True)
-            self.filter_button.setEnabled(True)
+            self.filter_button.setEnabled(False)
             self.time_button.setEnabled(False)
             self.chan_button.setEnabled(True)
             self.plot_button.setEnabled(True)
             self.event_button.setEnabled(True)
             self.save_button.setEnabled(True)
         self.get_raw_fig(self.current_data.data)
+        self.data_info_signal.connect(self.update_func)
+        self.data_info_signal.emit(self.current_data.data_para)
 
 
-    def change_current_data(self, index):
+    def change_current_data(self, item, column):
 
         try:
-            parent = self.tree.currentItem().parent().text(0)
-            if 'Raw sEEG' == parent or 'Epoch sEEG' == parent :
+            if item.checkState(column) == Qt.Checked:
                 subject_name = self.ptc_cb.currentText()
                 self.current_sub = self.subject[subject_name]
-                key = self.tree.currentItem().text(0)
+                key = item.text(column)
                 self.current_data = self.current_sub.seeg[key]
                 self.data_mode = self.current_data.mode
                 print('----------------------------')
@@ -1100,18 +1104,17 @@ class MainWindow(QMainWindow):
                 else:
                     self.re_ref_button.setEnabled(True)
                     self.resample_button.setEnabled(True)
-                    self.filter_button.setEnabled(True)
+                    self.filter_button.setEnabled(False)
                     self.time_button.setEnabled(False)
                     self.chan_button.setEnabled(True)
                     self.plot_button.setEnabled(True)
                     self.event_button.setEnabled(True)
                     self.save_button.setEnabled(True)
                 self.get_raw_fig(self.current_data.data)
+                self.data_info_signal.connect(self.update_func)
+                self.data_info_signal.emit(self.current_data.data_para)
         except Exception as error:
-            if error.args[0] == "'NoneType' object has no attribute 'text'":
-                pass
-            else:
-                self.show_error(error)
+            self.show_error(error)
 
 
     # save sEEG data
@@ -1785,13 +1788,12 @@ class MainWindow(QMainWindow):
         pass
 
 
-    def update_func(self, data_info):
+    def update_func(self, para):
         '''update label text'''
         try:
             if self.current_data.data is not None:
-                para = self.current_data.data_para
-                self.file_name_cont_label.setText(para['data_path'])
-                self.epoch_num_cont_label.setText(para['epoch_number'])
+                self.file_name_cont_label.setText(para['path'])
+                self.epoch_num_cont_label.setText(para['epoch_num'])
                 self.samp_rate_cont_label.setText(para['sfreq'])
                 self.chan_cont_label.setText(para['chan_num'])
                 self.start_cont_label.setText(para['epoch_start'])
