@@ -42,7 +42,6 @@ from gui.my_class import Subject, SEEG
 
 
 
-
 class MainWindow(QMainWindow):
     '''
     The main window
@@ -127,17 +126,20 @@ class MainWindow(QMainWindow):
 
         # actions for File menu bar
         #
-        self.create_subject = QAction('Create a subject', self,
+        self.create_subject_action = QAction('Create a subject', self,
                                       statusTip='Create a subject',
                                       triggered=self.create_subject)
+        self.rename_subject_action = QAction ('Rename the subject', self,
+                                       statusTip='Create a subject',
+                                       triggered=self.rename_subject)
         # triggered=self.create_ptc
 
 
         # delete data and clear the workshop
-        self.clear_workshop = QAction('Clear the workshop', self,
+        self.clear_workshop_action = QAction('Clear the workshop', self,
                                       statusTip='Clear the workshop',
                                       triggered=self.clear_all)
-        self.clear_all = QAction('Clear all', self,
+        self.clear_all_action = QAction('Clear all', self,
                                  statusTip='Clear all workshops',
                                  triggered=self.clear_all)
         self.setting_action = QAction('Settings...', self,
@@ -150,6 +152,158 @@ class MainWindow(QMainWindow):
                                    shortcut=QKeySequence.Close,
                                    statusTip='Exit the Software',
                                    triggered=self.close)
+
+
+        # #########################################################################
+        #                                Raw
+        # ##########################################################################
+        self.import_action = QAction('Import raw sEEG data', self,
+                                     statusTip='Import raw sEEG data',
+                                     triggered=self.execute_import_data)
+        self.raw_action = dict()
+        self.raw_action['rename_chan'] = QAction('Rename channels', self,
+                                  statusTip='Rename channels',
+                                  triggered=self.rename_chan)
+        self.raw_action['cal_marker'] = QAction('Calculate and set up markers', self,
+                                 statusTip='Calculate markers and delete useless channels',
+                                 triggered=self.get_mark_del_chan)
+        self.raw_action['resample'] = QAction('Resample', self,
+                                statusTip='Resamle the sEEG data',
+                                triggered=self.execute_resample_data)
+        
+        self.raw_action['re_ref_menu'] = QMenu('Re-reference', self)
+        self.car = QAction('Common average reference (CAR)', self,
+                                statusTip='Reference sEEG data using CAR',
+                                triggered=self.car_reref)
+        self.gwr = QAction('Gray-white matter reference (GWR)', self,
+                                statusTip='Reference sEEG data using GWR',
+                                triggered=self.gwr_reref)
+        self.esr = QAction('Electrode shaft reference (ESR)', self,
+                                statusTip='Reference sEEG data using ESR',
+                                triggered=self.esr_reref)
+        self.bipolar = QAction('Bipolar reference', self,
+                                    statusTip='Reference sEEG data using Bipolar reference',
+                                    triggered=self.bipolar_reref)
+        self.monopolar = QAction('Monopolar reference', self,
+                                statusTip='Reference sEEG data using Monopolar reference',
+                                triggered=self.monopolar_reref)
+        self.laplacian = QAction('Laplacian reference', self,
+                                statusTip='Reference sEEG data using Laplacian reference',
+                                triggered=self.laplacian_reref)
+        self.raw_action['re_ref_menu'].addActions([self.car, self.gwr,
+                                                   self.esr, self.bipolar,
+                                                   self.monopolar, self.laplacian])
+        
+        self.raw_action['filter_sub_menu'] = QMenu('Filter', self)
+        self.fir = QAction('FIR filter', self,
+                          statusTip='Filter the sEEG data using fir',
+                          triggered=self.filter_data_fir)
+        self.iir = QAction('IIR filter', self,
+                          statusTip='Filter the sEEG data using iir',
+                          triggered=self.filter_data_iir)
+        self.raw_action['filter_sub_menu'].addActions([self.fir, self.iir])
+
+        self.raw_action['select_data_menu'] = QMenu('Select sub-sEEG data', self)
+        self.select_time_action = QAction('Time', self,
+                                         statusTip='Select sEEG data with time range',
+                                         triggered=self.select_time)
+        self.select_chan_action = QAction('Channels', self,
+                                         statusTip='Select sEEG data with time range',
+                                         triggered=self.select_chan)
+        self.raw_action['select_data_menu'].addActions([self.select_time_action,
+                                          self.select_chan_action])
+
+
+        self.raw_action['plot_raw'] = QAction('Plot raw data', self,
+                                             triggered=self.plot_raw_data)
+
+        self.raw_action['remove_bad'] = QAction('Remove bad channels', self,
+                                               triggered=self.drop_bad_chan)
+        self.raw_action['interpolate_bad'] = QAction('Interpolate bad channels', self,
+                                                    triggered=self.interpolate_bad)
+
+        self.raw_action['get_epoch_menu'] = QMenu('Extract epoch', self)
+        self.set_name = QAction('Set event name', self,
+                               statusTip='Set event name corresponding to its event id',
+                               triggered=self.get_event_name)
+        self.get_epoch = QAction('Get epoch', self,
+                                statusTip='Get epoch from raw data',
+                                triggered=self.get_epoch_time_range)
+        self.raw_action['get_epoch_menu'].addActions([self.set_name,
+                                                      self.get_epoch])
+
+        self.raw_action['save_menu'] = QMenu('Export data', self)
+        self.save_fif_action = QAction('Save sEEG data as .fif data', self,
+                                       statusTip='Save sEEG data in .fif format')
+        self.save_edf_action = QAction('Save sEEG data as .edf data', self,
+                                       statusTip='Save sEEG data in .edf format',
+                                       triggered=self.save_edf)
+        self.save_set_action = QAction('Save sEEG data as .set data', self,
+                                       statusTip='Save sEEG data in .set format',
+                                       triggered=self.save_set)
+        self.raw_action['save_menu'].addActions([self.save_fif_action,
+                                                 self.save_edf_action,
+                                                 self.save_set_action])
+
+        [self.raw_action[action].setEnabled(False) for action in  self.raw_action]
+
+        # #########################################################################
+        #                                Epoch
+        # ##########################################################################
+        self.import_epoch_action = QAction('Import Epoch data', self,
+                                           statusTip='Import Epoch data',
+                                           triggered=self.execute_load_epoched_data)
+
+        self.epoch_action = dict()
+        self.epoch_action['select_chan'] = QAction('Select sub channels', self,
+                                          statusTip='Select sub channels',
+                                          triggered=self.select_chan)
+        self.epoch_action['select_event'] = QAction('Select specific events', self,
+                                           statusTip='Select sub events',
+                                           triggered=self.select_event)
+        self.epoch_action['apply_baseline'] = QAction('Apply baseline to correct the epochs', self,
+                                             statusTip='Correct the epochs with selected baseline',
+                                             triggered=self.apply_base_win)
+        self.epoch_action['visual_evoke_brain'] = QAction('Visualize Evoke data on a MNI brain', self,
+                                                 triggered=self.choose_evoke)
+        self.epoch_action['plot_epoch'] = QAction('Plot epoch', self,
+                                         triggered=self.plot_raw_data)
+        self.epoch_action['drop_bad_chan'] = QAction('Drop bad channels', self,
+                                            triggered=self.drop_bad_chan)
+        self.epoch_action['drop_bad'] = QAction('Drop bad epochs', self,
+                                       triggered=self.drop_bad_epochs)
+
+        self.epoch_action['t_f'] = QAction('Time frequency analysis', self,
+                                        triggered=self.show_tf_win)
+
+        self.epoch_action['connect'] = QAction('Connectivity analysis', self,
+                                            triggered=self.show_con_win)
+
+        self.epoch_action['epoch_save_menu'] = QMenu('Export data', self)
+        self.epoch_save_fif = QAction('Save sEEG data as .fif data', self,
+                                       statusTip='Save sEEG data in .fif format')
+        self.epoch_save_edf = QAction('Save sEEG data as .edf data', self,
+                                       statusTip='Save sEEG data in .edf format',
+                                       triggered=self.save_edf)
+        self.epoch_save_set = QAction('Save sEEG data as .set data', self,
+                                       statusTip='Save sEEG data in .set format',
+                                       triggered=self.save_set)
+        self.epoch_save_pd = QAction('Save sEEG data as PandasDataFrames', self,
+                                       statusTip='Save sEEG data as PandasDataFrames',
+                                       triggered=self.save_pd)
+        self.epoch_action['epoch_save_menu'].addActions([self.epoch_save_fif,
+                                                         self.epoch_save_edf,
+                                                         self.epoch_save_set])
+        
+        [self.epoch_action[action].setEnabled(False) for action in self.epoch_action]
+
+        # #########################################################################
+        #                                Visualization
+        # ##########################################################################
+        self.display_action = QAction('Display Electrodes in MNI', self,
+                                       statusTip='Display Electrodes in MNI',
+                                       triggered=self.display_electrodes)
+
 
 
 
@@ -417,14 +571,56 @@ class MainWindow(QMainWindow):
         '''create menu bars'''
 
         # file menu bar
-        self.file_menu = self.menuBar().addMenu('File')
-        self.file_menu.addAction(self.create_subject)
+        self.file_menu = self.menuBar().addMenu('Subject')
+        self.file_menu.addAction(self.create_subject_action)
+        self.file_menu.addAction(self.rename_subject_action)
         self.file_menu.addSeparator()
-        self.file_menu.addAction(self.clear_all)
+        self.file_menu.addAction(self.clear_all_action)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.setting_action)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.exit_action)
+
+        # Raw menu bar
+        self.raw_menu = self.menuBar().addMenu('Raw')
+        self.raw_menu.addActions([self.import_action,
+                                  self.raw_action['rename_chan'],
+                                  self.raw_action['cal_marker'],
+                                  self.raw_action['resample']])
+        self.raw_menu.addMenu(self.raw_action['re_ref_menu'])
+        self.raw_menu.addMenu(self.raw_action['filter_sub_menu'])
+        self.raw_menu.addMenu(self.raw_action['select_data_menu'])
+        self.raw_menu.addSeparator()
+        self.raw_menu.addActions([self.raw_action['plot_raw'],
+                                  self.raw_action['remove_bad'],
+                                  self.raw_action['interpolate_bad']])
+        self.raw_menu.addSeparator ()
+        self.raw_menu.addMenu(self.raw_action['get_epoch_menu'])
+        self.raw_menu.addSeparator ()
+        self.raw_menu.addMenu(self.raw_action['save_menu'])
+
+
+        # Epoch menu bar
+        self.epoch_menu = self.menuBar().addMenu('Epoch')
+        self.epoch_menu.addAction(self.import_epoch_action)
+        self.epoch_menu.addSeparator()
+        self.epoch_menu.addAction(self.epoch_action['apply_baseline'])
+        self.epoch_menu.addActions([self.epoch_action['select_chan'],
+                                    self.epoch_action['select_event']])
+        self.epoch_menu.addActions([self.epoch_action['visual_evoke_brain'],
+                                    self.epoch_action['plot_epoch'],
+                                    self.epoch_action['drop_bad_chan'],
+                                    self.epoch_action['drop_bad']])
+        self.epoch_menu.addSeparator ()
+        self.epoch_menu.addActions([self.epoch_action['t_f'],
+                                    self.epoch_action['connect']])
+        self.epoch_menu.addMenu(self.epoch_action['epoch_save_menu'])
+
+
+        # visualization menu bar
+        self.vis_menu = self.menuBar().addMenu('Display')
+        self.vis_menu.addAction(self.display_action)
+
 
         # Help menu bar
         self.help_menu = self.menuBar().addMenu('Help')
@@ -635,7 +831,6 @@ class MainWindow(QMainWindow):
                 self.tree = QTreeWidget()
                 self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
                 self.tree.customContextMenuRequested.connect(self.change_current_data)
-                self.tree.customContextMenuRequested.connect(self.right_menu)
                 self.tree.setProperty('name', 'ptc')
                 self.root = self.tree.invisibleRootItem()
                 self.tree.setHeaderHidden(True)  # 隐藏列标题栏
@@ -652,6 +847,10 @@ class MainWindow(QMainWindow):
         except Exception as error:
             self.show_error(error)
 
+    def rename_subject(self):
+        pass
+
+
 
     def change_ptc(self, index):
 
@@ -662,219 +861,6 @@ class MainWindow(QMainWindow):
             pass
         self.tree = self.tree_dict[key]
         self.ptc_stack.addWidget(self.tree)
-
-
-    # right click menu
-    def subject_rmenu(self):
-
-        self.rename_action = QAction('Rename the subject', self,
-                                     statusTip='Rename the subject')
-        self.import_action = QAction('Import raw sEEG data', self,
-                                     statusTip='Import raw sEEG data',
-                                     triggered=self.execute_import_data)
-        self.import_epoch_action = QAction('Import Epoch data', self,
-                                           statusTip='Import Epoch data',
-                                           triggered=self.execute_load_epoched_data)
-        self.import_mri_action = QAction("Import MRI / CT", self,
-                                         statusTip="Import subject's pre-surhery MRI/post-surery CT",
-                                         triggered=self.import_mri_ct)
-
-
-    def raw_data_rmenu(self):
-
-        self.rename_chan_action = QAction('Rename channels', self,
-                                          statusTip='Rename channels',
-                                          triggered=self.rename_chan)
-        self.cal_marker_action = QAction('Calculate and set up markers', self,
-                                  statusTip='Calculate markers and delete useless channels',
-                                  triggered=self.get_mark_del_chan)
-        self.resample_action = QAction('Resample', self,
-                                       statusTip='Resamle the sEEG data',
-                                       triggered=self.execute_resample_data)
-        self.re_ref_menu = QMenu('Re-reference', self)
-        self.car_reref_action = QAction('Common average reference (CAR)', self,
-                                        statusTip='Reference sEEG data using CAR',
-                                        triggered=self.car_reref)
-        self.gwr_reref_action = QAction('Gray-white matter reference (GWR)', self,
-                                        statusTip='Reference sEEG data using GWR',
-                                        triggered=self.gwr_reref)
-        self.esr_reref_action = QAction('Electrode shaft reference (ESR)', self,
-                                        statusTip='Reference sEEG data using ESR',
-                                        triggered=self.esr_reref)
-        self.bipolar_reref_action = QAction('Bipolar reference', self,
-                                        statusTip='Reference sEEG data using Bipolar reference',
-                                        triggered=self.bipolar_reref)
-        self.monopolar_action = QAction('Monopolar reference', self,
-                                            statusTip='Reference sEEG data using Monopolar reference',
-                                            triggered=self.monopolar_reref)
-        self.laplacian_action = QAction('Laplacian reference', self,
-                                        statusTip='Reference sEEG data using Laplacian reference',
-                                        triggered=self.laplacian_reref)
-        self.re_ref_menu.addActions([self.car_reref_action,
-                                     self.gwr_reref_action,
-                                     self.esr_reref_action,
-                                     self.bipolar_reref_action,
-                                     self.monopolar_action,
-                                     self.laplacian_action])
-
-        self.filter_sub_menu = QMenu('Filter', self)
-        self.fir_action = QAction('FIR filter', self,
-                                     statusTip='Filter the sEEG data using fir',
-                                     triggered=self.filter_data_fir)
-        self.iir_action = QAction('IIR filter', self,
-                                     statusTip='Filter the sEEG data using iir',
-                                     triggered=self.filter_data_iir)
-        self.filter_sub_menu.addActions([self.fir_action, self.iir_action])
-
-        self.select_data_menu = QMenu('Select sub-sEEG data', self)
-        self.select_time_action = QAction('Select data using time range', self,
-                                     statusTip='Select sEEG data with time range',
-                                     triggered=self.select_time)
-        self.select_chan_action = QAction('Select data using channels', self,
-                                     statusTip='Select sEEG data with time range',
-                                     triggered=self.select_chan)
-        self.select_data_menu.addActions([self.select_time_action,
-                                          self.select_chan_action])
-        self.disp_electro_action = QAction('Display depth electrodes', self,
-                                       statusTip='Display depth electrodes',
-                                       triggered=self.display_electrodes)
-
-        self.plot_raw_action = QAction('Plot raw data', self,
-                                       triggered=self.plot_raw_data)
-
-        self.remove_bad_action = QAction('Remove bad channels', self,
-                                         triggered=self.drop_bad_chan)
-        self. interpolate_bad_action = QAction('Interpolate bad channels', self,
-                                               triggered=self.interpolate_bad)
-
-        self.get_epoch_menu = QMenu('Extract epoch', self)
-        self.set_name_action = QAction('Set event name', self,
-                                        statusTip='Set event name corresponding to its event id',
-                                        triggered=self.get_event_name)
-        self.get_epoch_action = QAction('Get epoch', self,
-                                        statusTip='Get epoch from raw data',
-                                        triggered=self.get_epoch_time_range)
-        self.get_epoch_menu.addActions([self.set_name_action,
-                                        self.get_epoch_action])
-
-        self.save_menu = QMenu('Export data', self)
-        self.save_fif_action = QAction('Save sEEG data as .fif data', self,
-                                       statusTip='Save sEEG data in .fif format')
-        self.save_edf_action = QAction('Save sEEG data as .edf data', self,
-                                       statusTip='Save sEEG data in .edf format',
-                                       triggered=self.save_edf)
-        self.save_set_action = QAction('Save sEEG data as .set data', self,
-                                       statusTip='Save sEEG data in .set format',
-                                       triggered=self.save_set)
-        self.save_menu.addActions([self.save_fif_action,
-                                   self.save_edf_action,
-                                   self.save_set_action])
-
-
-    def epoch_rmenu(self):
-
-        self.select_chan_action = QAction('Select sub channels', self,
-                                          statusTip='Select sub channels',
-                                          triggered=self.select_chan)
-        self.select_event_action = QAction('Select specific events', self,
-                                           statusTip='Select sub events',
-                                           triggered=self.select_event)
-        self.apply_baseline_action = QAction('Apply baseline to correct the epochs', self,
-                                             statusTip='Correct the epochs with selected baseline',
-                                             triggered=self.apply_base_win)
-        self.disp_electro_action = QAction('Display depth electrodes', self,
-                                       statusTip='Display depth electrodes',
-                                       triggered=self.display_electrodes)
-        self.visual_evoke_brain_action = QAction('Visualize Evoke data on a MNI brain', self,
-                                                 triggered=self.choose_evoke)
-        self.plot_epoch_action = QAction('Plot epoch', self,
-                                         triggered=self.plot_raw_data)
-        self.drop_bad_chan_action = QAction('Drop bad channels', self,
-                                            triggered=self.drop_bad_chan)
-        self.drop_bad_action = QAction('Drop bad epochs', self,
-                                       triggered=self.drop_bad_epochs)
-
-
-        self.t_f_analy_action = QAction('Time frequency analysis', self,
-                                        triggered=self.show_tf_win)
-
-        self.connect_analy_action = QAction('Connectivity analysis', self,
-                                            triggered=self.show_con_win)
-
-        self.epoch_save_menu = QMenu('Export data', self)
-        self.epoch_save_fif_action = QAction('Save sEEG data as .fif data', self,
-                                       statusTip='Save sEEG data in .fif format')
-        self.epoch_save_edf_action = QAction('Save sEEG data as .edf data', self,
-                                       statusTip='Save sEEG data in .edf format',
-                                       triggered=self.save_edf)
-        self.epoch_save_set_action = QAction('Save sEEG data as .set data', self,
-                                       statusTip='Save sEEG data in .set format',
-                                       triggered=self.save_set)
-        self.epoch_save_pd_action = QAction('Save sEEG data as PandasDataFrames', self,
-                                       statusTip='Save sEEG data as PandasDataFrames',
-                                       triggered=self.save_pd)
-        self.epoch_save_menu.addActions([self.epoch_save_fif_action,
-                                   self.epoch_save_edf_action,
-                                   self.epoch_save_set_action])
-
-
-    def right_menu(self, point):
-
-        try:
-            # index = self.tree.indexAt(point)
-            item = self.tree.itemAt(point)
-            self.name = item.text(0)
-            print('node name: ', self.name)
-            # self.set_current_data(self.name)
-            try:
-                item_parent = item.parent().text(0)
-                print('parent name:', item_parent)
-            except AttributeError:
-                item_parent = None
-            self.tree_right_menu = QMenu(self)
-            if not item_parent:
-                self.subject_rmenu()
-                self.tree_right_menu.addAction(self.rename_action)
-                self.tree_right_menu.addSeparator()
-                self.tree_right_menu.addActions([self.import_action,
-                                                 self.import_epoch_action,
-                                                 self.import_mri_action,
-                                                 ])
-            elif item_parent == 'raw sEEG data':
-                self.raw_data_rmenu()
-                self.tree_right_menu.addActions([self.rename_chan_action,
-                                                 self.cal_marker_action,
-                                                 self.rename_chan_action,
-                                                 self.disp_electro_action])
-                self.tree_right_menu.addMenu(self.re_ref_menu)
-                self.tree_right_menu.addMenu(self.filter_sub_menu)
-                self.tree_right_menu.addMenu(self.select_data_menu)
-                self.tree_right_menu.addActions([self.plot_raw_action,
-                                                 self.remove_bad_action,
-                                                 self.interpolate_bad_action])
-                self.tree_right_menu.addMenu(self.get_epoch_menu)
-                self.tree_right_menu.addMenu(self.save_menu)
-            elif item_parent == 'Epoch sEEG data':
-                self.epoch_rmenu()
-                self.tree_right_menu.addActions([self.apply_baseline_action,
-                                                 self.select_chan_action,
-                                                 self.select_event_action,
-                                                 self.disp_electro_action,
-                                                 self.visual_evoke_brain_action,
-                                                 self.drop_bad_chan_action,
-                                                 self.drop_bad_action,
-                                                 self.plot_epoch_action,
-                                                 self.t_f_analy_action,
-                                                self.connect_analy_action])
-                self.tree_right_menu.addMenu(self.epoch_save_menu)
-            elif item_parent == 'MRI or CT':
-                pass
-            self.tree_right_menu.exec_(QCursor.pos())
-        except Exception as error:
-            if error.args[0] == "'NoneType' object has no attribute 'text'":
-                pass
-            else:
-                self.show_error(error)
 
 
     def get_all_items(self):
@@ -899,37 +885,47 @@ class MainWindow(QMainWindow):
 
     def execute_import_data(self):
         '''execute import data worker'''
-        self.data_path, _ = QFileDialog.getOpenFileName(self, 'Import data')
-        if 'set' == self.data_path[-3:] or \
-           'edf' == self.data_path[-3:] or \
-           'fif' == self.data_path[-3:] or \
-           'vhdr' == self.data_path[-4:]:
-            self.import_worker.data_path = self.data_path
-            self.import_worker.start()
-            self.flag += 1
-            self.data_mode = 'raw'
-            self.show_pbar()
-        elif self.flag == 0 and self.data_path:
-            QMessageBox.warning(self, 'Data Format Error',
-                                'Please select the right file!')
+
+        subject_name = self.ptc_cb.currentText()
+        if not subject_name:
+            QMessageBox.warning(self,'Error', 'Please create a subject first')
+        else:
+            self.data_path, _ = QFileDialog.getOpenFileName(self, 'Import data')
+            if 'set' == self.data_path[-3:] or \
+               'edf' == self.data_path[-3:] or \
+               'fif' == self.data_path[-3:] or \
+               'vhdr' == self.data_path[-4:]:
+                self.import_worker.data_path = self.data_path
+                self.import_worker.start()
+                self.flag += 1
+                self.data_mode = 'raw'
+                self.show_pbar()
+            elif self.flag == 0 and self.data_path:
+                QMessageBox.warning(self, 'Data Format Error',
+                                    'Please select the right file!')
+
 
 
     def execute_load_epoched_data(self):
         '''execute load epoched data'''
-        self.data_path, _ = QFileDialog.getOpenFileName(self, 'Import epoch')
-        try:
-            if ('set' == self.data_path[-3:])  or \
-               ('fif' == self.data_path[-3:]) or \
-               ('edf' == self.data_path[-3:]):
-                self.load_epoched_data_worker.data_path = self.data_path
-                self.load_epoched_data_worker.start()
-                self.flag += 1
-                self.data_mode = 'epoch'
-                self.show_pbar()
-        except Exception as error:
-            self.show_error(error)
-            QMessageBox.warning(self, 'Data Format Error',
-                                'Please select the right file!')
+        subject_name = self.ptc_cb.currentText()
+        if not subject_name:
+            QMessageBox.warning (self, 'Error', 'Please create a subject first')
+        else:
+            self.data_path, _ = QFileDialog.getOpenFileName(self, 'Import epoch')
+            try:
+                if ('set' == self.data_path[-3:])  or \
+                   ('fif' == self.data_path[-3:]) or \
+                   ('edf' == self.data_path[-3:]):
+                    self.load_epoched_data_worker.data_path = self.data_path
+                    self.load_epoched_data_worker.start()
+                    self.flag += 1
+                    self.data_mode = 'epoch'
+                    self.show_pbar()
+            except Exception as error:
+                self.show_error(error)
+                QMessageBox.warning(self, 'Data Format Error',
+                                    'Please select the right file!')
 
 
     def get_raw_fig(self, data):
@@ -986,8 +982,10 @@ class MainWindow(QMainWindow):
             if self.key:
                 if self.data_mode == 'raw':
                     self.key += '_raw'
+                    [self.raw_action[action].setEnabled(True) for action in self.raw_action]
                 elif self.data_mode == 'epoch':
                     self.key += '_epoch'
+                    [self.epoch_action[action].setEnabled (True) for action in self.epoch_action]
                 subject_name = self.ptc_cb.currentText()
 
                 self.subject[subject_name].seeg[self.key] = SEEG(name=self.key, data=seeg_data,
@@ -999,14 +997,14 @@ class MainWindow(QMainWindow):
                     event_id = {str(mark): int(mark) for mark in des}
                     events, _ = mne.events_from_annotations(seeg_data, event_id=event_id)
                     self.subject[subject_name].seeg[self.key].events = events
-                    if 'raw sEEG data' in child:
+                    if 'Raw sEEG' in child:
                         self.node_20 = QTreeWidgetItem(self.tree_item[subject_name]['raw'])
                         self.node_20.setText(0, self.key)
                         self.node_20.setIcon(0, QIcon('image/sEEG.jpg'))
                         self.tree.expandAll()
                     else:
                         self.node_10 = QTreeWidgetItem(self.tree_item[subject_name]['root'])
-                        self.node_10.setText(0, 'raw sEEG data')
+                        self.node_10.setText(0, 'Raw sEEG')
                         self.node_10.setIcon(0, QIcon('image/EEG.ico'))
                         self.node_20 = QTreeWidgetItem(self.node_10)
                         self.node_20.setText(0, self.key)
@@ -1015,14 +1013,14 @@ class MainWindow(QMainWindow):
                         self.tree.expandAll()
                 elif self.data_mode == 'epoch':
                     self.subject[subject_name].seeg[self.key].events = seeg_data.events
-                    if 'Epoch sEEG data' in child:
+                    if 'Epoch sEEG' in child:
                         self.node_20 = QTreeWidgetItem(self.tree_item[subject_name]['epoch'])
                         self.node_20.setText(0, self.key)
                         self.node_20.setIcon(0, QIcon('image/sEEG.jpg'))
                         self.tree.expandAll()
                     else:
                         self.node_11 = QTreeWidgetItem(self.tree_item[subject_name]['root'])
-                        self.node_11.setText(0, 'Epoch sEEG data')
+                        self.node_11.setText(0, 'Epoch sEEG')
                         self.node_20 = QTreeWidgetItem(self.node_11)
                         self.node_20.setText(0, self.key)
                         self.node_20.setIcon(0, QIcon('image/sEEG.jpg'))
@@ -1079,7 +1077,7 @@ class MainWindow(QMainWindow):
 
         try:
             parent = self.tree.currentItem().parent().text(0)
-            if 'raw sEEG data' == parent or 'Epoch sEEG data' == parent :
+            if 'Raw sEEG' == parent or 'Epoch sEEG' == parent :
                 subject_name = self.ptc_cb.currentText()
                 self.current_sub = self.subject[subject_name]
                 key = self.tree.currentItem().text(0)
@@ -1116,12 +1114,6 @@ class MainWindow(QMainWindow):
                 self.show_error(error)
 
 
-
-    def import_mri_ct(self):
-
-        pass
-
-
     # save sEEG data
 
     def save_edf(self):
@@ -1145,10 +1137,13 @@ class MainWindow(QMainWindow):
     def save_fif(self):
         '''save as .fif data'''
         self.save_path, _ = QFileDialog.getSaveFileName(self, 'Save data')
-        try:
-            self.current_data.data.save(self.save_path + '.fif')
-        except Exception as error:
-            self.show_error(error)
+        if not self.save_path:
+            try:
+                self.current_data.data.save(self.save_path + '.fif', overwrite=True)
+            except Exception as error:
+                self.show_error(error)
+        else:
+            pass
 
 
     def save_pd(self):
@@ -1671,7 +1666,7 @@ class MainWindow(QMainWindow):
             if self.current_data.mode == 'raw':
                 print('画图了')
                 self.canvas = None
-                self.current_data.data.plot(duration=5.0, n_channels=20, title='Raw sEEG data')
+                self.current_data.data.plot(duration=5.0, n_channels=20, title='Raw sEEG')
                 plt.get_current_fig_manager().window.showMaximized()
             elif self.current_data.mode == 'epoch':
                 self.canvas = None
@@ -1718,94 +1713,52 @@ class MainWindow(QMainWindow):
         from gui.re_ref import get_chan_group
         from gui.my_func import u_color
         # source object
-        data = self.current_data.data
         subject_name = self.ptc_cb.currentText ()
+        if not subject_name:
+            QMessageBox.warning (self, 'Error', 'Please create a subject first')
+        else:
 
-        self.mni_path, _ = QFileDialog.getOpenFileName (self, 'Load MNI Coornidates')
-        coord = pd.read_csv (self.mni_path, sep='\t', header=None, index_col=None)
-        ch_names = coord[0].tolist ()
-        data.info['bads'].extend ([ch for ch in data.ch_names if ch not in ch_names])
-        data.drop_channels(data.info['bads'])
+            data = self.current_data.data
 
-        self.subject[subject_name].coord = coord
-        ch_names = coord[0].tolist ()
-        ch_group = get_chan_group(chans=ch_names)
-        coord.set_index([0], inplace=True)
-        ch_pos = coord[[1, 2, 3]].to_numpy (dtype=float)
-        ch_coords = []
-        [ch_coords.append (ch_group[group]) for group in ch_group]
+            self.mni_path, _ = QFileDialog.getOpenFileName (self, 'Load MNI Coornidates')
+            coord = pd.read_csv (self.mni_path, sep='\t', header=None, index_col=None)
+            ch_names = coord[0].tolist ()
+            data.info['bads'].extend ([ch for ch in data.ch_names if ch not in ch_names])
+            data.drop_channels(data.info['bads'])
 
-        s_kwargs = {}
+            self.subject[subject_name].coord = coord
+            ch_names = coord[0].tolist ()
+            ch_group = get_chan_group(chans=ch_names)
+            coord.set_index([0], inplace=True)
+            ch_pos = coord[[1, 2, 3]].to_numpy (dtype=float)
+            ch_coords = []
+            [ch_coords.append (ch_group[group]) for group in ch_group]
+            # from visbrain.gui.brain.interface.gui import Ui_MainWindow
 
-        s_kwargs['symbol'] = 'hbar'
-        s_kwargs['radius_min'] = 10
-        s_kwargs['text_color'] = 'black'  # Set to yellow the text color
-        s_kwargs['text_size'] = 22500  # Size of the text
-        s_kwargs['text_translate'] = (0.5, 1.5, 0)
-        s_kwargs['text_bold'] = True
+            # self.a = Ui_MainWindow()
+            # self.a.show()
+            s_kwargs = {}
 
-        s_obj = [SourceObj ('Shaft ' + str(group), xyz=coord.loc[ch_group[group]].to_numpy (dtype=float),
-                            text=ch_group[group], color=u_color[index % 15], **s_kwargs)
-                 for index, group in enumerate (ch_group)]
-        s_kwargs['radius_min'] = 20
-        s_obj.append (SourceObj ('All Electrodes', xyz=ch_pos,
-                                 text=ch_names, color='black', **s_kwargs))
-
-        self.subject[subject_name].s_obj = s_obj
-
-        self.sc = SceneObj(size=(1500, 600), bgcolor='#dcdcdc')
-        [self.sc.add_to_subplot(i) for i in s_obj]
-        self.sc.add_to_subplot(BrainObj('B1'), use_this_cam=True)
-        self.sc.preview()
-        # vb_kwargs = {}
-        # vb_kwargs['brain_obj'] = self.subject[subject_name].b_obj
-        # vb_kwargs['source_obj'] = self.subject[subject_name].s_obj
-        # vb_kwargs['time_series_obj'] = self.subject[subject_name].ts_obj
-        # vb_kwargs['connect_obj'] = self.subject[subject_name].c_obj
-        # vb = Brain (bgcolor='#dcdcdc', **vb_kwargs)
-        #
-        # vb.rotate(fixed='top')
-        # vb.sources_control(name='All Electrodes', visible=False)
-        # vb.show()
-        # from mne.channels import compute_native_head_t
-        # from mne.viz import plot_alignment
-        # from mne.datasets import fetch_fsaverage
-        # from mne.coreg import get_mni_fiducials
-        # from mne.channels import make_dig_montage
-        #
-        # sample_path = 'datasets/'
-        # subject = 'fsaverage'
-        # subjects_dir = sample_path + '/subjects'
-        # data = self.current_data.data.copy()
-        # try:
-        #     fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)
-        #     subject_name = self.ptc_cb.currentText()
-        #     self.ch_coords = self.subject[subject_name].coord
-        #     lpa, nasion, rpa = get_mni_fiducials(
-        #         subject, subjects_dir=subjects_dir)
-        #     lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
-        #     montage = make_dig_montage(
-        #         self.ch_coords, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
-        #     trans = compute_native_head_t(montage)
-        #     ch_names = []
-        #     for i in self.ch_coords:
-        #         ch_names.append(i)
-        #     ch_names = ch_names[:-1]
-        #     data.info['bads'].extend([ch for ch in data.ch_names if ch not in ch_names])
-        #     data.load_data()
-        #     data.drop_channels(data.info['bads'])
-        #     data.set_montage(montage)
-        #     data.set_channel_types(
-        #         {ch_name: 'seeg' if np.isfinite(self.ch_coords[ch_name]).all() else 'misc'
-        #          for ch_name in data.ch_names})
-        #     fig = plot_alignment(data.info, trans, 'fsaverage', surfaces=dict(pial=0.8),
-        #                          subjects_dir=subjects_dir, show_axes=True, seeg=True)
-        #
-        # except Exception as error:
-        #     if error.args[0] == "MNI":
-        #         QMessageBox.warning(self, 'Mnotage error', 'Please import MNI Coordinates')
-        #     else:
-        #         self.show_error(error)
+            s_kwargs['symbol'] = 'hbar'
+            s_kwargs['radius_min'] = 10
+            s_kwargs['text_color'] = 'black'  # Set to yellow the text color
+            s_kwargs['text_size'] = 12500  # Size of the text
+            s_kwargs['text_translate'] = (0.5, 1.5, 0)
+            s_kwargs['text_bold'] = True
+            #
+            # s_obj = [SourceObj ('Shaft ' + str(group), xyz=coord.loc[ch_group[group]].to_numpy (dtype=float),
+            #                     text=ch_group[group], color=u_color[index % 15], **s_kwargs)
+            #          for index, group in enumerate (ch_group)]
+            # s_kwargs['radius_min'] = 20
+            # s_obj.append (SourceObj ('All Electrodes', xyz=ch_pos,
+            #                          text=ch_names, color='black', **s_kwargs))
+            #
+            # self.subject[subject_name].s_obj = s_obj
+            #
+            # self.sc = SceneObj(size=(1500, 600), bgcolor='#dcdcdc')
+            # [self.sc.add_to_subplot(i) for i in s_obj]
+            # self.sc.add_to_subplot(BrainObj('B1'), use_this_cam=True)
+            # self.sc.preview()
 
 
 

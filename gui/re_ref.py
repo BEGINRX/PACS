@@ -84,7 +84,7 @@ def get_chan_group(raw=None, chans=None):
     :return: dict
              electrodes in the same shaft
     '''
-    if raw is not None and chan is None:
+    if raw is not None and chans is None:
         chans = raw.ch_names
         try:
             raw.rename_channels({chan: chan[4:] for chan in raw.ch_names
