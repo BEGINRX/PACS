@@ -13,7 +13,7 @@ matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib import pyplot as plt
 from visbrain.gui import Brain
-from visbrain.objects import BrainObj, SourceObj, TimeSeries3DObj, ConnectObj, ColorbarObj
+from visbrain.objects import BrainObj, SourceObj, TimeSeries3DObj, ConnectObj, ColorbarObj, SceneObj
 
 import mne
 mne.viz.set_3d_backend('pyvista')
@@ -1753,16 +1753,20 @@ class MainWindow(QMainWindow):
 
         self.subject[subject_name].s_obj = s_obj
 
-        vb_kwargs = {}
-        vb_kwargs['brain_obj'] = self.subject[subject_name].b_obj
-        vb_kwargs['source_obj'] = self.subject[subject_name].s_obj
-        vb_kwargs['time_series_obj'] = self.subject[subject_name].ts_obj
-        vb_kwargs['connect_obj'] = self.subject[subject_name].c_obj
-        vb = Brain (bgcolor='#dcdcdc', **vb_kwargs)
-
-        vb.rotate(fixed='top')
-        vb.sources_control(name='All Electrodes', visible=False)
-        vb.show()
+        self.sc = SceneObj(size=(1500, 600), bgcolor='#dcdcdc')
+        [self.sc.add_to_subplot(i) for i in s_obj]
+        self.sc.add_to_subplot(BrainObj('B1'), use_this_cam=True)
+        self.sc.preview()
+        # vb_kwargs = {}
+        # vb_kwargs['brain_obj'] = self.subject[subject_name].b_obj
+        # vb_kwargs['source_obj'] = self.subject[subject_name].s_obj
+        # vb_kwargs['time_series_obj'] = self.subject[subject_name].ts_obj
+        # vb_kwargs['connect_obj'] = self.subject[subject_name].c_obj
+        # vb = Brain (bgcolor='#dcdcdc', **vb_kwargs)
+        #
+        # vb.rotate(fixed='top')
+        # vb.sources_control(name='All Electrodes', visible=False)
+        # vb.show()
         # from mne.channels import compute_native_head_t
         # from mne.viz import plot_alignment
         # from mne.datasets import fetch_fsaverage
