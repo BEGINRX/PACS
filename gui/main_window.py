@@ -85,7 +85,7 @@ class MainWindow(QMainWindow):
         self.create_menubar()
         self.create_layout()
         self.set_qt_style()
-        QApplication.setStyle(QStyleFactory.create('Fusion'))
+        # QApplication.setStyle(QStyleFactory.create('Fusion'))
 
 
     def frame(self):
