@@ -12,8 +12,8 @@ import matplotlib
 matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib import pyplot as plt
-# from visbrain.gui import Brain
-# from visbrain.objects import BrainObj, SourceObj, TimeSeries3DObj, ConnectObj, ColorbarObj, SceneObj
+from visbrain.gui import Brain
+from visbrain.objects import BrainObj, SourceObj, TimeSeries3DObj, ConnectObj, ColorbarObj, SceneObj
 
 import mne
 mne.viz.set_3d_backend('pyvista')
@@ -1748,20 +1748,20 @@ class MainWindow(QMainWindow):
             s_kwargs['text_size'] = 12500  # Size of the text
             s_kwargs['text_translate'] = (0.5, 1.5, 0)
             s_kwargs['text_bold'] = True
-            #
-            # s_obj = [SourceObj ('Shaft ' + str(group), xyz=coord.loc[ch_group[group]].to_numpy (dtype=float),
-            #                     text=ch_group[group], color=u_color[index % 15], **s_kwargs)
-            #          for index, group in enumerate (ch_group)]
-            # s_kwargs['radius_min'] = 20
-            # s_obj.append (SourceObj ('All Electrodes', xyz=ch_pos,
-            #                          text=ch_names, color='black', **s_kwargs))
-            #
-            # self.subject[subject_name].s_obj = s_obj
-            #
-            # self.sc = SceneObj(size=(1500, 600), bgcolor='#dcdcdc')
-            # [self.sc.add_to_subplot(i) for i in s_obj]
-            # self.sc.add_to_subplot(BrainObj('B1'), use_this_cam=True)
-            # self.sc.preview()
+
+            s_obj = [SourceObj ('Shaft ' + str(group), xyz=coord.loc[ch_group[group]].to_numpy (dtype=float),
+                                text=ch_group[group], color=u_color[index % 15], **s_kwargs)
+                     for index, group in enumerate (ch_group)]
+            s_kwargs['radius_min'] = 20
+            s_obj.append (SourceObj ('All Electrodes', xyz=ch_pos,
+                                     text=ch_names, color='black', **s_kwargs))
+
+            self.subject[subject_name].s_obj = s_obj
+
+            self.sc = SceneObj(size=(1500, 600), bgcolor='#dcdcdc')
+            [self.sc.add_to_subplot(i) for i in s_obj]
+            self.sc.add_to_subplot(BrainObj('B1'), use_this_cam=True)
+            self.sc.preview()
 
 
 
