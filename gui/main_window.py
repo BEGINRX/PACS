@@ -31,7 +31,8 @@ from PyQt5.QtCore import Qt, pyqtSignal, QUrl
 from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 from mne import Annotations, events_from_annotations, BaseEpochs, Epochs
 from mne.io import BaseRaw
-from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power
+from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power, \
+                          Brain_Win
 
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
                            Refer_Window, Baseline_Time, My_Progress, Time_Freq_Win, Con_Win
@@ -842,6 +843,7 @@ class MainWindow(QMainWindow):
                 self.tree_item[self.ptc_name] = dict()
                 self.tree_item[self.ptc_name]['root'] = self.node_00
                 print('创建subject', self.ptc_name)
+                self.display_action.setEnabled(True)
         except Exception as error:
             self.show_error(error)
 
@@ -1735,33 +1737,12 @@ class MainWindow(QMainWindow):
             coord.set_index([0], inplace=True)
             ch_pos = coord[[1, 2, 3]].to_numpy (dtype=float)
             ch_coords = []
-            [ch_coords.append (ch_group[group]) for group in ch_group]
-            # from visbrain.gui.brain.interface.gui import Ui_MainWindow
+            [ch_coords.append(ch_group[group]) for group in ch_group]
 
-            # self.a = Ui_MainWindow()
-            # self.a.show()
-            s_kwargs = {}
+            self.brain_run = Brain_Win(group=ch_group, ch_pos=ch_pos, elec_df=coord)
+            self.brain_run.run()
 
-            s_kwargs['symbol'] = 'hbar'
-            s_kwargs['radius_min'] = 10
-            s_kwargs['text_color'] = 'black'  # Set to yellow the text color
-            s_kwargs['text_size'] = 12500  # Size of the text
-            s_kwargs['text_translate'] = (0.5, 1.5, 0)
-            s_kwargs['text_bold'] = True
-            #
-            # s_obj = [SourceObj ('Shaft ' + str(group), xyz=coord.loc[ch_group[group]].to_numpy (dtype=float),
-            #                     text=ch_group[group], color=u_color[index % 15], **s_kwargs)
-            #          for index, group in enumerate (ch_group)]
-            # s_kwargs['radius_min'] = 20
-            # s_obj.append (SourceObj ('All Electrodes', xyz=ch_pos,
-            #                          text=ch_names, color='black', **s_kwargs))
-            #
-            # self.subject[subject_name].s_obj = s_obj
-            #
-            # self.sc = SceneObj(size=(1500, 600), bgcolor='#dcdcdc')
-            # [self.sc.add_to_subplot(i) for i in s_obj]
-            # self.sc.add_to_subplot(BrainObj('B1'), use_this_cam=True)
-            # self.sc.preview()
+
 
 
 

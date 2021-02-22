@@ -8,7 +8,7 @@
 import traceback
 import numpy as np
 from mne import io
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import QThread, pyqtSignal, QRunnable, QMutex
 import mne
 from mne.time_frequency import tfr_morlet, psd_multitaper, psd_welch, \
                             tfr_stockwell, tfr_multitaper, csd_fourier, \
@@ -571,3 +571,70 @@ class Cal_Time_Con(QThread):
                 epochx, epochy = data, data
                 con = get_corr(data, data)
         self.con_signal.emit(con, epochx.ch_names, epochy.ch_names)
+
+
+
+qmut_1 = QMutex()
+from visbrain.objects import SceneObj, BrainObj, SourceObj, ConnectObj
+from gui.my_func import u_color
+
+class Brain_Win(QRunnable):
+
+    def __init__(self, group=None, ch_pos=None, elec_df=None, b_kwargs=None,
+                 source_vis=True, s_kwargs=None,
+                 con_vis=False, c_kwargs=None):
+
+
+        super(Brain_Win, self).__init__()
+
+        self.source_visable = source_vis
+        self.con_visablle = con_vis
+        self.ch_group = group
+        self.ch_pos = ch_pos
+        self.elec_df = elec_df
+
+        b_kwargs = {}
+        s_kwargs = {}
+        c_kwargs = {}
+
+        b_kwargs['name'] = 'B2'
+
+        s_kwargs['symbol'] = 'hbar'
+        s_kwargs['radius_min'] = 10
+        s_kwargs['text_color'] = 'black'
+        s_kwargs['text_size'] = 180000  # Size of the text
+        s_kwargs['text_translate'] = (0.5, 1.5, 0)
+        s_kwargs['text_bold'] = True
+
+        # c_kwargs = {}
+        # c_kwargs['nodes'] = ch_pos
+        # c_kwargs['edges'] = con
+        # c_kwargs['select'] = select
+        # c_kwargs['line_width'] = 1
+        # c_kwargs['antialias'] = True
+        # c_kwargs['cmap'] = 'hsv'
+        # c_kwargs['clim'] = (threshold_low, threshold_high)
+
+        self.s_obj = None
+        self.c_obj = None
+
+        self.scene = SceneObj(bgcolor='#dcdcdc', size=(800, 600))
+        self.b_obj = BrainObj(**b_kwargs)
+        if self.source_visable:
+            self.s_obj = [SourceObj('Shaft '+str(group),
+                         xyz=self.elec_df.loc[self.ch_group[group]].to_numpy(dtype=float),
+                         text=self.ch_group[group], color=u_color[index%15], **s_kwargs)
+                         for index, group in enumerate(self.ch_group)]
+        if self.con_visablle:
+            self.c_obj = ConnectObj(**c_kwargs)
+
+    def run(self):
+        self.scene.add_to_subplot(self.b_obj)
+        if self.s_obj is not None and self.source_visable:
+            if isinstance(self.s_obj, list):
+                [self.scene.add_to_subplot(source) for source in self.s_obj ]
+            else:
+                self.scene.add_to_subplot(self.s_obj)
+        if self.c_obj is not None and self.source_visable:
+            self.scene.add_to_subplot(self.c_obj)
+        self.scene.preview()
