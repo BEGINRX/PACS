@@ -14,16 +14,16 @@ from gui.splash_screen import SplashPanel
 
 if __name__ == "__main__":
 
-    app = QApplication(sys.argv)
+    my_app = QApplication(sys.argv)
     splash = SplashPanel()
-    app.processEvents()
-    app.setApplicationName('SEEG_Cognition')
+    my_app.processEvents()
+    my_app.setApplicationName('SEEG_Cognition')
 
     GUI = MainWindow()
     splash.finish(GUI)
     splash.deleteLater()
-    # sys.exit(app.exec_())
-    app.exec_()
+    # sys.exit(my_app.exec_())
+    my_app.exec_()
 
 
 

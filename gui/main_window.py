@@ -12,8 +12,8 @@ import matplotlib
 matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib import pyplot as plt
-# from visbrain.gui import Brain
-# from visbrain.objects import BrainObj, SourceObj, TimeSeries3DObj, ConnectObj, ColorbarObj, SceneObj
+from visbrain.gui import Brain
+from visbrain.objects import BrainObj, SourceObj, TimeSeries3DObj, ConnectObj, ColorbarObj, SceneObj
 
 import mne
 mne.viz.set_3d_backend('pyvista')
@@ -1741,7 +1741,6 @@ class MainWindow(QMainWindow):
 
             self.brain_run = Brain_Win(group=ch_group, ch_pos=ch_pos, elec_df=coord)
             self.brain_run.run()
-
 
 
 
