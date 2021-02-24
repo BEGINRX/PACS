@@ -51,7 +51,7 @@ class SEEG(object):
 class Subject(object):
 
     def __init__(self, name=None, coord=None, mri=None,
-                 b_obj=None, s_obj=None, ts_obj=None, c_obj=None):
+                 b_obj=None, s_obj=None, c_obj=None):
 
         super(Subject, self).__init__()
         # key in seeg is the name of the data
@@ -61,7 +61,6 @@ class Subject(object):
         self.image = dict()
         self.b_obj = b_obj
         self.s_obj = s_obj
-        self.ts_obj = ts_obj
         self.c_obj = c_obj
 
 

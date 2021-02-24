@@ -39,10 +39,16 @@ from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
 from gui.data_io import write_raw_edf, write_raw_set
 from gui.my_class import Subject, SEEG
+from vispy import app, scene
+from visbrain.gui.brain.user import BrainUserMethods
+from visbrain.gui.brain.interface import BrainShortcuts
+from visbrain.gui.brain.visuals import Visuals
+from visbrain.objects.scene_obj import VisbrainCanvas
+from visbrain.objects import SceneObj, BrainObj, SourceObj, ConnectObj
+import vispy.scene.cameras as viscam
+import vispy.visuals.transforms as vist
 
-
-
-class MainWindow(QMainWindow):
+class MainWindow(QMainWindow, app.Canvas, Visuals, BrainShortcuts, BrainUserMethods):
     '''
     The main window
     '''
@@ -66,7 +72,6 @@ class MainWindow(QMainWindow):
         self.current_data = dict()
         self.event_set = dict()
         self.event = None
-        self.cavans_tmp = None
 
         self.init_ui()
 
@@ -79,10 +84,10 @@ class MainWindow(QMainWindow):
         self.create_action()
         self.create_label()
         self.create_stack()
-        self.create_button()
         self.create_combo_box()
         self.create_group_box()
         self.create_menubar()
+        # self.brain_ui()
         self.create_layout()
         self.set_qt_style()
         # QApplication.setStyle(QStyleFactory.create('Fusion'))
@@ -129,9 +134,14 @@ class MainWindow(QMainWindow):
         self.create_subject_action = QAction('Create a subject', self,
                                       statusTip='Create a subject',
                                       triggered=self.create_subject)
-        self.rename_subject_action = QAction ('Rename the subject', self,
-                                       statusTip='Create a subject',
-                                       triggered=self.rename_subject)
+        self.import_action = QAction('Import raw sEEG data', self,
+                                     statusTip='Import raw sEEG data',
+                                     triggered=self.execute_import_data)
+        self.import_action.setEnabled(False)
+        self.import_epoch_action = QAction('Import Epoch data', self,
+                                           statusTip='Import Epoch data',
+                                           triggered=self.execute_load_epoched_data)
+        self.import_epoch_action.setEnabled(False)
         # triggered=self.create_ptc
 
 
@@ -157,9 +167,10 @@ class MainWindow(QMainWindow):
         # #########################################################################
         #                                Raw
         # ##########################################################################
-        self.import_action = QAction('Import raw sEEG data', self,
-                                     statusTip='Import raw sEEG data',
-                                     triggered=self.execute_import_data)
+        self.load_coord = QAction('Load MNI Coordinates', self,
+                                       statusTip='Load MNI Coordinates',
+                                       triggered=self.load_coordinate)
+        self.load_coord.setEnabled(False)
         self.raw_action = dict()
         self.raw_action['rename_chan'] = QAction('Rename channels', self,
                                   statusTip='Rename channels',
@@ -250,10 +261,6 @@ class MainWindow(QMainWindow):
         # #########################################################################
         #                                Epoch
         # ##########################################################################
-        self.import_epoch_action = QAction('Import Epoch data', self,
-                                           statusTip='Import Epoch data',
-                                           triggered=self.execute_load_epoched_data)
-
         self.epoch_action = dict()
         self.epoch_action['select_chan'] = QAction('Select sub channels', self,
                                           statusTip='Select sub channels',
@@ -264,7 +271,7 @@ class MainWindow(QMainWindow):
         self.epoch_action['apply_baseline'] = QAction('Apply baseline to correct the epochs', self,
                                              statusTip='Correct the epochs with selected baseline',
                                              triggered=self.apply_base_win)
-        self.epoch_action['visual_evoke_brain'] = QAction('Visualize Evoke data on a MNI brain', self,
+        self.epoch_action['visual_evoke_brain'] = QAction('Visualize Evoke data on a MNI brain_elements', self,
                                                  triggered=self.choose_evoke)
         self.epoch_action['plot_epoch'] = QAction('Plot epoch', self,
                                          triggered=self.plot_raw_data)
@@ -297,16 +304,6 @@ class MainWindow(QMainWindow):
         
         [self.epoch_action[action].setEnabled(False) for action in self.epoch_action]
 
-        # #########################################################################
-        #                                Visualization
-        # ##########################################################################
-        self.display_action = QAction('Display Electrodes in MNI', self,
-                                       statusTip='Display Electrodes in MNI',
-                                       triggered=self.display_electrodes)
-        self.display_action.setEnabled(False)
-
-
-
 
         # actions for Help menu bar
         #
@@ -321,89 +318,18 @@ class MainWindow(QMainWindow):
 
     def create_stack(self):
 
-        self.ptc_stack = QStackedWidget()
-        self.ptc_stack.setProperty('name', 'ptc')
-        self.ptc_stack.addWidget(self.empty_label_0)
-
-        self.fig_stack = QStackedWidget()
-        self.fig_stack.setProperty('name', 'fig')
-        self.fig_stack.addWidget(self.empty_label_1)
-
-
-    def create_button(self):
-        '''create buttons'''
-        # buttons for func
-        self.re_ref_button = QPushButton(self)
-        self.re_ref_button.setText('Re-reference')
-        self.re_ref_button.setToolTip('Re-reference sEEG data')
-        self.re_ref_button.setProperty('name', 'func')
-        self.re_ref_button.setEnabled(False)
-        self.re_ref_button.setFixedSize(135, 38)
-        self.re_ref_button.clicked.connect(self.choose_ref)
-
-        self.resample_button = QPushButton(self)
-        self.resample_button.setText('Resample')
-        self.resample_button.setToolTip('Resample the sEEG data')
-        self.resample_button.setProperty('name', 'func')
-        self.resample_button.setEnabled(False)
-        self.resample_button.setFixedSize(130, 38)
-        self.resample_button.clicked.connect(self.execute_resample_data)
-
-        self.filter_button = QPushButton(self)
-        self.filter_button.setText('Filter')
-        self.filter_button.setToolTip('Basic iir filter')
-        self.filter_button.setProperty('name', 'func')
-        self.filter_button.setEnabled(False)
-        self.filter_button.setFixedSize(130, 38)
-        self.filter_button.clicked.connect(self.filter_data_iir)
-
-        self.time_button = QPushButton(self)
-        self.time_button.setText('Time')
-        self.time_button.setToolTip('Select time range')
-        self.time_button.setProperty('name', 'func')
-        self.time_button.setEnabled(False)
-        self.time_button.setFixedSize(130, 38)
-        self.time_button.clicked.connect(self.select_time)
-
-        self.chan_button = QPushButton(self)
-        self.chan_button.setText('Channel')
-        self.chan_button.setToolTip('Select the channels')
-        self.chan_button.setProperty('name', 'func')
-        self.chan_button.setEnabled(False)
-        self.chan_button.setFixedSize(130, 38)
-        self.chan_button.clicked.connect(self.select_chan)
-
-        self.plot_button = QPushButton(self)
-        self.plot_button.setText('Plot')
-        self.plot_button.setToolTip('Plot raw data')
-        self.plot_button.setProperty('name', 'func')
-        self.plot_button.setEnabled(False)
-        self.plot_button.setFixedSize(130, 38)
-        self.plot_button.clicked.connect(self.plot_raw_data)
-
-        self.event_button = QPushButton(self)
-        self.event_button.setText('Marker')
-        self.event_button.setToolTip('Select the events')
-        self.event_button.setProperty('name', 'func')
-        self.event_button.setEnabled(False)
-        self.event_button.setFixedSize(130, 38)
-        self.event_button.clicked.connect(self.select_event)
-
-        self.save_button = QPushButton(self)
-        self.save_button.setText('Save')
-        self.save_button.setToolTip('Save raw data in .fif format')
-        self.save_button.setProperty('name', 'func')
-        self.save_button.setEnabled(False)
-        self.save_button.setFixedSize(130, 38)
-        self.save_button.clicked.connect(self.save_fif)
+        self.subject_stack = QStackedWidget()
+        self.subject_stack.setProperty('name', 'ptc')
+        self.subject_stack.addWidget(self.empty_label_0)
 
 
     def create_combo_box(self):
 
-        self.ptc_cb = QComboBox()
-        self.ptc_cb.activated.connect(self.change_ptc)
-        self.ptc_cb.setProperty('name', 'ptc')
-        self.ptc_cb.setFixedHeight(35)
+        self.subject_cb = QComboBox()
+        self.subject_cb.activated.connect(self.change_ptc)
+        self.subject_cb.setProperty('name', 'ptc')
+        self.subject_cb.setFixedHeight(35)
+        self.subject_cb.setEditable(True)
 
 
     def create_label(self):
@@ -573,10 +499,10 @@ class MainWindow(QMainWindow):
         # file menu bar
         self.file_menu = self.menuBar().addMenu('Subject')
         self.file_menu.addAction(self.create_subject_action)
-        self.file_menu.addAction(self.rename_subject_action)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.import_action)
         self.file_menu.addAction(self.import_epoch_action)
+        self.file_menu.addAction (self.load_coord)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.clear_all_action)
         self.file_menu.addSeparator()
@@ -596,7 +522,7 @@ class MainWindow(QMainWindow):
         self.raw_menu.addActions([self.raw_action['plot_raw'],
                                   self.raw_action['remove_bad'],
                                   self.raw_action['interpolate_bad']])
-        self.raw_menu.addSeparator ()
+        self.raw_menu.addSeparator()
         self.raw_menu.addMenu(self.raw_action['get_epoch_menu'])
         self.raw_menu.addSeparator ()
         self.raw_menu.addMenu(self.raw_action['save_menu'])
@@ -617,16 +543,39 @@ class MainWindow(QMainWindow):
         self.epoch_menu.addMenu(self.epoch_action['epoch_save_menu'])
 
 
-        # visualization menu bar
-        self.vis_menu = self.menuBar().addMenu('Display')
-        self.vis_menu.addAction(self.display_action)
-
-
         # Help menu bar
         self.help_menu = self.menuBar().addMenu('Help')
         self.help_menu.addAction(self.website_action)
         self.help_menu.addAction(self.licence_action)
         self.help_menu.addAction(self.email_action)
+
+
+    def brain_ui(self):
+        self.cdict = {'bgcolor': '#dcdcdc', 'cargs': {'size': (800, 600), 'dpi': 600,
+                                                    'fullscreen': True, 'resizable': True}}
+        self._camera = viscam.TurntableCamera (name='MainBrainCamera')
+        self._gl_scale = 1.5
+
+        self.play_cb = QComboBox ()
+        self.play_cb.addItems (['B1', 'B2', 'B3'])
+        self.play_cb.currentTextChanged.connect (self.change_brain)
+
+        self.stack = QStackedWidget()
+        self.view = VisbrainCanvas(name='MainCanvas', camera=self._camera,
+                                    **self.cdict)
+        self.stack.addWidget (self.view.canvas.native)
+
+        self._vbNode = scene.Node (name='Brain')
+        self._vbNode.transform = vist.STTransform (scale=[self._gl_scale] * 3)
+        self.atlas = BrainObj ('B1')
+        self.atlas.parent = self._vbNode
+
+        self.view.wc.camera = self._camera
+        self._vbNode.parent = self.view.wc.scene
+        self.atlas.camera = self._camera
+        self.atlas._csize = self.view.canvas.size
+        self.atlas.rotate ('left')
+        self.atlas.camera.set_default_state ()
 
 
     def create_layout(self):
@@ -696,16 +645,6 @@ class MainWindow(QMainWindow):
         file_name_layout.addWidget(self.file_name_label)
         file_name_layout.addWidget(self.file_name_cont_label)
 
-        data_button_layout = QHBoxLayout()
-        data_button_layout.setContentsMargins(0, 0, 0, 0)
-        data_button_layout.addWidget(self.re_ref_button, stretch=0)
-        data_button_layout.addWidget(self.resample_button, stretch=0)
-        data_button_layout.addWidget(self.filter_button, stretch=0)
-        data_button_layout.addWidget(self.time_button, stretch=0)
-        data_button_layout.addWidget(self.chan_button, stretch=0)
-        data_button_layout.addWidget(self.event_button, stretch=0)
-        data_button_layout.addWidget(self.plot_button, stretch=0)
-        data_button_layout.addWidget(self.save_button, stretch=0)
 
         data_info_layout = QVBoxLayout()
         data_info_layout.setSpacing(4)
@@ -713,7 +652,6 @@ class MainWindow(QMainWindow):
         data_info_layout.addWidget(self.data_info_label)
         data_info_layout.addLayout(file_name_layout)
         data_info_layout.addLayout(info_layout)
-        data_info_layout.addLayout(data_button_layout)
 
         self.seeg_info_box.setLayout(data_info_layout)
 
@@ -722,7 +660,8 @@ class MainWindow(QMainWindow):
         vis_layout.setSpacing(4)
         vis_layout.setContentsMargins(0, 0, 0, 0)
         vis_layout.addWidget(self.electro_title_label)
-        vis_layout.addWidget(self.fig_stack)
+        # vis_layout.addWidget (self.play_cb)
+        vis_layout.addWidget(self.empty_label_1)
         self.vis_box.setLayout(vis_layout)
 
         # layout for protocol
@@ -732,8 +671,8 @@ class MainWindow(QMainWindow):
         left_layout_1 = QVBoxLayout()
         left_layout_1.setSpacing(0)
         left_layout_1.setContentsMargins(0, 0, 0, 0)
-        left_layout_1.addWidget(self.ptc_cb, stretch=1)
-        left_layout_1.addWidget(self.ptc_stack, stretch=100)
+        left_layout_1.addWidget(self.subject_cb, stretch=1)
+        left_layout_1.addWidget(self.subject_stack, stretch=100)
         left_layout = QVBoxLayout()
         left_layout.setSpacing(3)
         left_layout.setContentsMargins(0, 0, 0, 0)
@@ -799,6 +738,19 @@ class MainWindow(QMainWindow):
 #*****************************************slot*****************************************
 
 ############################################# File ######################################################
+    def change_brain(self):
+
+        template = str (self.play_cb.currentText ())
+        # hemisphere = str (self._brain_hemi.currentText ())
+        if self.atlas.name != template:
+            self.atlas.set_data(name=template)
+            self.atlas.scale = self._gl_scale
+            self.atlas.reset_camera ()
+            self.atlas.rotate ('left')
+            self.atlas._name = template
+
+
+
     def show_error(self, error):
         print('*********************************************************************')
         print('Error is: ')
@@ -812,69 +764,72 @@ class MainWindow(QMainWindow):
     # create qtreeview
     def create_subject(self):
 
-        self.ptc_name, _ = QInputDialog.getText(self, 'Subject name', 'Please Name this subject',
+        self.subject_name, _ = QInputDialog.getText(self, 'Subject name', 'Please Name this subject',
                                            QLineEdit.Normal)
-
         try:
-            if self.ptc_name:
+            if self.subject_name:
                 try:
-                    self.ptc_stack.removeWidget(self.empty_label_0)
+                    self.subject_stack.removeWidget(self.empty_label_0)
                 except Exception as error:
                     pass
                 try:
-                    self.ptc_stack.removeWidget(self.tree)
+                    self.subject_stack.removeWidget(self.tree)
                 except Exception as error:
                     pass
-                self.subject[self.ptc_name] = Subject(name=self.ptc_name)
-                self.ptc_cb.addItem(self.ptc_name)
-                self.ptc_cb.setCurrentText(self.ptc_name)
+                self.subject[self.subject_name] = Subject(name=self.subject_name)
+                self.subject_cb.addItem(self.subject_name)
+                self.subject_cb.setCurrentText(self.subject_name)
                 self.tree = QTreeWidget()
                 self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
                 self.tree.setProperty('name', 'ptc')
                 self.root = self.tree.invisibleRootItem()
                 self.tree.setHeaderHidden(True)  # 隐藏列标题栏
                 self.node_00 = QTreeWidgetItem(self.tree)
-                self.node_00.setText(0, self.ptc_name)
+                self.node_00.setText(0, self.subject_name)
                 self.node_00.setIcon(0, QIcon('image/subject.ico'))
                 self.tree.expandAll()
                 self.tree.itemChanged.connect(self.change_current_data)
-                self.tree_dict[self.ptc_name] = self.tree
-                self.ptc_stack.addWidget(self.tree)
-                self.tree_item[self.ptc_name] = dict()
-                self.tree_item[self.ptc_name]['root'] = self.node_00
-                print('创建subject', self.ptc_name)
-                self.display_action.setEnabled(True)
+                self.tree_dict[self.subject_name] = self.tree
+                self.subject_stack.addWidget(self.tree)
+                self.tree_item[self.subject_name] = dict()
+                self.tree_item[self.subject_name]['root'] = self.node_00
+                print('创建subject', self.subject_name)
+                self.load_coord.setEnabled(True)
+            self.import_action.setEnabled(True)
+            self.import_epoch_action.setEnabled(True)
         except Exception as error:
             self.show_error(error)
-
-    def rename_subject(self):
-        pass
-
 
 
     def change_ptc(self, index):
 
-        key = self.ptc_cb.currentText()
+        key = self.subject_cb.currentText()
         try:
-            self.ptc_stack.removeWidget(self.tree)
+            self.subject_stack.removeWidget(self.tree)
         except:
             pass
-        self.tree = self.tree_dict[key]
-        self.ptc_stack.addWidget(self.tree)
+        if key not in list(self.tree_dict.keys()):
+            self.tree = self.tree_dict[key] = self.tree_dict[self.subject_name]
+            self.subject_stack.addWidget(self.tree)
 
 
     def get_all_items(self):
 
+        item = []
         child = []
-        key = self.ptc_cb.currentText()
+
+        key = self.subject_cb.currentText()
         iterator = QTreeWidgetItemIterator(self.tree_dict[key], QTreeWidgetItemIterator.All)
         while iterator.value():
+            node = iterator.value()
             name = iterator.value().text(0)
             print(name)
+            if name not in [key, 'Raw sEEG' , 'Epoch sEEG']:
+                item.append(node)
             child.append(name)
             iterator += 1
         print('all child name:', child)
-        return child
+        return child, item
 
 
     # import sEEG data
@@ -886,7 +841,7 @@ class MainWindow(QMainWindow):
     def execute_import_data(self):
         '''execute import data worker'''
 
-        subject_name = self.ptc_cb.currentText()
+        subject_name = self.subject_cb.currentText()
         if not subject_name:
             QMessageBox.warning(self,'Error', 'Please create a subject first')
         else:
@@ -905,10 +860,9 @@ class MainWindow(QMainWindow):
                                     'Please select the right file!')
 
 
-
     def execute_load_epoched_data(self):
         '''execute load epoched data'''
-        subject_name = self.ptc_cb.currentText()
+        subject_name = self.subject_cb.currentText()
         if not subject_name:
             QMessageBox.warning (self, 'Error', 'Please create a subject first')
         else:
@@ -928,50 +882,6 @@ class MainWindow(QMainWindow):
                                     'Please select the right file!')
 
 
-    def get_raw_fig(self, data):
-
-        try:
-            if isinstance(data, BaseRaw):
-                self.fig = mne.viz.plot_raw(data, n_channels=20, scalings={'eeg':100e-6}, title='',
-                                       show=False, duration=10.0)
-                self.fig.canvas.manager.full_screen_toggle()
-                plt.close()
-                print('Raw data 绘制完毕')
-            elif isinstance(data, BaseEpochs):
-                self.fig = mne.viz.plot_epochs(data, n_channels=20, scalings={'eeg':100e-6}, title='',
-                                          show=False)
-                self.fig.canvas.manager.full_screen_toggle()
-                plt.close()
-                print('Epoch data 绘制完毕')
-                # 如果不添加plt.close(), 会出现
-                # AttributeError: 'FigureCanvasBase' object has no attribute 'manager'
-                # Figure.show works only for figures managed by pyplot, normally created by pyplot.figure().
-                # 的报错， 具体原因可见：
-                # https://www.jb51.net/article/188756.htm 浅谈matplotlib中FigureCanvasXAgg的用法
-                # https://github.com/matplotlib/matplotlib/issues/1219/
-                # https://github.com/matplotlib/matplotlib/pull/1220
-            self.canvas = FigureCanvas(self.fig)
-            self.canvas.setFocusPolicy(Qt.StrongFocus)
-            self.canvas.setFocus()
-            try:
-                self.fig_stack.removeWidget(self.empty_label_1)
-            except:
-                pass
-            try:
-                self.fig_stack.removeWidget(self.canvas_tmp)
-            except:
-                pass
-            self.canvas_tmp = self.canvas
-            self.canvas_tmp.setFocusPolicy(Qt.StrongFocus)
-            self.canvas_tmp.setFocus()
-            self.fig_stack.addWidget(self.canvas_tmp)
-        except Exception as error:
-            if error.args[0] == "'RawEEGLAB' object has no attribute 'drop_bad'":
-                pass
-            else:
-                self.show_error(error)
-
-
     def get_seeg_data(self, seeg_data):
         '''get seeg data'''
         self.pbar.step = 100
@@ -979,20 +889,29 @@ class MainWindow(QMainWindow):
         try:
             self.key, _ = QInputDialog.getText(self, 'Name this Data', 'Please Name the Data',
                                           QLineEdit.Normal)
+            child, _ = self.get_all_items ()
             if self.key:
                 if self.data_mode == 'raw':
                     self.key += '_raw'
-                    [self.raw_action[action].setEnabled(True) for action in self.raw_action]
+                    if self.key in child:
+                        QMessageBox.warning(self, 'Name repeated', 'The name is already exists, please retype!')
+                        self.key, _ = QInputDialog.getText (self, 'Name this Data', 'Please Name the Data',
+                                                            QLineEdit.Normal)
+                    else:
+                        [self.raw_action[action].setEnabled(True) for action in self.raw_action]
                 elif self.data_mode == 'epoch':
                     self.key += '_epoch'
-                    [self.epoch_action[action].setEnabled (True) for action in self.epoch_action]
-                    self.display_action.setEnabled(True)
-                subject_name = self.ptc_cb.currentText()
+                    if self.key in child:
+                        QMessageBox.warning(self, 'Name repeated', 'The name is already exists, please retype!')
+                        self.key, _ = QInputDialog.getText (self, 'Name this Data', 'Please Name the Data',
+                                                            QLineEdit.Normal)
+                    else:
+                        [self.epoch_action[action].setEnabled (True) for action in self.epoch_action]
+                subject_name = self.subject_cb.currentText()
 
                 self.subject[subject_name].seeg[self.key] = SEEG(name=self.key, data=seeg_data,
                                                                  mode=self.data_mode)
                 self.subject[subject_name].seeg[self.key].data_para['path'] = self.data_path
-                child = self.get_all_items()
                 if self.data_mode == 'raw':
                     des = list (set(seeg_data._annotations.description))
                     event_id = {str(mark): int(mark) for mark in des}
@@ -1025,6 +944,7 @@ class MainWindow(QMainWindow):
                     else:
                         self.node_11 = QTreeWidgetItem(self.tree_item[subject_name]['root'])
                         self.node_11.setText(0, 'Epoch sEEG')
+                        self.node_11.setIcon (0, QIcon ('image/EEG.ico'))
                         self.node_20 = QTreeWidgetItem(self.node_11)
                         self.node_20.setText(0, self.key)
                         self.node_20.setIcon(0, QIcon('image/sEEG.jpg'))
@@ -1051,70 +971,36 @@ class MainWindow(QMainWindow):
 
     def set_current_data(self, key):
         '''set the curent seeg data'''
-        subject_name = self.ptc_cb.currentText ()
+        self.key = key
+        subject_name = self.subject_cb.currentText ()
         self.current_data = self.subject[subject_name].seeg[self.key]
         self.data_mode = self.subject[subject_name].seeg[self.key].mode
         print('----------------------------')
         print("current data\'s key:", key)
         print('----------------------------')
-        if self.data_mode == 'raw':
-            self.re_ref_button.setEnabled(True)
-            self.resample_button.setEnabled(True)
-            self.filter_button.setEnabled(True)
-            self.time_button.setEnabled(True)
-            self.chan_button.setEnabled(True)
-            self.plot_button.setEnabled(True)
-            self.event_button.setEnabled(False)
-            self.save_button.setEnabled(True)
-        else:
-            self.re_ref_button.setEnabled(True)
-            self.resample_button.setEnabled(True)
-            self.filter_button.setEnabled(False)
-            self.time_button.setEnabled(False)
-            self.chan_button.setEnabled(True)
-            self.plot_button.setEnabled(True)
-            self.event_button.setEnabled(True)
-            self.save_button.setEnabled(True)
-        self.get_raw_fig(self.current_data.data)
         self.data_info_signal.connect(self.update_func)
         self.data_info_signal.emit(self.current_data.data_para)
+        if self.data_mode == 'raw':
+            [self.raw_action[action].setEnabled(True) for action in self.raw_action]
+            [self.epoch_action[action].setEnabled(False) for action in self.epoch_action]
+        elif self.data_mode == 'epoch':
+            [self.raw_action[action].setEnabled (False) for action in self.raw_action]
+            [self.epoch_action[action].setEnabled(True) for action in self.epoch_action]
 
 
     def change_current_data(self, item, column):
 
         try:
             if item.checkState(column) == Qt.Checked:
-                subject_name = self.ptc_cb.currentText()
+                subject_name = self.subject_cb.currentText()
                 self.current_sub = self.subject[subject_name]
                 key = item.text(column)
-                self.current_data = self.current_sub.seeg[key]
-                self.data_mode = self.current_data.mode
-                print('----------------------------')
-                print('change current data to ', key)
-                print('----------------------------')
-                # print('current data : ', self.current_data)
-                # print('----------------------------')
-                if self.current_data.mode == 'raw':
-                    self.re_ref_button.setEnabled(True)
-                    self.resample_button.setEnabled(True)
-                    self.filter_button.setEnabled(True)
-                    self.time_button.setEnabled(True)
-                    self.chan_button.setEnabled(True)
-                    self.plot_button.setEnabled(True)
-                    self.event_button.setEnabled(False)
-                    self.save_button.setEnabled(True)
-                else:
-                    self.re_ref_button.setEnabled(True)
-                    self.resample_button.setEnabled(True)
-                    self.filter_button.setEnabled(False)
-                    self.time_button.setEnabled(False)
-                    self.chan_button.setEnabled(True)
-                    self.plot_button.setEnabled(True)
-                    self.event_button.setEnabled(True)
-                    self.save_button.setEnabled(True)
-                self.get_raw_fig(self.current_data.data)
-                self.data_info_signal.connect(self.update_func)
-                self.data_info_signal.emit(self.current_data.data_para)
+                child, item_all = self.get_all_items()
+                for i in item_all:
+                    if i != item and (('raw' in item.text(column)) or ('epoch' in item.text(column))):
+                        i.setCheckState(0, Qt.Unchecked)
+                self.set_current_data(key)
+
         except Exception as error:
             self.show_error(error)
 
@@ -1180,37 +1066,26 @@ class MainWindow(QMainWindow):
     def clear_all(self):
         '''clear the whole workshop'''
         try:
-            del self.flag, self.tree_dict, self.tree_item, self.data_info, self.subject, self.seeg, self.event
-            del self.current_data, self.mri, self.current_mri, self.data_mode, self.event_set, self.cavans_tmp
+            del self.flag, self.tree_dict, self.tree_item, self.subject, self.event
+            del self.current_data, self.data_mode, self.event_set
             gc.collect()
             self.tree_dict = dict()
             self.tree_item = dict()
             self.subject = dict()
-            self.data_info = dict()
             self.event_set = dict()
-            self.ptc_cb.clear()
-            self.ptc_cb.setCurrentText('')
+            self.subject_cb.clear()
+            self.subject_cb.setCurrentText('')
             self.flag = 0
             self.data_mode = None
             self.event = None
-            self.cavans_tmp = None
             try:
-                self.ptc_stack.removeWidget(self.tree)
-                self.ptc_stack.addWidget(self.empty_label_0)
-                self.fig_stack.removeWidget(self.canvas_tmp)
-                self.fig_stack.addWidget(self.empty_label_1)
+                self.subject_stack.removeWidget(self.tree)
+                self.subject_stack.addWidget(self.empty_label_0)
             except Exception as error:
                 self.show_error(error)
-            self.re_ref_button.setEnabled(False)
-            self.resample_button.setEnabled(False)
-            self.filter_button.setEnabled(False)
-            self.time_button.setEnabled(False)
-            self.chan_button.setEnabled(False)
-            self.event_button.setEnabled(False)
-            self.plot_button.setEnabled(False)
-            self.save_button.setEnabled(False)
+
             self.data_info_signal.connect(self.update_func)
-            self.data_info_signal.emit(self.data_info)
+            self.data_info_signal.emit(dict())
         except Exception as error:
             self.show_error(error)
         except Exception as error:
@@ -1514,7 +1389,7 @@ class MainWindow(QMainWindow):
         fname_src = os.path.join(subjects_dir, 'fsaverage', 'bem',
                     'fsaverage-vol-5-src.fif')
 
-        subject_name = self.ptc_cb.currentText()
+        subject_name = self.subject_cb.currentText()
         try:
             self.ch_coords = self.subject[subject_name].coord
 
@@ -1545,14 +1420,14 @@ class MainWindow(QMainWindow):
 
     def show_tf_win(self):
         data = self.current_data.data
-        subject = self.ptc_cb.currentText()
+        subject = self.subject_cb.currentText()
         self.tf_win = Time_Freq_Win(data, subject)
         self.tf_win.show()
 
 
     def show_con_win(self):
         data = self.current_data.data
-        subject = self.ptc_cb.currentText()
+        subject = self.subject_cb.currentText()
         self.con_win = Con_Win(data, subject)
         self.con_win.show()
 
@@ -1713,34 +1588,20 @@ class MainWindow(QMainWindow):
             self.show_error(error)
 
 
-    def display_electrodes(self):
+    def load_coordinate(self):
         '''Electrodes Visualization'''
-        from gui.re_ref import get_chan_group
-        from gui.my_func import u_color
-        # source object
-        subject_name = self.ptc_cb.currentText ()
+
+        subject_name = self.subject_cb.currentText ()
         if not subject_name:
             QMessageBox.warning (self, 'Error', 'Please create a subject first')
         else:
 
-            data = self.current_data.data
-
-            self.mni_path, _ = QFileDialog.getOpenFileName (self, 'Load MNI Coornidates')
-            coord = pd.read_csv (self.mni_path, sep='\t', header=None, index_col=None)
-            ch_names = coord[0].tolist ()
-            data.info['bads'].extend ([ch for ch in data.ch_names if ch not in ch_names])
-            data.drop_channels(data.info['bads'])
-
+            mni_path, _ = QFileDialog.getOpenFileName (self, 'Load MNI Coornidates')
+            coord = pd.read_csv(mni_path, sep='\t', header=None, index_col=None)
             self.subject[subject_name].coord = coord
-            ch_names = coord[0].tolist ()
-            ch_group = get_chan_group(chans=ch_names)
-            coord.set_index([0], inplace=True)
-            ch_pos = coord[[1, 2, 3]].to_numpy (dtype=float)
-            ch_coords = []
-            [ch_coords.append(ch_group[group]) for group in ch_group]
-
-            self.brain_run = Brain_Win(group=ch_group, ch_pos=ch_pos, elec_df=coord)
-            self.brain_run.run()
+            # ch_names = coord[0].tolist ()
+            # data.info['bads'].extend ([ch for ch in data.ch_names if ch not in ch_names])
+            # data.drop_channels(data.info['bads'])
 
 
 
@@ -1771,7 +1632,7 @@ class MainWindow(QMainWindow):
     def update_func(self, para):
         '''update label text'''
         try:
-            if self.current_data.data is not None:
+            if len(para):
                 self.file_name_cont_label.setText(para['path'])
                 self.epoch_num_cont_label.setText(para['epoch_num'])
                 self.samp_rate_cont_label.setText(para['sfreq'])
@@ -1782,18 +1643,20 @@ class MainWindow(QMainWindow):
                 self.event_num_cont_label.setText(para['event_num'])
                 self.time_point_cont_label.setText(para['time_point'])
                 self.data_size_cont_label.setText(para['data_size'])
-        except:
-            self.file_name_cont_label.setText('')
-            self.epoch_num_cont_label.setText('')
-            self.samp_rate_cont_label.setText('')
-            self.chan_cont_label.setText('')
-            self.start_cont_label.setText('')
-            self.end_cont_label.setText('')
-            self.event_class_cont_label.setText('')
-            self.event_num_cont_label.setText('')
-            self.time_point_cont_label.setText('')
-            self.data_size_cont_label.setText('')
-
+            else:
+                self.file_name_cont_label.setText ('')
+                self.epoch_num_cont_label.setText ('')
+                self.samp_rate_cont_label.setText ('')
+                self.chan_cont_label.setText ('')
+                self.start_cont_label.setText ('')
+                self.end_cont_label.setText ('')
+                self.event_class_cont_label.setText ('')
+                self.event_num_cont_label.setText ('')
+                self.time_point_cont_label.setText ('')
+                self.data_size_cont_label.setText ('')
+        except Exception as error:
+            # self.show_error(error)
+            pass
 
 
 
