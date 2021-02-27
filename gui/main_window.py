@@ -71,7 +71,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.current_data = dict()
         self.event_set = dict()
         self.event = None
-
+        self.sources = None
         self.init_ui()
 
 
@@ -325,7 +325,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
     def create_combo_box(self):
 
         self.subject_cb = QComboBox()
-        self.subject_cb.activated.connect(self.change_ptc)
+        self.subject_cb.activated.connect(self.change_sub_name)
         self.subject_cb.setProperty('name', 'ptc')
         self.subject_cb.setFixedHeight(35)
         # self.subject_cb.setEditable(True)
@@ -734,7 +734,8 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self._source_tab = QTabWidget(self._source_group)
         self._source_tab1 = QWidget()
         self._obj_name_lst = QComboBox()
-        self._obj_name_lst.addItems(sorted(self.group))
+        if isinstance(self.group, list):
+            self._obj_name_lst.addItems(sorted(self.group))
         self._obj_name_lst.setFixedWidth(200)
         self._select_label = QLabel('Select')
         self._s_select = QComboBox()
@@ -803,7 +804,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
 
         self.sources = CombineSources(self.s_obj)
         if self.sources.name is None:
-            self._obj_type_lst.model().item(4).setEnabled(False)
+            self._obj_type_lst.model().item(1).setEnabled(False)
         self.sources.parent = self._vbNode
         name = self._obj_name_lst.currentText()
         self._source_group.setChecked(self.sources[name].visible_obj)
@@ -1324,7 +1325,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
     #
     # create qtreeview
     def create_subject(self):
-
         self.subject_name, _ = QInputDialog.getText(self, 'Subject name', 'Please Name this subject',
                                            QLineEdit.Normal)
         try:
@@ -1358,27 +1358,64 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
                 self.load_coord.setEnabled(True)
             self.import_action.setEnabled(True)
             self.import_epoch_action.setEnabled(True)
+            self.elec_df = None
+            self.reset_source(self.subject_name)
         except Exception as error:
             self.show_error(error)
 
 
-    def change_ptc(self, index):
+    def reset_source(self, name):
+        if self.sources is not None:
+            try:
+                self.group_stack.removeWidget(self._source_group)
+                self.group_stack.addWidget(self._brain_group)
+                self._obj_type_lst.setCurrentIndex(0)
+                self._source_group = None
+                self.sources.parent = None
+                self.sources = None
+            except:
+                pass
+        if self.elec_df is None:
+            self._source_group = None
+            try:
+                self.sources.parent = None
+                self.sources = None
+            except:
+                pass
+            self.group = None
+            self._obj_type_lst.model ().item (1).setEnabled (False)
+        else:
+            print('该被试的数据不为None', name)
+            self.group = self.subject[name].group
+            self.s_obj = self.subject[name].s_obj
+            self._source_widget ()
+            self._obj_type_lst.model().item (1).setEnabled(True)
 
-        key = self.subject_cb.currentText()
-        try:
-            self.subject_stack.removeWidget(self.tree)
-        except:
+
+    def change_sub_name(self, text):
+
+        if len(self.tree_dict) == 0:
             pass
-        if key not in list(self.tree_dict.keys()):
-            self.tree = self.tree_dict[key] = self.tree_dict[self.subject_name]
+        else:
+            self.subject_name = self.subject_cb.currentText()
+            try:
+                self.subject_stack.removeWidget(self.tree)
+            except:
+                pass
+            self.tree = self.tree_dict[self.subject_name]
             self.subject_stack.addWidget(self.tree)
+            self.s_obj = self.subject[self.subject_name].s_obj
+            self.elec_df = self.subject[self.subject_name].coord
+            self.reset_source(self.subject_name)
+
+
+
 
 
     def get_all_items(self):
 
         item = []
         child = []
-
         key = self.subject_cb.currentText()
         iterator = QTreeWidgetItemIterator(self.tree_dict[key], QTreeWidgetItemIterator.All)
         while iterator.value():
@@ -2156,23 +2193,25 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
             QMessageBox.warning(self, 'Error', 'Please create a subject first')
         else:
             mni_path, _ = QFileDialog.getOpenFileName(self, 'Load MNI Coornidates')
-            self.elec_df = pd.read_csv(mni_path, sep='\t', header=None, index_col=None)
-            self.subject[subject_name].coord = self.elec_df
-            self.ch_names = self.elec_df[0].tolist()
-            self.ch_group = get_chan_group(chans=self.ch_names)
-            self.group = list (self.ch_group.keys())
-            self.elec_df.set_index([0], inplace=True)
-            self.ch_pos = self.elec_df[[1, 2, 3]].to_numpy(dtype=float)
-            ch_coords = []
-            [ch_coords.append(self.ch_group[group]) for group in self.ch_group]
-            self.s_obj = [SourceObj(str(group), xyz=self.elec_df.loc[self.ch_group[group]].to_numpy(dtype=float),
-                                     text=self.ch_group[group], color=u_color[index % 15], **self.s_kwargs)
-                          for index, group in enumerate(self.ch_group)]
-            self._source_widget()
-            self._obj_type_lst.model().item(1).setEnabled(True)
-            # ch_names = coord[0].tolist()
-            # data.info['bads'].extend([ch for ch in data.ch_names if ch not in ch_names])
-            # data.drop_channels(data.info['bads'])
+            if mni_path:
+                self.elec_df = pd.read_csv(mni_path, sep='\t', header=None, index_col=None)
+                self.subject[subject_name].coord = self.elec_df
+                self.ch_names = self.elec_df[0].tolist()
+                self.ch_group = get_chan_group(chans=self.ch_names)
+                self.group = list (self.ch_group.keys())
+                self.subject[subject_name].group = self.group
+                self.elec_df.set_index([0], inplace=True)
+                self.ch_pos = self.elec_df[[1, 2, 3]].to_numpy(dtype=float)
+                ch_coords = []
+                [ch_coords.append(self.ch_group[group]) for group in self.ch_group]
+                self.subject[subject_name].s_obj = self.s_obj = [SourceObj(str(group), xyz=self.elec_df.loc[self.ch_group[group]].to_numpy(dtype=float),
+                                         text=self.ch_group[group], color=u_color[index % 15], **self.s_kwargs)
+                              for index, group in enumerate(self.ch_group)]
+                self._source_widget()
+                self._obj_type_lst.model().item(1).setEnabled(True)
+                # ch_names = coord[0].tolist()
+                # data.info['bads'].extend([ch for ch in data.ch_names if ch not in ch_names])
+                # data.drop_channels(data.info['bads'])
 
 
 
