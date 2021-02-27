@@ -737,6 +737,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         if isinstance(self.group, list):
             self._obj_name_lst.addItems(sorted(self.group))
         self._obj_name_lst.setFixedWidth(200)
+        self._source_vis = QCheckBox('Display the source')
         self._select_label = QLabel('Select')
         self._s_select = QComboBox()
         self._s_select.addItems(['All', 'Inside the brain', 'Outside the brain',
@@ -770,6 +771,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         s_layout_4.addWidget(self._projection)
         s_layout_4.addWidget(self.project_btn)
         s_layout_0.addLayout(s_layout_1)
+        s_layout_0.addWidget(self._source_vis)
         s_layout_0.addLayout(s_layout_2)
         s_layout_0.addLayout(s_layout_3)
         s_layout_0.addWidget(self._project_label)
@@ -807,8 +809,10 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
             self._obj_type_lst.model().item(1).setEnabled(False)
         self.sources.parent = self._vbNode
         name = self._obj_name_lst.currentText()
-        self._source_group.setChecked(self.sources[name].visible_obj)
-        self._source_group.clicked.connect(self._fcn_source_visible)
+        self._source_group.setChecked(True)
+        self._source_group.clicked.connect(self._fcn_vis_source)
+        self._source_vis.setChecked(self.sources[name].visible_obj)
+        self._source_vis.clicked.connect(self._fcn_source_visible)
         self._obj_name_lst.currentTextChanged.connect(self._fcn_change_name)
         self._s_select.currentIndexChanged.connect(self._fcn_source_select)
         self._s_symbol.currentIndexChanged.connect(self._fcn_source_symbol)
@@ -1014,6 +1018,12 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.atlas.mesh.update()
 
     # ========================= Source Slot ========================
+    def _fcn_vis_source(self):
+        viz = self._source_group.isChecked()
+        for name in self.group:
+            self.sources[name].visible_obj = viz
+
+
     def _fcn_source_symbol(self):
         """Change the source symbol."""
         name = self._obj_name_lst.currentText()
@@ -1026,7 +1036,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
 
     def _fcn_source_visible(self):
         """Display / hide source object."""
-        viz = self._source_group.isChecked()
+        viz = self._source_vis.isChecked()
         name = self._obj_name_lst.currentText()
         self.sources[name].visible_obj = viz
         self._select_label.setEnabled(viz)
@@ -1040,7 +1050,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
     def _fcn_change_name(self):
         name = self._obj_name_lst.currentText()
         viz = self.sources[name].visible_obj
-        self._source_group.setChecked(viz)
+        self._source_vis.setChecked(viz)
         self._select_label.setEnabled(viz)
         self._s_select.setEnabled(viz)
         self._symbol_label.setEnabled(viz)

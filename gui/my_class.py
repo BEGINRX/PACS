@@ -60,7 +60,6 @@ class Subject(object):
         self.coord = coord
         self.group = group
         self.image = dict()
-        self.b_obj = b_obj
         self.s_obj = s_obj
         self.c_obj = c_obj
 
@@ -119,8 +118,6 @@ class Change_Figure(Figure):
 
 
 """Screenshot window and related functions."""
-
-
 from visbrain.io import write_fig_pyqt, dialog_save
 from visbrain.utils import ScreenshotPopup
 class UiScreenshot(object):
