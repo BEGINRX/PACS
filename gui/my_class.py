@@ -175,6 +175,7 @@ class Brain_Ui(object):
         self.cdict = {'bgcolor': '#dcdcdc', 'cargs': {'size':(900, 600), 'dpi': 600,
                       'fullscreen': True, 'resizable': True}}
         self._gl_scale = 100
+        self._camera = viscam.TurntableCamera(name='MainBrainCamera')
         self.s_kwargs = {}
         self.s_kwargs['symbol'] = 'hbar'
         self.s_kwargs['radius_min'] = 10
@@ -351,7 +352,7 @@ class Brain_Ui(object):
         self.atlas = BrainObj('B1')
         self.atlas.scale = self._gl_scale
         self.atlas.parent = self._vbNode
-        self._brain_group.setChecked(True)
+        self._brain_group.setChecked(False)
         self._brain_translucent.setChecked(self.atlas.translucent)
         self._brain_group.clicked.connect(self._fcn_brain_visible)
         self._brain_template.currentTextChanged.connect(self._fcn_brain_template)
