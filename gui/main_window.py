@@ -36,8 +36,7 @@ from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan
                            Refer_Window, Baseline_Time, My_Progress, Time_Freq_Win, Con_Win
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
 from gui.data_io import write_raw_edf, write_raw_set
-from gui.my_class import Subject, SEEG, UiScreenshot, Brain_Ui
-from vispy import scene
+from gui.my_class import Subject, SEEG, UiScreenshot
 from visbrain.gui.brain.user import BrainUserMethods
 from visbrain.objects.scene_obj import VisbrainCanvas
 from visbrain.objects import BrainObj, CombineSources, RoiObj, SourceObj, ConnectObj
@@ -54,7 +53,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
     '''
 
     data_info_signal = pyqtSignal(dict)
-    source_signal = pyqtSignal(CombineSources)
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -330,7 +328,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.subject_cb.activated.connect(self.change_ptc)
         self.subject_cb.setProperty('name', 'ptc')
         self.subject_cb.setFixedHeight(35)
-        self.subject_cb.setEditable(True)
+        # self.subject_cb.setEditable(True)
 
 
     def create_label(self):
@@ -355,7 +353,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.file_name_label.setAlignment(Qt.AlignLeft)
         self.file_name_label.setFixedSize(180, 33)
 
-        self.file_name_cont_label = QLabel('123', self)
+        self.file_name_cont_label = QLabel('', self)
         self.file_name_cont_label.setAlignment(Qt.AlignLeft)
         self.file_name_cont_label.setFixedHeight(33)
 
@@ -552,7 +550,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
 
 
     def brain_ui(self):
-        self.cdict = {'bgcolor': '#dcdcdc', 'cargs': {'size':(900, 600), 'dpi': 600,
+        self.cdict = {'bgcolor': '#dcdcdc', 'cargs': {'size':(1300, 600), 'dpi': 600,
                                                       'fullscreen': True, 'resizable': True}}
         self._gl_scale = 100
         self._camera = viscam.TurntableCamera(name='MainBrainCamera')
@@ -568,8 +566,10 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.z = 85
         self._brain_ui()
 
+
     def _brain_ui(self):
         self.widget = QWidget()
+        self._source_group = None
 
         # root node
         self._vbNode = scene.Node(name='Brain')
@@ -580,6 +580,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self._obj_type_lst.addItems(object_lst)
         self._obj_type_lst.currentTextChanged.connect(self.change_group)
         self._obj_type_lst.model().item(1).setEnabled(False)
+        self._obj_type_lst.setFixedWidth(300)
 
         self._brain_widget()
         self._roi_widget()
@@ -599,10 +600,10 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
 
         self.view = VisbrainCanvas(name='MainCanvas', camera=self._camera,
                                     **self.cdict)
-        self.layout = QHBoxLayout()
-        self.layout.addLayout(left_layout)
-        self.layout.addWidget(self.view.canvas.native)
-        self.widget.setLayout(self.layout)
+        layout = QHBoxLayout()
+        layout.addLayout(left_layout)
+        layout.addWidget(self.view.canvas.native)
+        self.widget.setLayout(layout)
 
         self.view.wc.camera = self._camera
         self._vbNode.parent = self.view.wc.scene
@@ -612,29 +613,10 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.atlas.camera.set_default_state()
 
 
-    def create_source(self, elec_df=None):
-        self.elec_df = elec_df
-        if self.elec_df is not None:
-            self.ch_names = self.elec_df[0].tolist()
-            self.ch_group = get_chan_group(chans=self.ch_names)
-            self.elec_df.set_index([0], inplace=True)
-            self.ch_pos = self.elec_df[[1, 2, 3]].to_numpy(dtype=float)
-            ch_coords = []
-            [ch_coords.append(self.ch_group[group]) for group in self.ch_group]
-            self.s_obj = [SourceObj(str(group), xyz=self.elec_df.loc[self.ch_group[group]].to_numpy(dtype=float),
-                                text=self.ch_group[group], color=u_color[index % 15], **self.s_kwargs)
-                          for index, group in enumerate(self.ch_group)]
-            self.source_signal.connect(self._fcn_create_source)
-            self.source_signal.emit(self.s_obj)
-
-
-    def _fcn_create_source(self):
-        self._source_widget()
-
     def _brain_widget(self):
 
         self._brain_group = QGroupBox('Display Brain')
-        # self.brain_group.setFixedWidth(300)
+        self._brain_group.setFixedWidth(300)
         self._brain_group.setCheckable(True)
         self._brain_translucent = QCheckBox('Translucent')
         self._brain_alpha = QSlider()
@@ -727,6 +709,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.atlas = BrainObj('B1')
         self.atlas.scale = self._gl_scale
         self.atlas.parent = self._vbNode
+        self.atlas.visible_obj = False
         self._brain_group.setChecked(False)
         self._brain_translucent.setChecked(self.atlas.translucent)
         self._brain_group.clicked.connect(self._fcn_brain_visible)
@@ -745,45 +728,58 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self._brain_inlight.clicked.connect(self._fcn_brain_inlight)
 
     def _source_widget(self):
+        
         self._source_group = QGroupBox('Source')
         self._source_group.setCheckable(True)
         self._source_tab = QTabWidget(self._source_group)
         self._source_tab1 = QWidget()
-        self._source_tab1.setStyleSheet("background-color: '#fafafa'")
         self._obj_name_lst = QComboBox()
         self._obj_name_lst.addItems(sorted(self.group))
+        self._obj_name_lst.setFixedWidth(200)
         self._select_label = QLabel('Select')
         self._s_select = QComboBox()
         self._s_select.addItems(['All', 'Inside the brain', 'Outside the brain',
                                   'Left hemisphere', 'Right hemisphere', 'None'])
+        self._s_select.setFixedWidth(200)
         self._symbol_label = QLabel('Symbol')
         self._s_symbol = QComboBox()
+        self._s_symbol.setFixedWidth(200)
         symbol = ['hbar', 'vbar', 'disc', 'arrow', 'ring', 'clobber',
                   'square', 'diamond', 'cross']
         self._s_symbol.addItems(symbol)
 
         self._project_label = QLabel('Cortical projection')
+        self._project_label.setStyleSheet("font: bold")
         self._projection = QComboBox()
         self._projection.addItems(['Modulation', 'Repartition'])
         self.project_btn = QPushButton('Run')
 
         s_layout_0 = QVBoxLayout()
-        s_layout_1 = QFormLayout()
-        s_layout_1.addRow(self._select_label, self._s_select)
-        s_layout_1.addRow(self._symbol_label, self._s_symbol)
-        s_layout_2 = QHBoxLayout()
-        s_layout_2.addWidget(self._projection)
-        s_layout_2.addWidget(self.project_btn)
-        s_layout_0.addWidget(self._obj_name_lst)
+        s_layout_1 = QHBoxLayout()
+        s_layout_1.addWidget(self._obj_name_lst)
+        s_layout_1.addStretch(100)
+        s_layout_2 = QHBoxLayout ()
+        s_layout_2.addWidget(self._select_label)
+        s_layout_2.addStretch(100)
+        s_layout_2.addWidget(self._s_select)
+        s_layout_3 = QHBoxLayout()
+        s_layout_3.addWidget(self._symbol_label)
+        s_layout_3.addWidget(self._s_symbol)
+        s_layout_4 = QHBoxLayout()
+        s_layout_4.addWidget(self._projection)
+        s_layout_4.addWidget(self.project_btn)
         s_layout_0.addLayout(s_layout_1)
-        s_layout_0.addWidget(self._project_label)
         s_layout_0.addLayout(s_layout_2)
+        s_layout_0.addLayout(s_layout_3)
+        s_layout_0.addWidget(self._project_label)
+        s_layout_0.addLayout(s_layout_4)
         s_layout_0.addStretch(1000)
         self._source_tab1.setLayout(s_layout_0)
 
         self._source_tab2 = QWidget()
         self._s_table = QTableWidget()
         self._s_table.setFixedHeight(500)
+        self._s_table.setFixedWidth(400)
         self._s_analyse_roi = QComboBox()
         self._s_analyse_roi.addItems(['Brodmann', 'AAL', 'Talairach'])
         self._s_analyse_run = QPushButton('Run')
@@ -829,7 +825,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
 
     def _roi_widget(self):
         self._roi_group = QGroupBox('Display ROI')
-        self._roi_group.setFixedWidth(400)
+        self._roi_group.setFixedWidth(300)
         self._roi_group.setCheckable(True)
         self._roi_transp = QCheckBox('Translucent')
         self._roi_transp.setChecked(False)
@@ -864,7 +860,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         r_layout_1.addWidget(self._roi_rst)
 
         r_layout_2 = QVBoxLayout()
-        r_layout_2.addWidget(self._roi_group)
         r_layout_2.addWidget(self._roi_transp)
         r_layout_2.addLayout(r_layout_0)
         r_layout_2.addWidget(self._roi_uni_color)
@@ -877,8 +872,8 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         if self.roi.name not in self.roi.list():
             self.roi.save(tmpfile=True)
         self.roi.parent = self._vbNode
-        self._roi_vis.setChecked(self.roi.visible_obj)
-        self._roi_vis.clicked.connect(self._fcn_roi_visible)
+        self._roi_group.setChecked(self.roi.visible_obj)
+        self._roi_group.clicked.connect(self._fcn_roi_visible)
         self._fcn_roi_visible()
         vol_list = self.roi.list()
         try:
@@ -897,16 +892,16 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
     def change_group(self):
         if self._obj_type_lst.currentText() == 'Brain':
             self.group_stack.removeWidget(self._source_group)
-            self.group_stack.removeWidget(self.roi_group)
-            self.group_stack.addWidget(self.brain_group)
+            self.group_stack.removeWidget(self._roi_group)
+            self.group_stack.addWidget(self._brain_group)
         elif self._obj_type_lst.currentText() == 'Sources':
-            self.group_stack.removeWidget(self.brain_group)
-            self.group_stack.removeWidget(self.roi_group)
+            self.group_stack.removeWidget(self._brain_group)
+            self.group_stack.removeWidget(self._roi_group)
             self.group_stack.addWidget(self._source_group)
         elif self._obj_type_lst.currentText() == 'Region of Interest(ROI)':
-            self.group_stack.removeWidget(self.brain_group)
+            self.group_stack.removeWidget(self._brain_group)
             self.group_stack.removeWidget(self._source_group)
-            self.group_stack.addWidget(self.roi_group)
+            self.group_stack.addWidget(self._roi_group)
 
     # ========================== Brain Slot ========================
 
@@ -944,13 +939,16 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         viz = self._brain_translucent.isChecked()
         self.atlas.translucent = viz
         self._brain_alpha.setEnabled(viz)
-        if viz:
-            self.sources.set_visible_sources('all', self.atlas.vertices)
-            for name in self.group:
-                self.sources[name]._sources_text.visible = True
-        else:
-            for name in self.group:
-                self.sources[name]._sources_text.visible = False
+        try:
+            if viz:
+                self.sources.set_visible_sources('all', self.atlas.vertices)
+                for name in self.group:
+                    self.sources[name]._sources_text.visible = True
+            else:
+                for name in self.group:
+                    self.sources[name]._sources_text.visible = False
+        except:
+            pass
         self._fcn_brain_alpha()
 
     def _fcn_brain_alpha(self):
@@ -1055,7 +1053,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         b_obj = self.atlas
         radius = 10.0
         mask_color = 'gray'
-        project = str(self.projection.currentText()).lower()
+        project = str(self._projection.currentText()).lower()
         self.sources.project_sources(b_obj, project=project, radius=radius,
                                       mask_color=mask_color, **kwargs)
         self.atlas.mesh.update()
@@ -1432,8 +1430,8 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
             self.data_path, _ = QFileDialog.getOpenFileName(self, 'Import epoch')
             try:
                 if('set' == self.data_path[-3:])  or \
-                  ('fif' == self.data_path[-3:]) or \
-                  ('edf' == self.data_path[-3:]):
+                 ('fif' == self.data_path[-3:]) or \
+                 ('edf' == self.data_path[-3:]):
                     self.load_epoched_data_worker.data_path = self.data_path
                     self.load_epoched_data_worker.start()
                     self.flag += 1
@@ -2153,16 +2151,25 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
 
     def load_coordinate(self):
         '''Electrodes Visualization'''
-
         subject_name = self.subject_cb.currentText()
         if not subject_name:
             QMessageBox.warning(self, 'Error', 'Please create a subject first')
         else:
-
             mni_path, _ = QFileDialog.getOpenFileName(self, 'Load MNI Coornidates')
-            coord = pd.read_csv(mni_path, sep='\t', header=None, index_col=None)
-            self.subject[subject_name].coord = coord
-            self.create_source(elec_df=coord)
+            self.elec_df = pd.read_csv(mni_path, sep='\t', header=None, index_col=None)
+            self.subject[subject_name].coord = self.elec_df
+            self.ch_names = self.elec_df[0].tolist()
+            self.ch_group = get_chan_group(chans=self.ch_names)
+            self.group = list (self.ch_group.keys())
+            self.elec_df.set_index([0], inplace=True)
+            self.ch_pos = self.elec_df[[1, 2, 3]].to_numpy(dtype=float)
+            ch_coords = []
+            [ch_coords.append(self.ch_group[group]) for group in self.ch_group]
+            self.s_obj = [SourceObj(str(group), xyz=self.elec_df.loc[self.ch_group[group]].to_numpy(dtype=float),
+                                     text=self.ch_group[group], color=u_color[index % 15], **self.s_kwargs)
+                          for index, group in enumerate(self.ch_group)]
+            self._source_widget()
+            self._obj_type_lst.model().item(1).setEnabled(True)
             # ch_names = coord[0].tolist()
             # data.info['bads'].extend([ch for ch in data.ch_names if ch not in ch_names])
             # data.drop_channels(data.info['bads'])
