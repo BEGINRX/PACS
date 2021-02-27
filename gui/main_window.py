@@ -38,17 +38,15 @@ from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan
                            Refer_Window, Baseline_Time, My_Progress, Time_Freq_Win, Con_Win
 from gui.re_ref import car_ref, gwr_ref, esr_ref, bipolar_ref, monopolar_ref, laplacian_ref
 from gui.data_io import write_raw_edf, write_raw_set
-from gui.my_class import Subject, SEEG
-from vispy import app, scene
+from gui.my_class import Subject, SEEG, UiScreenshot, Brain_Ui
+from vispy import scene
 from visbrain.gui.brain.user import BrainUserMethods
-from visbrain.gui.brain.interface import BrainShortcuts
-from visbrain.gui.brain.visuals import Visuals
 from visbrain.objects.scene_obj import VisbrainCanvas
 from visbrain.objects import SceneObj, BrainObj, SourceObj, ConnectObj
 import vispy.scene.cameras as viscam
 import vispy.visuals.transforms as vist
 
-class MainWindow(QMainWindow, app.Canvas, Visuals, BrainShortcuts, BrainUserMethods):
+class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
     '''
     The main window
     '''
@@ -87,7 +85,7 @@ class MainWindow(QMainWindow, app.Canvas, Visuals, BrainShortcuts, BrainUserMeth
         self.create_combo_box()
         self.create_group_box()
         self.create_menubar()
-        # self.brain_ui()
+        self.brain_ui()
         self.create_layout()
         self.set_qt_style()
         # QApplication.setStyle(QStyleFactory.create('Fusion'))
@@ -461,7 +459,7 @@ class MainWindow(QMainWindow, app.Canvas, Visuals, BrainShortcuts, BrainUserMeth
         # self.data_size_cont_label.setFixedSize(130, 38)
 
         # labels in electordes and activation
-        self.electro_title_label = QLabel('SEEG Data visualization', self)
+        self.electro_title_label = QLabel('Brain visualization', self)
         self.electro_title_label.setProperty('name', 'title')
         self.electro_title_label.setAlignment(Qt.AlignCenter)
         self.electro_title_label.setFixedHeight(30)
@@ -551,31 +549,7 @@ class MainWindow(QMainWindow, app.Canvas, Visuals, BrainShortcuts, BrainUserMeth
 
 
     def brain_ui(self):
-        self.cdict = {'bgcolor': '#dcdcdc', 'cargs': {'size': (800, 600), 'dpi': 600,
-                                                    'fullscreen': True, 'resizable': True}}
-        self._camera = viscam.TurntableCamera (name='MainBrainCamera')
-        self._gl_scale = 1.5
-
-        self.play_cb = QComboBox ()
-        self.play_cb.addItems (['B1', 'B2', 'B3'])
-        self.play_cb.currentTextChanged.connect (self.change_brain)
-
-        self.stack = QStackedWidget()
-        self.view = VisbrainCanvas(name='MainCanvas', camera=self._camera,
-                                    **self.cdict)
-        self.stack.addWidget (self.view.canvas.native)
-
-        self._vbNode = scene.Node (name='Brain')
-        self._vbNode.transform = vist.STTransform (scale=[self._gl_scale] * 3)
-        self.atlas = BrainObj ('B1')
-        self.atlas.parent = self._vbNode
-
-        self.view.wc.camera = self._camera
-        self._vbNode.parent = self.view.wc.scene
-        self.atlas.camera = self._camera
-        self.atlas._csize = self.view.canvas.size
-        self.atlas.rotate ('left')
-        self.atlas.camera.set_default_state ()
+        self._brain = Brain_Ui()
 
 
     def create_layout(self):
@@ -655,13 +629,13 @@ class MainWindow(QMainWindow, app.Canvas, Visuals, BrainShortcuts, BrainUserMeth
 
         self.seeg_info_box.setLayout(data_info_layout)
 
-        # layout for basic visualization of topomap of sEEG
+        # layout for sEEG Elaborate electrodes
         vis_layout = QVBoxLayout()
         vis_layout.setSpacing(4)
         vis_layout.setContentsMargins(0, 0, 0, 0)
         vis_layout.addWidget(self.electro_title_label)
         # vis_layout.addWidget (self.play_cb)
-        vis_layout.addWidget(self.empty_label_1)
+        vis_layout.addWidget(self._brain.widget)
         self.vis_box.setLayout(vis_layout)
 
         # layout for protocol
@@ -738,17 +712,6 @@ class MainWindow(QMainWindow, app.Canvas, Visuals, BrainShortcuts, BrainUserMeth
 #*****************************************slot*****************************************
 
 ############################################# File ######################################################
-    def change_brain(self):
-
-        template = str (self.play_cb.currentText ())
-        # hemisphere = str (self._brain_hemi.currentText ())
-        if self.atlas.name != template:
-            self.atlas.set_data(name=template)
-            self.atlas.scale = self._gl_scale
-            self.atlas.reset_camera ()
-            self.atlas.rotate ('left')
-            self.atlas._name = template
-
 
 
     def show_error(self, error):
@@ -1599,6 +1562,7 @@ class MainWindow(QMainWindow, app.Canvas, Visuals, BrainShortcuts, BrainUserMeth
             mni_path, _ = QFileDialog.getOpenFileName (self, 'Load MNI Coornidates')
             coord = pd.read_csv(mni_path, sep='\t', header=None, index_col=None)
             self.subject[subject_name].coord = coord
+            self._brain.create_source(elec_df=coord)
 
             # ch_names = coord[0].tolist ()
             # data.info['bads'].extend ([ch for ch in data.ch_names if ch not in ch_names])
