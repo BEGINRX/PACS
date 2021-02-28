@@ -1023,7 +1023,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         for name in self.group:
             self.sources[name].visible_obj = viz
 
-
     def _fcn_source_symbol(self):
         """Change the source symbol."""
         name = self._obj_name_lst.currentText()
@@ -1089,7 +1088,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self._roi_transp.setEnabled(viz)
         self._roi_label.setEnabled(viz)
         self._roi_smooth.setEnabled(viz)
-        self._smooth_value.setEnabled(viz)
         self._roi_div.setEnabled(viz)
         self._roi_add.setEnabled(viz)
         self._roi_apply.setEnabled(viz)
