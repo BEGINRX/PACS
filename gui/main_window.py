@@ -13,7 +13,6 @@ matplotlib.use('Qt5Agg')
 from matplotlib import pyplot as plt
 
 import mne
-mne.viz.set_3d_backend('pyvista')
 import numpy as np
 import pandas as pd
 import scipy.io as sio
@@ -550,7 +549,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
 
 
     def brain_ui(self):
-        self.cdict = {'bgcolor': '#dcdcdc', 'cargs': {'size':(1300, 600), 'dpi': 600,
+        self.cdict = {'bgcolor': '#dcdccd', 'cargs': {'size':(1300, 600), 'dpi': 600,
                                                       'fullscreen': True, 'resizable': True}}
         self._gl_scale = 100
         self._camera = viscam.TurntableCamera(name='MainBrainCamera')
@@ -909,7 +908,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
             self.group_stack.addWidget(self._roi_group)
 
     # ========================== Brain Slot ========================
-
     def _fcn_brain_visible(self):
         """Display / hide the brain."""
         viz = self._brain_group.isChecked()

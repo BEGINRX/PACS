@@ -81,6 +81,7 @@ def get_chan_group(raw=None, chans=None):
     '''
     :param raw: instance of Raw
                 raw data
+           chans: list of channels' name
     :return: dict
              electrodes in the same shaft
     '''
