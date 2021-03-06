@@ -12,8 +12,7 @@ from gui.main_window import MainWindow
 from gui.splash_screen import SplashPanel
 
 
-if __name__ == "__main__":
-
+def main():
     my_app = QApplication(sys.argv)
     splash = SplashPanel()
     my_app.processEvents()
@@ -22,8 +21,14 @@ if __name__ == "__main__":
     GUI = MainWindow()
     splash.finish(GUI)
     splash.deleteLater()
-    # sys.exit(my_app.exec_())
-    my_app.exec_()
+    sys.exit(my_app.exec())
+    # my_app.exec_()
+
+
+
+if __name__ == "__main__":
+
+    main()
 
 
 
