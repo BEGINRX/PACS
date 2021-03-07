@@ -376,7 +376,7 @@ class Cal_Spec_Con(QThread):
                         result[i] = [c, m]
                     self.spec_con_signal.emit ([result, data, times])
                 else:
-                    epoch_1 = self.data.filter(self.para['freq'][0], self.para['freq'][1])
+                    epoch_1 = self.data
                     epoch_1 = epoch_1.crop(tmin=self.para['time'][0], tmax=self.para['time'][1])
                     print(type(self.para['chan'][0]))
                     epoch_1 = epoch_1.pick_channels(self.para['chan'][0])
