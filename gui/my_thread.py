@@ -516,8 +516,8 @@ class Cal_Time_Con(QThread):
             from gui.my_func import get_pearson, get_spec_pearson, get_corr
         except:
             from my_func import get_pearson, get_spec_pearson, get_corr
+        data = self.data[self.para['event']].load_data()
         if self.method == 'pearson':
-            data = self.data[self.para['event']]
             if not self.para['plot_mode'][0]:
                 epochx = data.copy().pick_channels(self.para['chan'][0])
                 epochy = data.copy().pick_channels(self.para['chan'][1])
@@ -526,7 +526,6 @@ class Cal_Time_Con(QThread):
                 epochx, epochy = data, data
                 con = get_pearson(data)
         elif self.method == 'envelope':
-            data = self.data[self.para['event']]
             if not self.para['plot_mode'][0]:
                 epochx = data.copy().pick_channels(self.para['chan'][0])
                 epochy = data.copy().pick_channels(self.para['chan'][1])
@@ -535,7 +534,6 @@ class Cal_Time_Con(QThread):
                 epochx, epochy = data, data
                 con = mne.connectivity.envelope_correlation(data)
         elif self.method == 'mutual information':
-            data = self.data[self.para['event']]
             if not self.para['plot_mode'][0]:
                 epochx = data.copy().pick_channels(self.para['chan'][0])
                 epochy = data.copy().pick_channels(self.para['chan'][1])
@@ -544,7 +542,6 @@ class Cal_Time_Con(QThread):
                 epochx, epochy = data, data
                 con = get_corr(data, data)
         elif self.method == 'cross correlation':
-            data = self.data[self.para['event']]
             if not self.para['plot_mode'][0]:
                 epochx = data.copy().pick_channels(list(self.para['chan'][0]))
                 epochy = data.copy().pick_channels(self.para['chan'][1])
@@ -553,7 +550,6 @@ class Cal_Time_Con(QThread):
                 epochx, epochy = data, data
                 con = get_corr(data, data, baseline=self.para['baseline'], mode='same')
         elif self.method == 'granger causality':
-            data = self.data[self.para['event']]
             if not self.para['plot_mode'][0]:
                 epochx = data.copy().pick_channels(self.para['chan'][0])
                 epochy = data.copy().pick_channels(self.para['chan'][1])
@@ -562,7 +558,6 @@ class Cal_Time_Con(QThread):
                 epochx, epochy = data, data
                 con = get_corr(data, data)
         elif self.method == 'transfer entropy':
-            data = self.data[self.para['event']]
             if not self.para['plot_mode'][0]:
                 epochx = data.copy().pick_channels(self.para['chan'][0])
                 epochy = data.copy().pick_channels(self.para['chan'][1])

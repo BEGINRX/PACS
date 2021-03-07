@@ -243,7 +243,8 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
 
         self.raw_action['save_menu'] = QMenu('Export data', self)
         self.save_fif_action = QAction('Save sEEG data as .fif data', self,
-                                       statusTip='Save sEEG data in .fif format')
+                                       statusTip='Save sEEG data in .fif format',
+                                       triggered=self.save_fif)
         self.save_edf_action = QAction('Save sEEG data as .edf data', self,
                                        statusTip='Save sEEG data in .edf format',
                                        triggered=self.save_edf)
@@ -286,7 +287,8 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
 
         self.epoch_action['epoch_save_menu'] = QMenu('Export data', self)
         self.epoch_save_fif = QAction('Save sEEG data as .fif data', self,
-                                       statusTip='Save sEEG data in .fif format')
+                                      statusTip='Save sEEG data in .fif format',
+                                      triggered=self.save_fif)
         self.epoch_save_edf = QAction('Save sEEG data as .edf data', self,
                                        statusTip='Save sEEG data in .edf format',
                                        triggered=self.save_edf)

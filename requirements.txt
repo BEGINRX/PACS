@@ -1,13 +1,14 @@
 PyQt5
 mne
 visbrain
-numpy==1.16.2
 pandas
-matplotlib==3.2.2
 h5py
 Pillow
-pyEDFlib
 pyface
-scikit-learn
 scipy
+pyEDFlib
+scikit-learn
+spectral_connectivity
+numpy == 1.16.2
+matplotlib == 3.2.2
 
