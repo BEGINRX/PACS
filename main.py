@@ -25,17 +25,17 @@ if __name__ == "__main__":
     参考自https://forum.qt.io/topic/85774/qt-application-crash/6
     '''
 
-    QCoreApplication.setAttribute (Qt.AA_X11InitThreads)
+    QCoreApplication.setAttribute(Qt.AA_X11InitThreads)
 
-    my_app = QApplication (sys.argv)
-    splash = SplashPanel ()
-    my_app.processEvents ()
-    my_app.setApplicationName ('SEEG_Cognition')
+    my_app = QApplication(sys.argv)
+    splash = SplashPanel()
+    my_app.processEvents()
+    my_app.setApplicationName('SEEG_Cognition')
 
-    GUI = MainWindow ()
-    splash.finish (GUI)
-    splash.deleteLater ()
-    sys.exit (my_app.exec ())
+    GUI = MainWindow()
+    splash.finish(GUI)
+    splash.deleteLater()
+    sys.exit (my_app.exec())
     # my_app.exec_()
 
 
