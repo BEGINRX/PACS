@@ -569,16 +569,5 @@ class Cal_Time_Con(QThread):
 
 
 
-qmut_1 = QMutex()
-from visbrain.objects import SceneObj, BrainObj, SourceObj, ConnectObj
-from gui.my_func import u_color
-
-class Brain_Win(QRunnable):
-
-    def __init__(self, group=None, ch_pos=None, elec_df=None, b_kwargs=None,
-                 source_vis=True, s_kwargs=None,
-                 con_vis=False, c_kwargs=None):
-
-        super(Brain_Win, self).__init__()
 
 
