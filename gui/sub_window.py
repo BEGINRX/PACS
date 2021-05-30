@@ -2778,7 +2778,7 @@ class Time_Freq_Win(QMainWindow):
 
 
     def init_ui(self):
-        self.setFixedSize(940,320)
+        self.setFixedSize(650, 320)
         self.center()
         self.set_font()
         self.create_center_widget()
@@ -2786,6 +2786,7 @@ class Time_Freq_Win(QMainWindow):
         self.create_layout()
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
+        self.setWindowTitle('Time-Frequency Analysis')
 
 
     def center(self):
@@ -2817,7 +2818,7 @@ class Time_Freq_Win(QMainWindow):
         self.name_label = QLabel(self.subject)
         self.name_label.setProperty('group', 'label_00')
         self.name_label.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-        self.name_label.setFixedWidth(700)
+        self.name_label.setFixedWidth(600)
         self.sfreq_label = QLabel('Sampling Rate')
         self.sfreq_label.setProperty('group', 'label_0')
         self.sfreq_label.setAlignment(Qt.AlignLeft)
@@ -2867,55 +2868,36 @@ class Time_Freq_Win(QMainWindow):
         self.time_range_label.setAlignment(Qt.AlignHCenter)
         self.time_range_label.setFixedWidth(100)
 
-        self.pic_label = QLabel()
-        # pixmap = QPixmap("../image/tf.png").scaled(QSize(130, 130), Qt.KeepAspectRatioByExpanding)
-        pixmap = QPixmap("image/tf.png").scaled(QSize(150, 150), Qt.KeepAspectRatioByExpanding)
-        self.pic_label.resize(150, 150)
-        self.pic_label.setPixmap(pixmap)
-        self.pic_label.setAlignment(Qt.AlignCenter)
-
         self.tf_label = QLabel('Time Frequency Analysis')
         self.tf_label.setProperty('group', 'label_2')
-        self.evoke_joint_btn = QPushButton(self)
-        self.evoke_joint_btn.setText('Evoke Joint')
-        self.evoke_joint_btn.setFixedSize(200, 28)
-        self.evoke_joint_btn.clicked.connect(self.evoke_joint)
-        self.evoke_cmp_btn = QPushButton(self)
-        self.evoke_cmp_btn.setText('Compare Evokes')
-        self.evoke_cmp_btn.setFixedSize(200, 28)
-        self.evoke_cmp_btn.clicked.connect(self.evoke_cmp)
-        self.erp_btn = QPushButton(self)
-        self.erp_btn.setText('Channel(s) Evoke')
-        self.erp_btn.setFixedSize(220, 28)
-        self.erp_btn.clicked.connect(self.evoke)
+
+        self.image_plot_btn = QPushButton(self)
+        self.image_plot_btn.setText('ERP Image')
+        self.image_plot_btn.setFixedSize(180, 28)
+        self.image_plot_btn.clicked.connect(self.image_map)
+        self.erpim_topo_btn = QPushButton(self)
+        self.erpim_topo_btn.setText('ERP Image topograph')
+        self.erpim_topo_btn.setFixedSize(180, 28)
+        self.erpim_topo_btn.clicked.connect(self.erpim_topo)
+
         self.erp_topo_btn = QPushButton(self)
         self.erp_topo_btn.setText('ERP topomap')
         self.erp_topo_btn.setFixedSize(180, 28)
         self.erp_topo_btn.clicked.connect(self.erp_topo)
+        self.psd_btn = QPushButton(self)
+        self.psd_btn.setText('Power Spectral Density')
+        self.psd_btn.setFixedSize(180, 28)
+        self.psd_btn.clicked.connect(self.psd)
+
         self.tfr_btn = QPushButton(self)
         self.tfr_btn.setText('Time-Frequency Response')
-        self.tfr_btn.setFixedSize(220, 28)
+        self.tfr_btn.setFixedSize(180, 28)
         self.tfr_btn.clicked.connect(self.tfr)
         self.tfr_topo_btn = QPushButton(self)
         self.tfr_topo_btn.setText('TFR topomap')
         self.tfr_topo_btn.setFixedSize(180, 28)
         self.tfr_topo_btn.clicked.connect(self.tfr_topo)
-        self.psd_btn = QPushButton(self)
-        self.psd_btn.setText('Power Spectral Density')
-        self.psd_btn.setFixedSize(210, 28)
-        self.psd_btn.clicked.connect(self.psd)
-        self.csd_btn = QPushButton(self)
-        self.csd_btn.setText('Cross-Spectral Density')
-        self.csd_btn.setFixedSize(210, 28)
-        self.csd_btn.clicked.connect(self.csd)
-        self.image_plot_btn = QPushButton(self)
-        self.image_plot_btn.setText('ERP Image')
-        self.image_plot_btn.setFixedSize(200, 28)
-        self.image_plot_btn.clicked.connect(self.image_map)
-        self.erpim_topo_btn = QPushButton(self)
-        self.erpim_topo_btn.setText('ERP Image topograph')
-        self.erpim_topo_btn.setFixedSize(220, 28)
-        self.erpim_topo_btn.clicked.connect(self.erpim_topo)
+
 
 
     def create_layout(self):
@@ -2940,34 +2922,21 @@ class Time_Freq_Win(QMainWindow):
         layout_3.addLayout(layout_2)
         self.data_box.setLayout(layout_3)
 
-        info_layout = QHBoxLayout()
-        info_layout.addWidget(self.data_box, stretch=1)
-        info_layout.addWidget(self.pic_label, stretch=1000)
-
         layout_4 = QHBoxLayout()
-        layout_4.addWidget(self.evoke_joint_btn)
-        layout_4.addWidget(self.erp_btn)
-        layout_4.addWidget(self.erp_topo_btn)
-        layout_4.addWidget(self.psd_btn)
-        layout_4.addStretch(100)
+        layout_4.addWidget(self.tf_label)
 
         layout_5 = QHBoxLayout()
-        layout_5.addWidget(self.evoke_cmp_btn)
-        layout_5.addWidget(self.tfr_btn)
+        layout_5.addWidget(self.image_plot_btn)
         layout_5.addWidget(self.tfr_topo_btn)
-        layout_5.addWidget(self.csd_btn)
-        layout_5.addStretch(100)
+        layout_5.addWidget(self.erp_topo_btn)
 
         layout_6 = QHBoxLayout()
-        layout_6.addWidget(self.image_plot_btn)
+        layout_6.addWidget(self.tfr_btn)
         layout_6.addWidget(self.erpim_topo_btn)
-        # layout_6.addWidget(self.tfr_topo_btn)
-        # layout_6.addWidget(self.csd_btn)
-        layout_6.addStretch(100)
+        layout_6.addWidget(self.psd_btn)
 
         main_layout = QVBoxLayout()
-        main_layout.addLayout(info_layout)
-        main_layout.addWidget(self.tf_label)
+        main_layout.addWidget(self.data_box)
         main_layout.addLayout(layout_4)
         main_layout.addLayout(layout_5)
         main_layout.addLayout(layout_6)
@@ -2992,6 +2961,9 @@ class Time_Freq_Win(QMainWindow):
                     padding=left:3px; padding-top:3px}
             QWidget[group='center']{background-color: white}
         ''')
+        self.psd_btn.setStyleSheet("QPushButton{font-size: 8pt}")
+        self.tfr_btn.setStyleSheet("QPushButton{font-size: 8pt}")
+        self.erpim_topo_btn.setStyleSheet("QPushButton{font-size: 8pt}")
 
 
     def show_pbar(self):
@@ -3005,6 +2977,7 @@ class Time_Freq_Win(QMainWindow):
         self.event_win = Evoke_Chan_WiN(event=event, chan = self.data.ch_names)
         self.event_win.erp_signal.connect(self.plot_image_map)
         self.event_win.show()
+
 
     def plot_image_map(self, event, ch_name):
         if ch_name == None:
@@ -3022,6 +2995,7 @@ class Time_Freq_Win(QMainWindow):
         self.event_win.erp_signal.connect(self.plot_erpim_topo)
         self.event_win.show()
 
+
     def plot_erpim_topo(self, event, value):
         try:
             if not value[0] and not value[1]:
@@ -3034,67 +3008,6 @@ class Time_Freq_Win(QMainWindow):
                                 "using digitization points.":
                 QMessageBox.warning(self, 'No location','Please load MNI coordinates')
 
-
-    def evoke_joint(self):
-        self.event = self.data.event_id
-        event = list(self.event.keys())
-        self.erp_win = Evoke_Chan_WiN(event=event, chan = self.data.ch_names)
-        self.erp_win.erp_signal.connect(self.plot_evoke_joint)
-        self.erp_win.show()
-
-    def plot_evoke_joint(self, event, ch_name):
-        import matplotlib.pyplot as plt
-        if ch_name == None:
-            pass
-        else:
-            try:
-                if event:
-                    mne.viz.plot_evoked_joint(self.data[event].average().pick_channels(ch_name), picks='seeg')
-            except Exception as error:
-                if error.args[0] == "ValueError: meg value must be one of " \
-                                    "['grad', 'mag', 'planar1', 'planar2'] or bool, not seeg":
-                    pass
-
-
-    def evoke(self):
-        self.event = self.data.event_id
-        event = list(self.event.keys())
-        self.erp_win = Evoke_Chan_WiN(event=event, chan = self.data.ch_names)
-        self.erp_win.erp_signal.connect(self.plot_evoke)
-        self.erp_win.show()
-
-    def plot_evoke(self, event, ch_name):
-        if ch_name == None:
-            pass
-        else:
-            if len(ch_name) == 1:
-                evoke = self.data[event].average().pick_types(seeg=True).pick_channels(ch_name)
-                mne.viz.plot_evoked(evoke, titles='Evoke: ' + str(ch_name), picks='seeg', spatial_colors=True)
-            else:
-                evoke = self.data[event].average().pick_types(seeg=True).pick_channels(ch_name)
-                mne.viz.plot_evoked(evoke, picks='seeg', spatial_colors=True)
-
-
-    def evoke_cmp(self):
-        event_id = self.data.event_id
-        event = list(event_id.keys())
-        self.evoke_cmp_win = Evoke_Chan_WiN(event, self.data.ch_names)
-        self.evoke_cmp_win.erp_signal.connect(self.plot_evoke_cmp)
-        self.evoke_cmp_win.show()
-
-    def plot_evoke_cmp(self, event_id, ch_name):
-        if ch_name == None:
-            pass
-        else:
-            self.event = self.data.event_id
-            event_id = list(self.event.keys())
-            evokes = [self.data[event].average() for event in event_id]
-            [evoke.pick_channels(ch_name) for evoke in evokes]
-            combine = 'mean'
-            if len(ch_name) == 1:
-                mne.viz.plot_compare_evokeds(evokes, picks='seeg', combine=combine, title=str(ch_name))
-            else:
-                mne.viz.plot_compare_evokeds(evokes, picks='seeg', combine=combine)
 
 
     def erp_topo(self):
@@ -4390,7 +4303,7 @@ class Con_Win(QMainWindow):
 
     def init_ui(self):
         self.setWindowTitle('Connectivity Analysis')
-        self.setFixedHeight(600)
+        self.setFixedHeight(290)
         self.setFixedWidth(930)
         self.center()
         self.set_font()
@@ -4480,65 +4393,20 @@ class Con_Win(QMainWindow):
         self.time_range_label.setAlignment(Qt.AlignHCenter)
         self.time_range_label.setFixedWidth(100)
 
-        self.pic_label = QLabel()
+        self.con_measure_bx = QGroupBox('Connectivity Measurements')
+        self.con_measure_bx.setProperty('group', 'box')
 
-        pixmap = QPixmap("../image/connectivity_use.png").scaled(QSize(140, 140), Qt.KeepAspectRatioByExpanding)
-        # pixmap = QPixmap("image/connectivity_use.png").scaled(QSize(140, 140), Qt.KeepAspectRatioByExpanding)
+
+        self.pic_label = QLabel()
+        # pixmap = QPixmap("../image/connectivity_use.png").scaled(QSize(140, 140), Qt.KeepAspectRatioByExpanding)
+        pixmap = QPixmap("image/connectivity_use.png").scaled(QSize(140, 140), Qt.KeepAspectRatioByExpanding)
         self.pic_label.resize(150, 150)
         self.pic_label.setPixmap(pixmap)
         self.pic_label.setAlignment(Qt.AlignCenter)
-
-        self.connect_box = QGroupBox('Connectivity Measures')
-        self.connect_box.setProperty('group', 'box')
-
-        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-        # Time Domain                                                             #
-        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-        #
-        self.time_box = QLabel('Time Domain')
-        self.time_box.setProperty('group', 'label_11')
-        self.func0_box = QGroupBox('Functional Connectivity')
-        self.func0_box.setProperty('group', 'box_12')
-        self.direct0_box = QGroupBox('Directional Connectivity')
-        self.direct0_box.setProperty('group', 'box_12')
-        # functional
-        self.pearson_corre_btn = QPushButton(self)
-        self.pearson_corre_btn.setText('Pearson Correlation')
-        self.pearson_corre_btn.setFixedSize(203, 28)
-        self.pearson_corre_btn.clicked.connect(self.use_pearson)
-        self.enve_coore_btn = QPushButton(self)
-        self.enve_coore_btn.setText('Envelope Correlation')
-        self.enve_coore_btn.setFixedSize(203, 28)
-        self.enve_coore_btn.clicked.connect(self.use_enve)
-        self.mutual_info_btn = QPushButton(self)
-        self.mutual_info_btn.setText('Mutual Information')
-        self.mutual_info_btn.setFixedSize(203, 28)
-        self.mutual_info_btn.clicked.connect(self.use_mutul_info)
-        # directional
-        self.cross_corre_btn = QPushButton(self)
-        self.cross_corre_btn.setText('Cross-Correlation')
-        self.cross_corre_btn.setFixedSize(203, 28)
-        self.cross_corre_btn.clicked.connect(self.use_cross_corre)
-        self.granger_causa0_btn = QPushButton(self)
-        self.granger_causa0_btn.setText('Granger Causality')
-        self.granger_causa0_btn.setFixedSize(203, 28)
-        self.granger_causa0_btn.clicked.connect(self.use_gc)
-        self.trans_entropy_btn = QPushButton(self)
-        self.trans_entropy_btn.setText('Transfer Entropy')
-        self.trans_entropy_btn.setFixedSize(203, 28)
-        self.trans_entropy_btn.clicked.connect(self.use_te)
-
-
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
         # Frequency Domain                                                        #
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
         #
-        self.freq_box = QLabel('Frequency Domain')
-        self.freq_box.setProperty('group', 'label')
-        self.func1_box = QGroupBox('Functional Connectivity')
-        self.func1_box.setProperty('group', 'box_12')
-        self.direct1_box = QGroupBox('Directional Connectivity')
-        self.direct1_box.setProperty('group', 'box_12')
         # functional
         self.coher_btn = QPushButton(self)
         self.coher_btn.setText('Coherence')
@@ -4573,24 +4441,6 @@ class Con_Win(QMainWindow):
         self.dswpli_btn.setText('Unbiased Squared WPLI')
         self.dswpli_btn.setFixedSize(210, 28)
         self.dswpli_btn.clicked.connect(self.use_debiased_wpli)
-        # directional
-        self.psi_btn = QPushButton(self)
-        self.psi_btn.setText('Phase Slope Index')
-        self.psi_btn.setFixedSize(210, 28)
-        self.psi_btn.clicked.connect (self.dir_con)
-        self.gd_btn = QPushButton(self)
-        self.gd_btn.setText('Group Delay')
-        self.gd_btn.setFixedSize(210, 28)
-        self.gd_btn.clicked.connect (self.dir_con)  # !!!!!!!
-        self.dir_pli_btn = QPushButton(self)
-        self.dir_pli_btn.setText('Phase Lag Index')
-        self.dir_pli_btn.setFixedSize(210, 28)
-        self.dir_pli_btn.clicked.connect(self.dir_con)
-        self.psg_btn = QPushButton(self)
-        self.psg_btn.setText('Pairwise Spectral Granger')
-        self.psg_btn.setFixedSize(210, 28)
-        self.psg_btn.clicked.connect (self.dir_con)
-        self.psg_btn.setProperty ('group', 'big')
 
 
     def create_layout(self):
@@ -4620,62 +4470,24 @@ class Con_Win(QMainWindow):
         info_layout.addWidget(self.data_box, stretch=1)
         info_layout.addWidget(self.pic_label, stretch=1000)
 
-        time_layout_0 = QFormLayout()
-        time_layout_0.addRow(self.pearson_corre_btn, self.enve_coore_btn)
-        time_layout_0.addRow(self.mutual_info_btn, )
-        self.func0_box.setLayout(time_layout_0)
-        time_layout_1 = QFormLayout()
-        time_layout_1.addRow(self.cross_corre_btn, self.granger_causa0_btn)
-        time_layout_1.addRow(self.trans_entropy_btn)
-        self.direct0_box.setLayout(time_layout_1)
-        layout_4 = QHBoxLayout()
-        layout_4.addWidget(self.func0_box)
-        layout_4.addWidget(self.direct0_box)
-        layout_4.addStretch(100)
-
         freq_layout_0 = QFormLayout()
         freq_layout_0.addRow(self.coher_btn, self.wpli_btn)
         freq_layout_0.addRow(self.pli_btn, self.imag_coher_btn)
-        freq_layout_1 = QFormLayout ()
+        freq_layout_1 = QFormLayout()
         freq_layout_1.addRow(self.uspli_btn, self.plv_btn)
-        freq_layout_1.addRow (self.dswpli_btn, self.ppc_btn)
-
+        freq_layout_1.addRow(self.dswpli_btn, self.ppc_btn)
 
         freq_layout_2 = QHBoxLayout()
         freq_layout_2.addLayout(freq_layout_0)
-        freq_layout_2.addLayout (freq_layout_1)
+        freq_layout_2.addLayout(freq_layout_1)
         freq_layout_2.addStretch(1000)
-        self.func1_box.setLayout(freq_layout_2)
 
-        freq_layout_3 = QHBoxLayout()
-        freq_layout_3.addWidget(self.gd_btn)
-        freq_layout_3.addWidget(self.psi_btn)
-        freq_layout_3.addWidget(self.dir_pli_btn)
-        freq_layout_3.addWidget(self.psg_btn)
-        freq_layout_3.addStretch(1000)
-        self.direct1_box.setLayout(freq_layout_3)
+        self.con_measure_bx.setLayout(freq_layout_2)
 
-        layout_5 = QVBoxLayout()
-        layout_5.addWidget(self.func1_box)
-        layout_5.addWidget(self.direct1_box)
-
-        layout_6 = QHBoxLayout()
-        layout_6.addWidget(self.time_box)
-        layout_6.addStretch(1000)
-        layout_7 = QHBoxLayout()
-        layout_7.addWidget(self.freq_box)
-        layout_7.addStretch(1000)
-        layout_8 = QVBoxLayout()
-        layout_8.addLayout(layout_6)
-        layout_8.addLayout(layout_4)
-        layout_8.addLayout(layout_7)
-        layout_8.addLayout(layout_5)
-
-        self.connect_box.setLayout(layout_8)
-        layout_9 = QVBoxLayout()
-        layout_9.addLayout(info_layout)
-        layout_9.addWidget(self.connect_box)
-        self.center_widget.setLayout(layout_9)
+        layout_4 = QVBoxLayout()
+        layout_4.addLayout(info_layout)
+        layout_4.addWidget(self.con_measure_bx)
+        self.center_widget.setLayout(layout_4)
 
 
     def set_style(self):
