@@ -1,7 +1,7 @@
 #  Process and Analysis of Cognitive SEEG(PACS) 
 ## Introduction  
 
-![PACS](image\PACS.png)
+![PACS](\image\PACS.png)
 
 Process and Analysis of Cognitive SEEG(PACS) is a Python-based software aiming to do the pre-processing and analysis of stereo-EEG(SEEG) in neuroscience. It support four main functions: __SEEG data import and export__, __Process of Raw class data__, __Analysis of Epoch class data__, __3D visualization of brain templates and SEEG electrodes__.
 
