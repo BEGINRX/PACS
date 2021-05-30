@@ -459,7 +459,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         # self.data_size_cont_label.setFixedSize(130, 38)
 
         # labels in electordes and activation
-        self.electro_title_label = QLabel('Brain visualization', self)
+        self.electro_title_label = QLabel('Brain Visualization', self)
         self.electro_title_label.setProperty('name', 'title')
         self.electro_title_label.setAlignment(Qt.AlignCenter)
         self.electro_title_label.setFixedHeight(30)
