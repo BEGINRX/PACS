@@ -3336,7 +3336,6 @@ class Pic_Change(QMainWindow):
         pass
 
 
-
 class Multitaper_Con_Win(QMainWindow):
 
     spec_con_signal = pyqtSignal(dict, str)

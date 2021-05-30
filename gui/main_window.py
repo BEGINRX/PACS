@@ -226,8 +226,8 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
 
         self.raw_action['remove_bad'] = QAction('Remove bad channels', self,
                                                triggered=self.drop_bad_chan)
-        self.raw_action['interpolate_bad'] = QAction('Interpolate bad channels', self,
-                                                    triggered=self.interpolate_bad)
+        self.raw_action['set_montage'] = QAction('Set montage', self,
+                                       triggered=self.set_seeg_montage)
 
         self.raw_action['get_epoch_menu'] = QMenu('Extract epoch', self)
         self.set_name = QAction('Set event name', self,
@@ -268,14 +268,14 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.epoch_action['apply_baseline'] = QAction('Apply baseline to correct the epochs', self,
                                              statusTip='Correct the epochs with selected baseline',
                                              triggered=self.apply_base_win)
-        self.epoch_action['visual_evoke_brain'] = QAction('Visualize Evoke data on a MNI brain_elements', self,
-                                                 triggered=self.choose_evoke)
         self.epoch_action['plot_epoch'] = QAction('Plot epoch', self,
                                          triggered=self.plot_raw_data)
         self.epoch_action['drop_bad_chan'] = QAction('Drop bad channels', self,
                                             triggered=self.drop_bad_chan)
         self.epoch_action['drop_bad'] = QAction('Drop bad epochs', self,
                                        triggered=self.drop_bad_epochs)
+        self.epoch_action['set_montage'] = QAction('Set montage', self,
+                                       triggered=self.set_seeg_montage)
 
         self.epoch_action['t_f'] = QAction('Time frequency analysis', self,
                                         triggered=self.show_tf_win)
@@ -518,8 +518,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.raw_menu.addMenu(self.raw_action['select_data_menu'])
         self.raw_menu.addSeparator()
         self.raw_menu.addActions([self.raw_action['plot_raw'],
-                                  self.raw_action['remove_bad'],
-                                  self.raw_action['interpolate_bad']])
+                                  self.raw_action['remove_bad']])
         self.raw_menu.addSeparator()
         self.raw_menu.addMenu(self.raw_action['get_epoch_menu'])
         self.raw_menu.addSeparator()
@@ -531,10 +530,10 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.epoch_menu.addAction(self.epoch_action['apply_baseline'])
         self.epoch_menu.addActions([self.epoch_action['select_chan'],
                                     self.epoch_action['select_event']])
-        self.epoch_menu.addActions([self.epoch_action['visual_evoke_brain'],
-                                    self.epoch_action['plot_epoch'],
+        self.epoch_menu.addActions([self.epoch_action['plot_epoch'],
                                     self.epoch_action['drop_bad_chan'],
-                                    self.epoch_action['drop_bad']])
+                                    self.epoch_action['drop_bad'],
+                                    self.epoch_action['set_montage']])
         self.epoch_menu.addSeparator()
         self.epoch_menu.addActions([self.epoch_action['t_f'],
                                     self.epoch_action['connect']])
@@ -1970,60 +1969,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.get_seeg_data(data_sel)
 
 
-    # Time analysis
-    #
-    # EP
-    def choose_evoke(self):
-        data = self.current_data.data.copy()
-        self.event = data.event_id
-        del data
-        self.choose_evoke_win = Select_Event(list(self.event.keys()))
-        self.choose_evoke_win.event_signal.connect(self.visual_evoke_brain)
-        self.choose_evoke_win.show()
-
-
-    def visual_evoke_brain(self, event):
-
-        from mne.channels import compute_native_head_t
-        from mne.coreg import get_mni_fiducials
-        from mne.channels import make_dig_montage
-
-        evoke = self.current_data.data[event].average()
-
-        subjects_dir = 'datasets/subjects'
-        subject = 'fsaverage'
-        fname_src = os.path.join(subjects_dir, 'fsaverage', 'bem',
-                    'fsaverage-vol-5-src.fif')
-
-        subject_name = self.subject_cb.currentText()
-        try:
-            self.ch_coords = self.subject[subject_name].coord
-
-            lpa, nasion, rpa = get_mni_fiducials(
-                subject, subjects_dir=subjects_dir)
-            lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
-            montage = make_dig_montage(
-                self.ch_coords, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
-            trans = compute_native_head_t(montage)
-
-            vol_src = mne.read_source_spaces(fname_src)
-            stc = mne.stc_near_sensors(
-                evoke, trans, subject, subjects_dir=subjects_dir, src=vol_src,
-                verbose='error')
-            stc = abs(stc)  # just look at magnitude
-            clim = dict(kind='value', lims=np.percentile(abs(evoke.data), [10, 50, 75]))
-            brain = stc.plot_3d(
-                src=vol_src, subjects_dir=subjects_dir,
-                view_layout='horizontal', views=['axial', 'coronal', 'sagittal'],
-                size=(800, 300), show_traces=0.4, clim=clim,
-                add_data_kwargs=dict(colorbar_kwargs=dict(label_font_size=8)))
-        except Exception as error:
-            if error.args[0] == "MNI":
-                QMessageBox.warning(self, 'Mnotage error', 'Please import MNI Coordinates')
-            else:
-                self.show_error(error)
-
-
     def show_tf_win(self):
         data = self.current_data.data
         subject = self.subject_cb.currentText()
@@ -2178,13 +2123,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.get_seeg_data(data)
 
 
-    def interpolate_bad(self):
-        data = self.current_data.data.copy()
-        data.load_data()
-        data.interpolate_bads()
-        self.get_seeg_data(data)
-
-
     def plot_topo_psd(self):
 
         try:
@@ -2203,13 +2141,14 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
             mni_path, _ = QFileDialog.getOpenFileName(self, 'Load MNI Coornidates')
             if mni_path:
                 self.elec_df = pd.read_csv(mni_path, sep='\t', header=None, index_col=None)
-                self.subject[subject_name].coord = self.elec_df
                 self.ch_names = self.elec_df[0].tolist()
                 self.ch_group = get_chan_group(chans=self.ch_names)
                 self.group = list (self.ch_group.keys())
                 self.subject[subject_name].group = self.group
                 self.elec_df.set_index([0], inplace=True)
                 self.ch_pos = self.elec_df[[1, 2, 3]].to_numpy(dtype=float)
+                self.ch_name_pos = dict(zip(self.ch_names, self.ch_pos))
+                self.subject[subject_name].coord = self.ch_name_pos
                 ch_coords = []
                 [ch_coords.append(self.ch_group[group]) for group in self.ch_group]
                 self.subject[subject_name].s_obj = self.s_obj = [SourceObj(str(group), xyz=self.elec_df.loc[self.ch_group[group]].to_numpy(dtype=float),
@@ -2217,9 +2156,23 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
                               for index, group in enumerate(self.ch_group)]
                 self._source_widget()
                 self._obj_type_lst.model().item(1).setEnabled(True)
-                # ch_names = coord[0].tolist()
-                # data.info['bads'].extend([ch for ch in data.ch_names if ch not in ch_names])
-                # data.drop_channels(data.info['bads'])
+
+
+    def set_seeg_montage(self):
+
+        subject = 'fsaverage'
+        subjects_dir = 'gui/mne_data/subjects'
+        lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
+            subject, subjects_dir=subjects_dir)
+        lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
+        try:
+            montage = mne.channels.make_dig_montage(
+                self.ch_name_pos, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
+            print('set montage')
+            self.current_data.data.set_montage(montage, on_missing='ignore')
+        except:
+            QMessageBox.warning(self, 'Error shows up!', 'Please load MNI Coordinates first')
+
 
 
 
