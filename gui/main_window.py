@@ -1631,14 +1631,16 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
 
     def save_fif(self):
         '''save as .fif data'''
+        print('Saving SEEG data')
         self.save_path, _ = QFileDialog.getSaveFileName(self, 'Save data')
-        if not self.save_path:
+        if len(self.save_path):
             try:
                 self.current_data.data.save(self.save_path + '.fif', overwrite=True)
             except Exception as error:
                 self.show_error(error)
         else:
             pass
+        print ('Finish saving SEEG data')
 
 
     def save_pd(self):
