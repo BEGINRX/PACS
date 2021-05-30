@@ -317,7 +317,7 @@ class Cal_Spec_Con(QThread):
         if isinstance(para['chan'][0], list):
             if len(para['chan'][0]) == 1:
                 chanx_index = np.array([chan.index(str(para['chan'][0][0]))] * len(para['chan'][1]))
-                chany_index = np.array([chan.index (i) for i in para['chan'][1]])
+                chany_index = np.array([chan.index(i) for i in para['chan'][1]])
                 self.indices = (chanx_index, chany_index)
         else:
             self.indices = None

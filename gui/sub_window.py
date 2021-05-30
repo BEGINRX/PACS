@@ -1355,7 +1355,6 @@ class Evoke_Chan_WiN(QMainWindow):
         ''')
 
 
-
 class ERP_WIN(QMainWindow):
 
     erp_signal = pyqtSignal(list, str)
@@ -1461,7 +1460,6 @@ class ERP_WIN(QMainWindow):
                         QListWidget:item{height:28px}
                         QGroupBox{background-color:rgb(242,242,242)}
         ''')
-
 
 
 class ERP_Image_Topo(QMainWindow):
@@ -3715,7 +3713,6 @@ class Multitaper_Con_Win(QMainWindow):
         ''')
 
 
-
 class Morlet_Con_Win(QMainWindow):
 
     spec_con_signal = pyqtSignal(dict, str)
@@ -3955,7 +3952,6 @@ class Morlet_Con_Win(QMainWindow):
         self.para['chan'] = [self.chanx_get, self.chany_get]
         self.spec_con_signal.emit (self.para, self.mode)
         self.close ()
-
 
 
 class Freq_Con_Method_Win(QMainWindow):
@@ -4456,7 +4452,7 @@ class Con_Win(QMainWindow):
                 ax[0].set_xlabel('Time(s)')
                 ax[0].set_ylabel('Amplitude')
                 ax[0].set_xlim(time_extent)
-                ax[0].axvline (0., color='black')
+                ax[0].axvline(0., color='black')
 
                 time_grid, freq_grid = np.meshgrid (
                     np.append(con.time, time_extent[-1]),
@@ -4474,7 +4470,7 @@ class Con_Win(QMainWindow):
                 elif self.method == 'pli':
                     con_ = con.phase_lag_index ()[..., 0, 1].squeeze ().T
                 elif self.method == 'pli2_unbiased':
-                    con_ = con.debiased_squared_phase_lag_index ()[..., 0, 1].squeeze ().T
+                    con_ = con.debiased_squared_phase_lag_index()[..., 0, 1].squeeze ().T
                 elif self.method == 'wpli':
                     con_ = con.weighted_phase_lag_index ()[..., 0, 1].squeeze ().T
                 elif self.method == 'wpli2_debiased':
@@ -4486,6 +4482,7 @@ class Con_Win(QMainWindow):
                 ax[1].axvline(0., color='black')
                 ax[1].set_xlabel('Time(s)')
                 ax[1].set_ylabel('Frequency(Hz)')
+                ax[1].set_ylim((self.para['freq'][0], self.para['freq'][1]))
                 ax[1].set_title('Connectivity', fontweight='bold')
                 fig.tight_layout(pad=4)
                 cb = fig.colorbar(mesh, ax=ax.ravel ().tolist (), orientation='horizontal',
