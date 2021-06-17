@@ -2228,6 +2228,20 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
             # self.show_error(error)
             pass
 
+    def closeEvent(self, event):
+        '''
+        overwrite close event
+        '''
+        reply = QMessageBox.question(self,'本程序',
+                                     "是否要退出程序？",
+                                     QMessageBox.Yes | QMessageBox.No,
+                                     QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            event.accept()
+            os._exit(0)
+        else:
+            event.ignore()
+
 
 
 
