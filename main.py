@@ -30,7 +30,7 @@ if __name__ == "__main__":
     my_app = QApplication(sys.argv)
     splash = SplashPanel()
     my_app.processEvents()
-    my_app.setApplicationName('SEEG_Cognition')
+    my_app.setApplicationName('PACS')
 
     GUI = MainWindow()
     splash.finish(GUI)
