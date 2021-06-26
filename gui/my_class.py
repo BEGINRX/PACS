@@ -32,8 +32,11 @@ class SEEG(object):
             self.data_para['epoch_start'] = str(self.data._first_time)
             self.data_para['epoch_end'] = str(round(self.data._last_time, 2))
             self.data_para['time_point'] = str(self.data.n_times)
-            self.data_para['event_class'] = str(len(set(self.events[:, 2])))
-            self.data_para['event_num'] = str(len(self.events))
+            try:
+                self.data_para['event_class'] = str(len(set(self.events[:, 2])))
+                self.data_para['event_num'] = str(len(self.events))
+            except:
+                pass
             self.data_para['data_size'] = str(round(0.5 *(self.data._size /((2 ** 10) ** 2)), 2))
         else:
             self.data_para['epoch_num'] = str(self.events.shape[0])

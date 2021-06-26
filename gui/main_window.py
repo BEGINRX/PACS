@@ -1500,6 +1500,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
                         QMessageBox.warning(self, 'Name repeated', 'The name is already exists, please retype!')
                         self.key, _ = QInputDialog.getText(self, 'Name this Data', 'Please Name the Data',
                                                             QLineEdit.Normal)
+                        self.key += '_raw'
                     else:
                         [self.raw_action[action].setEnabled(True) for action in self.raw_action]
                 elif self.data_mode == 'epoch':
@@ -1517,9 +1518,12 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
                 self.subject[subject_name].seeg[self.key].data_para['path'] = self.data_path
                 if self.data_mode == 'raw':
                     des = list(set(seeg_data._annotations.description))
-                    event_id = {str(mark): int(mark) for mark in des}
-                    events, _ = mne.events_from_annotations(seeg_data, event_id=event_id)
-                    self.subject[subject_name].seeg[self.key].events = events
+                    try:
+                        event_id = {str(mark): int(mark) for mark in des}
+                        events, _ = mne.events_from_annotations(seeg_data, event_id=event_id)
+                        self.subject[subject_name].seeg[self.key].events = events
+                    except:
+                        pass
                     if 'Raw sEEG' in child:
                         self.node_20 = QTreeWidgetItem(self.tree_item[subject_name]['raw'])
                         self.node_20.setText(0, self.key)
@@ -2010,7 +2014,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
             rename_chan_data = self.current_data.data.copy().\
                 rename_channels({chan: chan[4:] for chan in self.current_data.data.ch_names
                                  if 'POL' in chan})
-            rename_chan_data = rename_chan_data.rename_channels({chan: chan[4:6] for chan in rename_chan_data.ch_names
+            rename_chan_data = rename_chan_data.rename_channels({chan: chan[4:-4] for chan in rename_chan_data.ch_names
                                  if 'Ref' in chan})
             # print(rename_chan_data)
             self.get_seeg_data(rename_chan_data)
