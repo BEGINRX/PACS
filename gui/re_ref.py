@@ -1,6 +1,93 @@
 import numpy as np
 import traceback
 import mne
+import time
+import os
+
+
+def preprocess(seeg, path, name, sfreq=1000, low=0.5, high=200,
+               rename=True, drop_chan=True):
+    """
+    Preprocess pipeline of SEEG time series data
+
+    Parameters
+    ----------
+    path : str
+        File path to save
+    name : str
+        File name to save
+    sfreq : int | float
+        Resampling frequency. The default is 1000Hz.
+    low : int | float
+        Low cut frequency. The default is 0.5.
+    high : int | float
+        DESCRIPTION. The default is 200.
+    rename : bool
+        Rename channels. The default is False.
+    drop_chan :list of str | bool
+        Drop useless channels. The default is True.
+
+    Returns
+    -------
+    seeg: instance of BaseRaw
+        SEEG time series.
+
+    """
+    if rename:
+        print('============================')
+        print('Start Renaming channels')
+        start = time.time()
+        seeg.rename_channels({chan: chan[4:]
+                                   for chan in seeg.ch_names
+                                   if 'POL' in chan})
+        seeg.rename_channels({chan: chan[4:-4]
+                                   for chan in seeg.ch_names
+                                   if 'Ref' in chan})
+        end = time.time()
+        print('Finish Renaming channels')
+        print('Using time {:.2f} seconds'.format(end - start))
+        print('============================')
+    if rename and (drop_chan == True):
+        print('Start Dropping channels')
+        start = time.time()
+        drop_chan = ['DC16', 'DC01', 'DC02', 'DC03', 'DC04', 'DC05', 'DC06',
+                     'DC07', 'DC08', 'BP1', 'BP2', 'BP3', 'BP4', 'EKG1',
+                     'EKG2', 'EMG1', 'EMG2', 'EMG3', 'EMG4', 'E', 'DC09', 'DC10',
+                     'DC11', 'DC12', 'DC13', 'DC14', 'DC15']
+        for chan in drop_chan:
+            try:
+                seeg.drop_channels(chan)
+            except:
+                pass
+        end = time.time()
+        print('Finish Dropping channels')
+        print('Using time {:.2f} seconds'.format(end - start))
+        print('============================')
+    print('Start Resampling channels')
+    start = time.time()
+    seeg = seeg.resample(sfreq)
+    end = time.time()
+    print('Finish Resampling channels')
+    print('Using time {:.2f} seconds'.format(end - start))
+    print('============================')
+    print('Start Filtering channels')
+    start = time.time()
+    seeg.notch_filter(50)
+    print('============================')
+    seeg.notch_filter(100)
+    print('============================')
+    seeg.notch_filter(150)
+    print('============================')
+    seeg.filter(low, high)
+    end = time.time()
+    print('Finish Filtering channels')
+    print('Using time {:.2f} seconds'.format(end - start))
+    print('============================')
+    print('Saving SEEG')
+    seeg.save(os.path.join(path, name + '.fif'))
+
+    return seeg
+
 
 
 def get_chan_group_old(raw):
@@ -76,7 +163,6 @@ def get_chan_group_old(raw):
 
     return ch_group_cont
 
-
 def get_chan_group(raw=None, chans=None):
     '''
     :param raw: instance of Raw
@@ -86,6 +172,7 @@ def get_chan_group(raw=None, chans=None):
              electrodes in the same shaft
     '''
     if raw is not None and chans is None:
+        print(raw)
         chans = raw.ch_names
         try:
             raw.rename_channels({chan: chan[4:] for chan in raw.ch_names
@@ -99,47 +186,68 @@ def get_chan_group(raw=None, chans=None):
             traceback.print_exc()
     else:
         pass
-
-    key = list(set([ch[0] for ch in chans]))
-    key += [k + '\'' for k in key]
-    chan_group = {k: [] for k in key}
-    for ch in chans:
-        for k in key:
-            if ch.startswith(k):
-                if not k.endswith('\'') and ('\'' in ch):
-                    continue
+    
+    if '-' not in chans[0]:
+        key = list(set([ch[0] for ch in chans]))
+        key += [k + '\'' for k in key]
+        chan_group = {k: [] for k in key}
+        for ch in chans:
+            for k in key:
+                if ch.startswith(k):
+                    if not k.endswith('\'') and ('\'' in ch):
+                        continue
+                    else:
+                        chan_group[k].append(ch)
+    
+        # delete no-element group(s)
+        chan_del = []
+        for group in chan_group:
+            if not len(chan_group[group]):
+                chan_del.append(group)
+        [chan_group.pop(ch) for ch in chan_del]
+    
+        # sort the channels in its group for reference
+        for group in chan_group:
+            if group.endswith('\''):
+                if group in chan_group[group]:
+                    chan_group[group].remove(group)
+                    chan_group[group].sort(key=lambda ch: (ch[0], int(ch[2:])))
+                    chan_group[group].insert(0, group)
                 else:
-                    chan_group[k].append(ch)
-
-    # delete no-element group(s)
-    chan_del = []
-    for group in chan_group:
-        if not len(chan_group[group]):
-            chan_del.append(group)
-    [chan_group.pop(ch) for ch in chan_del]
-
-    # sort the channels in its group for reference
-    for group in chan_group:
-        if group.endswith('\''):
-            if group in chan_group[group]:
-                chan_group[group].remove(group)
-                chan_group[group].sort(key=lambda ch: (ch[0], int(ch[2:])))
-                chan_group[group].insert(0, group)
+                    chan_group[group].sort(key=lambda ch: (ch[0], int(ch[2:])))
             else:
-                chan_group[group].sort(key=lambda ch: (ch[0], int(ch[2:])))
-        else:
-            if group in chan_group[group]:
-                chan_group[group].remove(group)
-                chan_group[group].sort(key=lambda ch: (ch[0], int(ch[1:])))
-                chan_group[group].insert(0, group)
-            else:
-                chan_group[group].sort(key=lambda ch: (ch[0], int(ch[1:])))
+                if group in chan_group[group]:
+                    chan_group[group].remove(group)
+                    chan_group[group].sort(key=lambda ch: (ch[0], int(ch[1:])))
+                    chan_group[group].insert(0, group)
+                else:
+                    chan_group[group].sort(key=lambda ch: (ch[0], int(ch[1:])))
+    else:
+        # 先假设所有电极都有A和A’两种形式 再删除没有电极的group
+        key = list(set([ch[0] for ch in chans]))
+        key += [k + '\'' for k in key]
+        chan_group = {k: [] for k in key}
+        for ch in chans:
+            for k in key:
+                if ch.startswith(k):
+                    if not k.endswith('\'') and ('\'' in ch):
+                        continue
+                    else:
+                        chan_group[k].append(ch)
+    
+        # delete no-element group(s)
+        chan_del = []
+        for group in chan_group:
+            if not len(chan_group[group]):
+                chan_del.append(group)
+        [chan_group.pop(ch) for ch in chan_del]
+
     return chan_group
 
 
-def car_ref(raw, data_class):
+def car_ref(raw, data_class='raw'):
     '''
-    Reference sEEG data using Common Average Reference(CAR)
+    Reference SEEG data using Common Average Reference(CAR)
     :param raw: instance of Raw
                 raw data
     :return: instance of Raw
@@ -159,7 +267,7 @@ def car_ref(raw, data_class):
 
 def gwr_ref(raw, data_class, coord_path):
     '''
-    Reference sEEG data using Gray-white Matter Reference(GWR)
+    Reference SEEG data using Gray-white Matter Reference(GWR)
     :param raw: instance of Raw
                 raw data
     :param gm: list
@@ -198,9 +306,72 @@ def gwr_ref(raw, data_class, coord_path):
     return raw_ref
 
 
-def esr_ref(raw, data_class):
+def bipolar_ref(ieeg):
     '''
-    Reference sEEG data using Electrode Shaft Reference(ESR)
+    Reference SEEG data using Bipolar Reference
+    :param ieeg: instance of BaseRaw or BaseEpochs
+                SEEG data
+
+    :return: instance of raw
+             data and raw data of the first contact in each shafts
+    '''
+    from mne.io import BaseRaw
+    from mne import BaseEpochs
+    group_chan = get_chan_group(ieeg)
+    group_ieeg = {group: ieeg.copy().pick_channels(group_chan[group]).reorder_channels(group_chan[group])
+                  for group in group_chan}
+# =============================================================================
+#     if data_class == 'raw':
+#         group_ieeg_bipolar = {group: np.diff(group_ieeg[group]._data, axis=0) for group in group_chan}
+#     elif data_class =='epoch':
+#         group_ieeg_bipolar = {group: np.diff(group_ieeg[group]._data, axis=1) for group in group_chan}
+# =============================================================================
+    group_ieeg_bipolar = dict()
+    if isinstance(ieeg, BaseRaw):
+        group_ieeg_bipolar = {group: group_ieeg[group]._data[:-1, :] - 
+                              group_ieeg[group]._data[1:, :]
+                              for group in group_chan}
+    elif isinstance(ieeg, BaseEpochs):
+        group_ieeg_bipolar = {group: np.diff(group_ieeg[group]._data, axis=1) for group in group_chan}
+
+    for group in group_ieeg:
+        ch_name = group_ieeg[group].ch_names
+        group_ieeg[group].drop_channels(group_chan[group][-1])._data = group_ieeg_bipolar[group]
+
+    
+    group_0 = list(group_chan.keys())[0]
+    bipolar_ieeg = group_ieeg[group_0]
+    group_ieeg.pop(group_0)
+    for name in group_ieeg:
+        if not (name == 'DC'):
+            bipolar_ieeg.add_channels([group_ieeg[name]])
+            
+    bipolar_chan = bipolar_ieeg.ch_names
+    bipolar_group = get_chan_group(chans=bipolar_chan)
+    
+    for key in bipolar_group:
+            b_group = bipolar_group[key]
+            for index in range(len(b_group)):
+                chan = b_group[index]
+                if index == len(b_group) - 1:
+                    if '\'' not in chan:
+                        bipolar_name = chan + '-' + chan[0:1] + str(int(chan[1:]) + 1)
+                    else:
+                        bipolar_name = chan + '-' + chan[0:2] + str(int(chan[2:]) + 1)
+                    bipolar_ieeg.rename_channels({chan: bipolar_name})
+                else:
+                    latter_chan = b_group[index + 1]
+                    bipolar_name = chan + '-' + latter_chan
+                    bipolar_ieeg.rename_channels({chan: bipolar_name})
+                print('Successfully convert {:} to {:}'.format(chan, bipolar_name))
+    
+    return bipolar_ieeg
+
+
+
+def esr_ref(raw, data_class='raw'):
+    '''
+    Reference SEEG data using Electrode Shaft Reference(ESR)
     :param raw: instance of Raw
                 raw data
     :return: instance of raw
@@ -228,49 +399,7 @@ def esr_ref(raw, data_class):
     return raw_new
 
 
-def bipolar_ref(raw, data_class, mode='auto'):
-    '''
-    Reference sEEG data using Bipolar Reference
-    :param raw: instance of Raw
-                raw data
-    :param mode: str
-        if mode = 'auto' then don't show the first contact in each shafts
-        if mode ='keep' then show
-    :return: instance of raw
-             data and raw data of the first contact in each shafts
-    '''
-    group_chan = get_chan_group(raw)
-    group_data = {group: raw.copy().pick_channels(group_chan[group]).reorder_channels(group_chan[group])
-                  for group in group_chan}
-    if data_class == 'raw':
-        group_data_new = {group: np.diff(group_data[group]._data, axis=0) for group in group_chan}
-    elif data_class =='epoch':
-        group_data_new = {group: np.diff(group_data[group]._data, axis=1) for group in group_chan}
-
-    # 保留最后一个没东西减的通道，但是不显示
-    miss_data = dict()
-    for group in group_data:
-        ch_name = group_data[group].ch_names
-        miss_data[group] = group_data[group].copy().pick_channels([group_chan[group][0]])
-        group_data[group].drop_channels(group_chan[group][0])._data = group_data_new[group]
-        if mode == 'keep':
-            if data_class == 'raw':
-                group_data[group].add_channels([miss_data[group]]).reorder_channels(group_chan[group])
-            elif data_class == 'epoch':
-                group_data[group] = mne.epochs.add_channels_epochs([group_data[group], miss_data[group]])
-                group_data[group].reorder_channels(ch_name)
-
-    group_0 = list(group_chan.keys())[0]
-    raw_new = group_data[group_0]
-    group_data.pop(group_0)
-    for name in group_data:
-        if not (name == 'DC'):
-            raw_new.add_channels([group_data[name]])
-
-    return raw_new, miss_data
-
-
-def monopolar_ref(raw, data_class, ref_chan):
+def monopolar_ref(raw,ref_chan , data_class='raw'):
     '''
     :param raw: instance of Raw
                 raw data
@@ -294,9 +423,9 @@ def monopolar_ref(raw, data_class, ref_chan):
     return new_raw
 
 
-def laplacian_ref(raw, data_class, mode='auto'):
+def laplacian_ref(raw, data_class='raw', mode='auto'):
     '''
-    Reference sEEG data using Laplacian Reference
+    Reference SEEG data using Laplacian Reference
     :param raw: instance of Raw
                 raw data
     :param mode: str
@@ -307,49 +436,41 @@ def laplacian_ref(raw, data_class, mode='auto'):
     '''
     group_chan = get_chan_group(raw)
     group_len = {group: len(group_chan[group]) for group in group_chan}
-    group_data = {group: raw.copy().pick_channels(group_chan[group]) for group in group_chan}
-    group_data = {group: group_data[group].reorder_channels(group_chan[group])
+    group_ieeg = {group: raw.copy().pick_channels(group_chan[group]) for group in group_chan}
+    group_ieeg = {group: group_ieeg[group].reorder_channels(group_chan[group])
                   for group in group_chan}
-    group_data_only = {group: group_data[group]._data * 1e6 for group in group_data}
-    group_data_new = {group: np.zeros(group_data[group].copy()._data.shape) for group in group_data}
-    for group in group_data_only:
+    group_ieeg_only = {group: group_ieeg[group]._data * 1e6 for group in group_ieeg}
+    group_ieeg_laplacian = {group: np.zeros(group_ieeg[group].copy()._data.shape) for group in group_ieeg}
+    for group in group_ieeg_only:
         for index in range(1, group_len[group] - 1):
             if data_class == 'raw':
-                group_data_new[group][index] = group_data_only[group][index] - \
-                                            np.divide(group_data_only[group][index - 1] +
-                                                      group_data_only[group][index + 1], 2)
+                group_ieeg_laplacian[group][index] = group_ieeg_only[group][index] - \
+                                            np.divide(group_ieeg_only[group][index - 1] +
+                                                      group_ieeg_only[group][index + 1], 2)
             elif data_class == 'epoch':
-                group_data_new[group][:, index, :] = group_data_only[group][:, index, :] - \
-                                                      np.divide(group_data_only[group][:, index - 1, :] +
-                                                      group_data_only[group][:, index + 1, :], 2)
+                group_ieeg_laplacian[group][:, index, :] = group_ieeg_only[group][:, index, :] - \
+                                                      np.divide(group_ieeg_only[group][:, index - 1, :] +
+                                                      group_ieeg_only[group][:, index + 1, :], 2)
         if data_class == 'raw':
-            group_data_new[group] = np.delete(group_data_new[group], 0, axis=0)
-            group_data_new[group] = np.delete(group_data_new[group], group_len[group] - 2, axis=0)
+            group_ieeg_laplacian[group] = np.delete(group_ieeg_laplacian[group], 0, axis=0)
+            group_ieeg_laplacian[group] = np.delete(group_ieeg_laplacian[group], group_len[group] - 2, axis=0)
         elif data_class == 'epoch':
-            group_data_new[group] = np.delete(group_data_new[group], 0, axis=1)
-            group_data_new[group] = np.delete(group_data_new[group], group_len[group] - 2, axis=1)
+            group_ieeg_laplacian[group] = np.delete(group_ieeg_laplacian[group], 0, axis=1)
+            group_ieeg_laplacian[group] = np.delete(group_ieeg_laplacian[group], group_len[group] - 2, axis=1)
 
-    miss_data = dict()
     for group in group_chan:
-        ch_name = group_data[group].ch_names
-        miss_data[group] = group_data[group].copy().pick_channels([ch_name[0], ch_name[-1]])
-        group_data[group].drop_channels([ch_name[0], ch_name[-1]])
-        group_data[group]._data = group_data_new[group] * 1e-6
-        if mode == 'keep':
-            if data_class == 'raw':
-                group_data[group].add_channels([miss_data[group]]).reorder_channels(group_chan[group])
-            elif data_class == 'epoch':
-                group_data[group] = mne.epochs.add_channels_epochs([group_data[group], miss_data[group]])
-                group_data[group].reorder_channels(ch_name)
+        ch_name = group_ieeg[group].ch_names
+        group_ieeg[group].drop_channels([ch_name[0], ch_name[-1]])
+        group_ieeg[group]._data = group_ieeg_laplacian[group] * 1e-6
 
     group_0 = list(group_chan.keys())[0]
-    raw_new = group_data[group_0]
-    group_data.pop(group_0)
-    for name in group_data:
+    laplacian_ieeg = group_ieeg[group_0]
+    group_ieeg.pop(group_0)
+    for name in group_ieeg:
         if not (name == 'DC'):
-            raw_new.add_channels([group_data[name]])
+            laplacian_ieeg.add_channels([group_ieeg[name]])
 
-    return raw_new, miss_data
+    return laplacian_ieeg
 
 
 
