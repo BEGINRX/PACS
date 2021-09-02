@@ -22,7 +22,7 @@ class SplashPanel(QSplashScreen):
         message_font.setPointSize(10)
         self.setFont(message_font)
         print('here')
-        pixmap = QPixmap("image/brain_title_use.png").scaled(QSize(800, 200), Qt.KeepAspectRatio)
+        pixmap = QPixmap("icon/brain_title_use.png").scaled(QSize(800, 200), Qt.KeepAspectRatio)
         self.setPixmap(pixmap)
         self.center()
         self.show()
