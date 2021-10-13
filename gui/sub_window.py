@@ -30,22 +30,19 @@ except:
 def show_error(error):
     print('*********************************************************************')
     print('Error is: ')
-    traceback.print_exc()
+    traceback.print_exc(error)
     print('*********************************************************************')
-
 
 
 class My_Progress(QMainWindow):
 
     def __init__(self, delay=0):
-
         super(My_Progress, self).__init__()
         self.step = 0
         self.delay = delay
         self.init_ui()
 
     def init_ui(self):
-
         self.setFixedHeight(50)
         self.setFixedWidth(500)
         self.setStyleSheet("background-color:gray")
@@ -77,7 +74,6 @@ class My_Progress(QMainWindow):
         self.setCentralWidget(self.center_widget)
 
     def create_widget(self):
-
         self.pbar = QProgressBar()
         self.pbar.setValue(0)
         self.pbar.setMinimum(0)
@@ -89,7 +85,6 @@ class My_Progress(QMainWindow):
         self.timer.start(100, self)
 
     def create_layout(self):
-
         layout_0 = QHBoxLayout()
         layout_0.addWidget(self.wait_label)
         layout_0.addWidget(self.pbar)
@@ -97,7 +92,6 @@ class My_Progress(QMainWindow):
         self.center_widget.setLayout(layout_0)
 
     def timerEvent(self, event):
-
         self.pbar.setValue(self.step)
         if self.step >= 100:
             self.timer.stop()
@@ -116,17 +110,13 @@ class Filter_Window(QMainWindow):
 
     def __init__(self, mode, mode_1):
         super(Filter_Window, self).__init__()
-
         self.filter_mode = mode   # fir or iir
         self.filter_mode_1 = mode_1
         self.low_freq = None
         self.high_freq = None
-
         self.init_ui()
 
-
     def init_ui(self):
-
         self.setFixedSize(400,150)
         self.setWindowModality(Qt.ApplicationModal)
         self.center()
@@ -139,7 +129,6 @@ class Filter_Window(QMainWindow):
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
 
-
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
         qr = self.frameGeometry()
@@ -147,20 +136,16 @@ class Filter_Window(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
     def set_font(self):
         self.font = QFont()
         self.font.setFamily('Arial')
         self.font.setPointSize(12)
 
-
     def create_box(self):
         self.center_widget = QWidget()
         self.setCentralWidget(self.center_widget)
 
-
     def fir_text(self):
-
         self.low_freq_label = QLabel(self)
         self.high_freq_label = QLabel(self)
         self.low_freq_label.setText('Lower pass-band edge(Hz)')
@@ -169,15 +154,11 @@ class Filter_Window(QMainWindow):
         if self.filter_mode == 'iir':
             self.iir_signal.emit()
 
-
     def iir_text(self):
-
         self.low_freq_label.setText('Lower Cutoff Frequency')
         self.high_freq_label.setText('Upper Cutoff Frequency')
 
-
     def create_line_edit(self):
-
         self.low_freq_edit = QLineEdit(self)
         self.low_freq_edit.setAlignment(Qt.AlignCenter)
 
@@ -194,9 +175,7 @@ class Filter_Window(QMainWindow):
             pass
         self.set_freq()
 
-
     def create_button(self):
-
         self.ok_button = QPushButton(self)
         self.ok_button.setText('OK')
         self.ok_button.setAutoDefault(True)
@@ -208,7 +187,6 @@ class Filter_Window(QMainWindow):
 
 
     def create_layout(self):
-
         freq_layout = QFormLayout()
         freq_layout.addRow(self.low_freq_label, self.low_freq_edit)
         freq_layout.addRow(self.high_freq_label, self.high_freq_edit)
@@ -224,7 +202,6 @@ class Filter_Window(QMainWindow):
         self.center_widget.setLayout(main_layout)
         self.center_widget.setFont(self.font)
 
-
     def set_freq(self):
         self.low_freq = self.low_freq_edit.text()
         self.high_freq = self.high_freq_edit.text()
@@ -235,27 +212,19 @@ class Filter_Window(QMainWindow):
         self.high_freq_edit.setText(None)
 
 
-    def set_style(self):
-        pass
-
-
-
 class Choose_Window(QMainWindow):
 
     signal = pyqtSignal(object, object,object)
     notch_signal = pyqtSignal(object, object, object)
 
     def __init__(self, mode):
-
         super(Choose_Window, self).__init__()
-
         self.filter_mode = mode
         self.filter_mode_1 = None
         self.low_freq = None
         self.high_freq = None
         self.notch_freq = None
         self.init_ui()
-
 
     def init_ui(self):
         '''initlize the ui'''
@@ -269,7 +238,6 @@ class Choose_Window(QMainWindow):
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
 
-
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
         qr = self.frameGeometry()
@@ -277,19 +245,16 @@ class Choose_Window(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
     def set_font(self):
         '''set the font'''
         self.font = QFont()
         self.font.setFamily('Arial')
         self.font.setPointSize(12)
 
-
     def create_center_widget(self):
         '''create center widget'''
         self.center_widget = QWidget()
         self.setCentralWidget(self.center_widget)
-
 
     def create_button(self):
         '''create buttons'''
@@ -310,7 +275,6 @@ class Choose_Window(QMainWindow):
         self.notch_button.setFixedSize(180, 60)
         self.notch_button.clicked.connect(self.notch_window)
 
-
     def create_layout(self):
         '''create the layout'''
         button_layout_0 = QHBoxLayout()
@@ -318,7 +282,6 @@ class Choose_Window(QMainWindow):
         button_layout_0.addSpacing(1)
         button_layout_0.addWidget(self.high_pass_button)
         button_layout_0.addSpacing(1)
-
 
         button_layout_1 = QHBoxLayout()
         button_layout_1.addWidget(self.band_pass_button)
@@ -332,7 +295,6 @@ class Choose_Window(QMainWindow):
         self.center_widget.setLayout(button_layout)
         self.center_widget.setFont(self.font)
 
-
     def low_pass_window(self):
         '''show the low pass window'''
         self.filter_mode_1 = 'low'
@@ -340,7 +302,6 @@ class Choose_Window(QMainWindow):
                                            self.filter_mode_1)
         self.filter_window.freq_signal.connect(self.update_freq)
         self.filter_window.show()
-
 
     def high_pass_window(self):
         '''show the high pass window'''
@@ -350,7 +311,6 @@ class Choose_Window(QMainWindow):
         self.filter_window.freq_signal.connect(self.update_freq)
         self.filter_window.show()
 
-
     def band_pass_window(self):
         '''show the band pass window'''
         self.filter_mode_1 = 'band'
@@ -358,8 +318,6 @@ class Choose_Window(QMainWindow):
                                            self.filter_mode_1)
         self.filter_window.freq_signal.connect(self.update_freq)
         self.filter_window.show()
-
-
 
     def notch_window(self):
         '''get notch filter frequency'''
@@ -370,7 +328,6 @@ class Choose_Window(QMainWindow):
             self.notch_signal.emit(self.low_freq, self.high_freq, self.notch_freq)
         self.notch_freq = None
 
-
     def update_freq(self, low_freq, high_freq):
         self.low_freq = low_freq
         self.high_freq = high_freq
@@ -379,19 +336,12 @@ class Choose_Window(QMainWindow):
         self.high_freq = None
 
 
-    def set_style(self):
-        pass
-
-
-
 class Event_Window(QMainWindow):
     
     line_edit_signal = pyqtSignal(list, list)
 
     def __init__(self, event_id):
-        
         super(Event_Window, self).__init__()
-
         print(event_id)
         self.add_num = 0
         self.event_name = []
@@ -400,9 +350,7 @@ class Event_Window(QMainWindow):
         self.event_id_edit_group = []
         self.init_ui()
 
-
     def init_ui(self):
-
         self.setWindowTitle('Generate event dict')
         self.setFixedWidth(400)
         self.setWindowModality(Qt.ApplicationModal)
@@ -416,8 +364,6 @@ class Event_Window(QMainWindow):
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
 
-
-
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
         qr = self.frameGeometry()
@@ -425,17 +371,13 @@ class Event_Window(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
     def create_center_widget(self):
         '''create center widget'''
         self.center_widget = QWidget()
         self.setCentralWidget(self.center_widget)
-
         self.stack_wid = QStackedWidget()
-
         self.stack_widgets = QWidget()
         self.stack_wid.addWidget(self.stack_widgets)
-
 
     def set_font(self):
         '''set the font'''
@@ -443,9 +385,7 @@ class Event_Window(QMainWindow):
         self.font.setFamily('Arial')
         self.font.setPointSize(12)
 
-
     def create_button(self):
-
         self.ok_button = QPushButton(self)
         self.ok_button.setText('OK')
         self.ok_button.clicked.connect(self.get_info)
@@ -454,17 +394,13 @@ class Event_Window(QMainWindow):
         self.cancel_button.setText('Cancel')
         self.cancel_button.clicked.connect(self.close)
 
-
     def create_labels(self):
-
         self.event_name_label = QLabel('Marker', self)
         self.event_name_label.setAlignment(Qt.AlignCenter)
         self.event_id_label = QLabel('Event', self)
         self.event_id_label.setAlignment(Qt.AlignCenter)
 
-
     def create_line_edit(self):
-
         for i in range(len(self.event_id)):
             self.event_name_edit = QLineEdit()
             self.event_name_edit.setAlignment(Qt.AlignCenter)
@@ -475,11 +411,7 @@ class Event_Window(QMainWindow):
             self.event_name_edit_group.append(self.event_name_edit)
             self.event_id_edit_group.append(self.event_id_edit)
 
-
     def create_layout(self):
-
-
-
         self.label_layout = QHBoxLayout()
         self.label_layout.addWidget(self.event_name_label)
         self.label_layout.addWidget(self.event_id_label)
@@ -503,9 +435,7 @@ class Event_Window(QMainWindow):
         self.center_widget.setLayout(self.main_layout)
         self.center_widget.setFont(self.font)
 
-
     def get_info(self):
-
         event_id = []
         for i in range(len(self.event_name_edit_group)):
             self.event_name.append(self.event_name_edit_group[i].text())
@@ -513,12 +443,6 @@ class Event_Window(QMainWindow):
         print(event_id)
         print(self.event_name, self.event_id)
         self.line_edit_signal.emit(self.event_name, self.event_id)
-
-
-    def set_style(self):
-
-        pass
-
 
 
 class Select_Time(QMainWindow):
@@ -544,7 +468,6 @@ class Select_Time(QMainWindow):
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
 
-
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
         qr = self.frameGeometry()
@@ -552,13 +475,11 @@ class Select_Time(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
     def create_center_widget(self):
         '''create center widget'''
         self.center_widget = QWidget()
         self.setCentralWidget(self.center_widget)
         self.center_widget.setFont(self.font)
-
 
     def set_font(self):
         '''set the font'''
@@ -566,14 +487,11 @@ class Select_Time(QMainWindow):
         self.font.setFamily('Arial')
         self.font.setPointSize(12)
 
-
     def create_label(self):
-
         self.start_time_label = QLabel('Start Time(s)', self)
         self.start_time_label.setAlignment(Qt.AlignCenter)
         self.end_time_label = QLabel('End Time(s)', self)
         self.end_time_label.setAlignment(Qt.AlignCenter)
-
 
     def create_line_edit(self):
         self.start_time_text = QLineEdit()
@@ -581,9 +499,7 @@ class Select_Time(QMainWindow):
         self.end_time_text = QLineEdit()
         self.end_time_text.setPlaceholderText(str(self.end_time))
 
-
     def create_button(self):
-
         self.ok_button = QPushButton(self)
         self.ok_button.setText('OK')
         self.ok_button.clicked.connect(self.ok_func)
@@ -592,9 +508,7 @@ class Select_Time(QMainWindow):
         self.cancel_button.setText('Cancel')
         self.cancel_button.clicked.connect(self.close)
 
-
     def create_layout(self):
-
         label_layout = QHBoxLayout()
         label_layout.addWidget(self.start_time_label)
         label_layout.addWidget(self.end_time_label)
@@ -614,7 +528,6 @@ class Select_Time(QMainWindow):
         main_layout.addLayout(button_layout)
 
         self.center_widget.setLayout(main_layout)
-
 
     def ok_func(self):
 
@@ -638,11 +551,6 @@ class Select_Time(QMainWindow):
             print('choose time window', [type(self.start_time), type(self.end_time)])
 
 
-    def set_style(self):
-        pass
-
-
-
 class Select_Chan(QMainWindow):
 
     chan_signal = pyqtSignal(list)
@@ -655,12 +563,9 @@ class Select_Chan(QMainWindow):
         self.chan_sel = []
         self.setWindowTitle('Channel')
         self.multi = multi
-        # self.setWindowIcon()
         self.init_ui()
 
-
     def init_ui(self):
-
         self.setFixedWidth(170)
         self.setMinimumHeight(750)
         self.setWindowModality(Qt.ApplicationModal)
@@ -672,7 +577,6 @@ class Select_Chan(QMainWindow):
         self.set_style()
         self.setWindowFlags(Qt.FramelessWindowHint)
 
-
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
         qr = self.frameGeometry()
@@ -680,13 +584,11 @@ class Select_Chan(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
     def set_font(self):
         '''set the font'''
         self.font = QFont()
         self.font.setFamily('Arial')
         self.font.setPointSize(12)
-
 
     def create_center_widget(self):
         '''create center widget'''
@@ -694,7 +596,6 @@ class Select_Chan(QMainWindow):
         self.setCentralWidget(self.center_widget)
         self.center_widget.setProperty('name', 'center')
         self.center_widget.setFont(self.font)
-
 
     def create_widget(self):
         self.tip_label = QLabel('Please select the channels you want to use!', self)
@@ -713,17 +614,13 @@ class Select_Chan(QMainWindow):
         self.cancel_button.setText('Cancel')
         self.cancel_button.clicked.connect(self.close)
 
-
     def ok_func(self):
-
         chan_sel = self.list_wid.selectedItems()
         self.chan_sel.append([item.text() for item in list(chan_sel)])
         self.chan_sel = self.chan_sel[0]
         self.chan_signal.emit(self.chan_sel)
 
-
     def create_layout(self):
-
         v_layout = QVBoxLayout()
         v_layout.addWidget(self.tip_label)
         v_layout.addWidget(self.list_wid)
@@ -739,7 +636,6 @@ class Select_Chan(QMainWindow):
 
         self.center_widget.setLayout(main_layout)
 
-
     def set_style(self):
         self.setStyleSheet('''
                         QLabel{background-color:rgb(242,242,242) ;font:10pt Times New Roman}
@@ -747,10 +643,8 @@ class Select_Chan(QMainWindow):
                         QListWidget:item{height:28px}
                         QWidget[name='center']{background-color:rgb(242,242,242)}
         ''')
-        # self.setWindowFlags(Qt.FramelessWindowHint)
         self.setWindowFlags(Qt.WindowMaximizeButtonHint)
         self.setWindowFlags(Qt.WindowCloseButtonHint)
-
 
 
 class Select_Event(QMainWindow):
@@ -758,19 +652,15 @@ class Select_Event(QMainWindow):
     event_signal = pyqtSignal(list)
 
     def __init__(self, event=None):
-        
         super(Select_Event, self).__init__()
         self.event = [str(element) for element in event]
         self.event_select = list()
         self.setWindowTitle('Event')
-
         self.init_ui()
 
 
     def init_ui(self):
-
         self.setFixedWidth(170)
-        # self.setWindowModality(Qt.ApplicationModal)
         self.center()
         self.set_font()
         self.create_center_widget()
@@ -779,9 +669,6 @@ class Select_Event(QMainWindow):
         self.create_layout()
         self.set_style()
 
-
-
-
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
         qr = self.frameGeometry()
@@ -789,13 +676,11 @@ class Select_Event(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
     def set_font(self):
         '''set the font'''
         self.font = QFont()
         self.font.setFamily('Arial')
         self.font.setPointSize(12)
-
 
     def create_center_widget(self):
         '''create center widget'''
@@ -804,9 +689,7 @@ class Select_Event(QMainWindow):
         self.center_widget.setProperty('name', 'center')
         self.center_widget.setFont(self.font)
 
-
     def create_list_widget(self):
-
         self.tip_label = QLabel('Please select the event(s)', self)
         self.tip_label.setWordWrap(True)
 
@@ -815,9 +698,7 @@ class Select_Event(QMainWindow):
         self.list_wid.addItems(self.event)
         self.list_wid.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
-
     def create_button(self):
-
         self.ok_button = QPushButton(self)
         self.ok_button.setText('OK')
         self.ok_button.clicked.connect(self.ok_func)
@@ -826,9 +707,7 @@ class Select_Event(QMainWindow):
         self.cancel_button.setText('Cancel')
         self.cancel_button.clicked.connect(self.close)
 
-
     def ok_func(self):
-
         event_select = self.list_wid.selectedItems()
         self.event_select.append([item.text() for item in list(event_select)])
         self.event_select = self.event_select[0]
@@ -838,9 +717,7 @@ class Select_Event(QMainWindow):
         else:
             self.close()
 
-
     def create_layout(self):
-
         v_layout = QVBoxLayout()
         v_layout.addWidget(self.tip_label)
         v_layout.addWidget(self.list_wid)
@@ -856,7 +733,6 @@ class Select_Event(QMainWindow):
 
         self.center_widget.setLayout(main_layout)
 
-
     def set_style(self):
         self.setStyleSheet('''
                         QLabel{background-color:rgb(242,242,242) ;font:10pt Times New Roman}
@@ -864,10 +740,8 @@ class Select_Event(QMainWindow):
                         QListWidget:item{height:28px}
                         QWidget[name='center']{background-color:rgb(242,242,242)}
         ''')
-        # self.setWindowFlags(Qt.FramelessWindowHint)
         self.setWindowFlags(Qt.WindowMaximizeButtonHint)
         self.setWindowFlags(Qt.WindowCloseButtonHint)
-
 
 
 class Epoch_Time(QMainWindow):
@@ -875,18 +749,14 @@ class Epoch_Time(QMainWindow):
     time_signal = pyqtSignal(float, float, float, float)
 
     def __init__(self):
-
         super(Epoch_Time, self).__init__()
         self.tmin = 0.
         self.tmax = 0.
         self.base_tmin = 0.
         self.base_tmax = 0.
-
         self.init_ui()
 
-
     def init_ui(self):
-        # self.setFixedSize(250, 140)
         self.setWindowModality(Qt.ApplicationModal)
         self.center()
         self.set_font()
@@ -898,7 +768,6 @@ class Epoch_Time(QMainWindow):
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
 
-
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
         qr = self.frameGeometry()
@@ -906,13 +775,11 @@ class Epoch_Time(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
     def set_font(self):
         '''set the font'''
         self.font = QFont()
         self.font.setFamily('Arial')
         self.font.setPointSize(12)
-
 
     def create_center_widget(self):
         '''create center widget'''
@@ -920,9 +787,7 @@ class Epoch_Time(QMainWindow):
         self.setCentralWidget(self.center_widget)
         self.center_widget.setFont(self.font)
 
-
     def create_label(self):
-
         self.time_range_label = QLabel('Time range')
         self.time_range_label.setProperty('group', 'title')
         self.time_range_label.setAlignment(Qt.AlignCenter)
@@ -941,9 +806,7 @@ class Epoch_Time(QMainWindow):
         self.base_tmax_label = QLabel('tmax (sec)')
         self.base_tmax_label.setProperty('group', 'time')
 
-
     def create_qedit(self):
-
         self.tmin_qedit = QLineEdit()
         self.tmin_qedit.setAlignment(Qt.AlignCenter)
         self.tmin_qedit.setValidator(QDoubleValidator())
@@ -960,9 +823,7 @@ class Epoch_Time(QMainWindow):
         self.base_tmax_qedit.setAlignment(Qt.AlignCenter)
         self.base_tmax_qedit.setValidator(QDoubleValidator())
 
-
     def create_button(self):
-
         self.ok_button = QPushButton(self)
         self.ok_button.setText('OK')
         self.ok_button.clicked.connect(self.ok_func)
@@ -970,9 +831,7 @@ class Epoch_Time(QMainWindow):
         self.cancel_button.setText('Cancel')
         self.cancel_button.clicked.connect(self.close)
 
-
     def ok_func(self):
-
         if not (self.tmin_qedit.text() and self.tmax_qedit.text()):
             self.tmin = 0.
             self.tmax = 0.
@@ -990,9 +849,7 @@ class Epoch_Time(QMainWindow):
         self.time_signal.emit(self.tmin, self.tmax, self.base_tmin, self.base_tmax)
         self.close()
 
-
     def create_layout(self):
-
         time_layout_0 = QFormLayout()
         time_layout_0.addRow(self.tmin_label, self.tmin_qedit)
         time_layout_0.addRow(self.tmax_label, self.tmax_qedit)
@@ -1014,12 +871,10 @@ class Epoch_Time(QMainWindow):
         main_layout.addLayout(button_layout)
         self.center_widget.setLayout(main_layout)
 
-
     def set_style(self):
 
         self.setStyleSheet('''QLabel{font: 20px Arial}
                               ''')
-
 
 
 class Refer_Window(QMainWindow):
@@ -1033,13 +888,10 @@ class Refer_Window(QMainWindow):
         self.ref_method = ['Common Average', 'Gray-white Matter',
                            'Electrode Shaft', 'Bipolar', 'Monopolar', 'Laplacian']
         self.ref_sel = []
-        # self.setWindowIcon()
         self.init_ui()
-
 
     def init_ui(self):
         self.setFixedWidth(200)
-        # self.setMinimumHeight(950)
         self.setWindowModality(Qt.ApplicationModal)
         self.center()
         self.set_font()
@@ -1050,7 +902,6 @@ class Refer_Window(QMainWindow):
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
 
-
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
         qr = self.frameGeometry()
@@ -1058,13 +909,11 @@ class Refer_Window(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
     def set_font(self):
         '''set the font'''
         self.font = QFont()
         self.font.setFamily('Arial')
         self.font.setPointSize(12)
-
 
     def create_center_widget(self):
         '''create center widget'''
@@ -1073,15 +922,11 @@ class Refer_Window(QMainWindow):
         self.center_widget.setProperty('name', 'center')
         self.center_widget.setFont(self.font)
 
-
     def create_list_widget(self):
-
         self.list_wid = QListWidget()
         self.list_wid.addItems(self.ref_method)
 
-
     def create_button(self):
-
         self.ok_button = QPushButton(self)
         self.ok_button.setText('OK')
         self.ok_button.clicked.connect(self.ok_func)
@@ -1090,9 +935,7 @@ class Refer_Window(QMainWindow):
         self.cancel_button.setText('Cancel')
         self.cancel_button.clicked.connect(self.close)
 
-
     def create_layout(self):
-
         h_layout = QHBoxLayout()
         h_layout.addStretch(1)
         h_layout.addWidget(self.ok_button)
@@ -1104,15 +947,11 @@ class Refer_Window(QMainWindow):
 
         self.center_widget.setLayout(main_layout)
 
-
     def ok_func(self):
-
         ref_sel = self.list_wid.selectedItems()[0]
         self.ref_sel = ref_sel.text()
         print(self.ref_sel)
         self.ref_signal.emit(self.ref_sel)
-
-
 
     def set_style(self):
         self.setStyleSheet('''
@@ -1122,19 +961,16 @@ class Refer_Window(QMainWindow):
         ''')
 
 
-
 class Baseline_Time(QMainWindow):
 
     time_signal = pyqtSignal(float, float)
 
     def __init__(self):
-
         super(Baseline_Time, self).__init__()
         self.tmin = 0.
         self.tmax = 0.
 
         self.init_ui()
-
 
     def init_ui(self):
         self.setFixedSize(250, 140)
@@ -1149,7 +985,6 @@ class Baseline_Time(QMainWindow):
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
 
-
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
         qr = self.frameGeometry()
@@ -1157,13 +992,11 @@ class Baseline_Time(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
     def set_font(self):
         '''set the font'''
         self.font = QFont()
         self.font.setFamily('Arial')
         self.font.setPointSize(12)
-
 
     def create_center_widget(self):
         '''create center widget'''
@@ -1171,15 +1004,11 @@ class Baseline_Time(QMainWindow):
         self.setCentralWidget(self.center_widget)
         self.center_widget.setFont(self.font)
 
-
     def create_label(self):
-
         self.tmin_label = QLabel('tmin  (sec)')
         self.tmax_label = QLabel('tmax (sec)')
 
-
     def create_qedit(self):
-
         self.tmin_qedit = QLineEdit()
         self.tmin_qedit.setAlignment(Qt.AlignCenter)
         self.tmin_qedit.setValidator(QDoubleValidator())
@@ -1190,7 +1019,6 @@ class Baseline_Time(QMainWindow):
 
 
     def create_button(self):
-
         self.ok_button = QPushButton(self)
         self.ok_button.setText('OK')
         self.ok_button.clicked.connect(self.ok_func)
@@ -1200,7 +1028,6 @@ class Baseline_Time(QMainWindow):
 
 
     def ok_func(self):
-
         if not (self.tmin_qedit.text() and self.tmax_qedit.text()):
             self.tmin = 0.
             self.tmax = 0.
@@ -1211,9 +1038,7 @@ class Baseline_Time(QMainWindow):
         self.time_signal.emit(self.tmin, self.tmax)
         self.close()
 
-
     def create_layout(self):
-
         time_layout = QFormLayout()
         time_layout.addRow(self.tmin_label, self.tmin_qedit)
         time_layout.addRow(self.tmax_label, self.tmax_qedit)
@@ -1228,12 +1053,9 @@ class Baseline_Time(QMainWindow):
         main_layout.addLayout(button_layout)
         self.center_widget.setLayout(main_layout)
 
-
     def set_style(self):
-
         self.setStyleSheet('''QLabel{font: 20px Arial}
                               ''')
-
 
 
 class Evoke_Chan_WiN(QMainWindow):
@@ -1245,12 +1067,9 @@ class Evoke_Chan_WiN(QMainWindow):
         self.event = event
         self.chan = chan
         self.ch_name = None
-
         self.init_ui()
 
-
     def init_ui(self):
-
         self.setFixedWidth(200)
         self.setWindowModality(Qt.ApplicationModal)
         self.center()
@@ -1259,8 +1078,6 @@ class Evoke_Chan_WiN(QMainWindow):
         self.create_widget()
         self.create_layout()
         self.set_style()
-        QApplication.setStyle(QStyleFactory.create('Fusion'))
-
 
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
@@ -1269,20 +1086,17 @@ class Evoke_Chan_WiN(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
     def set_font(self):
         '''set the font'''
         self.font = QFont()
         self.font.setFamily('Arial')
         self.font.setPointSize(12)
 
-
     def create_center_widget(self):
         '''create center widget'''
         self.center_widget = QWidget()
         self.center_widget.setFont(self.font)
         self.setCentralWidget(self.center_widget)
-
 
     def create_widget(self):
         self.event_label = QLabel('Event')
@@ -1300,22 +1114,18 @@ class Evoke_Chan_WiN(QMainWindow):
         self.chan_btn.setFixedWidth(90)
         self.chan_btn.clicked.connect(self.choose_chan)
 
-
         self.ok_button = QPushButton(self)
         self.ok_button.setText('OK')
         self.ok_button.setFixedWidth(60)
         self.ok_button.clicked.connect(self.ok_func)
-
 
     def choose_chan(self):
         self.chan_win = Select_Chan(self.chan)
         self.chan_win.chan_signal.connect(self.set_chan)
         self.chan_win.show()
 
-
     def set_chan(self, chan):
         self.ch_name = chan
-
 
     def ok_func(self):
         self.event_sel = self.event_combo.currentText()
@@ -1323,9 +1133,7 @@ class Evoke_Chan_WiN(QMainWindow):
         self.erp_signal.emit(self.event_sel, self.ch_name)
         self.close()
 
-
     def create_layout(self):
-
         button_layout = QHBoxLayout()
         button_layout.addStretch(1)
         button_layout.addWidget(self.ok_button)
@@ -1344,7 +1152,6 @@ class Evoke_Chan_WiN(QMainWindow):
         main_layout.addLayout(button_layout)
 
         self.center_widget.setLayout(main_layout)
-
 
     def set_style(self):
         self.setStyleSheet('''
@@ -1365,11 +1172,9 @@ class ERP_WIN(QMainWindow):
         self.event = event
         self.event_sel = []
         self.mode = 'montage'
-
         self.init_ui()
 
     def init_ui(self):
-
         self.setFixedWidth(190)
         self.setWindowModality(Qt.ApplicationModal)
         self.center()
@@ -1382,7 +1187,6 @@ class ERP_WIN(QMainWindow):
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
 
-
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
         qr = self.frameGeometry()
@@ -1390,20 +1194,17 @@ class ERP_WIN(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
     def set_font(self):
         '''set the font'''
         self.font = QFont()
         self.font.setFamily('Arial')
         self.font.setPointSize(12)
 
-
     def create_center_widget(self):
         '''create center widget'''
         self.center_widget = QWidget()
         self.center_widget.setFont(self.font)
         self.setCentralWidget(self.center_widget)
-
 
     def create_list_widget(self):
         self.list_wid = QListWidget()
@@ -1412,14 +1213,11 @@ class ERP_WIN(QMainWindow):
         [self.list_wid.item(index).setTextAlignment(Qt.AlignCenter)
          for index in range(self.list_wid.count())]
 
-
     def create_check_box(self):
         self.standard_layout_button = QCheckBox('Standard layout')
         self.standard_layout_button.stateChanged.connect(self.choose_layout)
 
-
     def create_button(self):
-
         self.ok_button = QPushButton(self)
         self.ok_button.setText('OK')
         self.ok_button.setFixedWidth(60)
@@ -1430,7 +1228,6 @@ class ERP_WIN(QMainWindow):
         if self.standard_layout_button.isChecked():
             self.mode = 'standard'
 
-
     def ok_func(self):
         event_sel = self.list_wid.selectedItems()
         self.event_sel.append([item.text() for item in list(event_sel)])
@@ -1438,9 +1235,7 @@ class ERP_WIN(QMainWindow):
         self.erp_signal.emit(self.event_sel, self.mode)
         self.close()
 
-
     def create_layout(self):
-
         button_layout = QHBoxLayout()
         button_layout.addStretch(1)
         button_layout.addWidget(self.ok_button)
@@ -1451,7 +1246,6 @@ class ERP_WIN(QMainWindow):
         main_layout.addLayout(button_layout)
 
         self.center_widget.setLayout(main_layout)
-
 
     def set_style(self):
         self.setStyleSheet('''
@@ -1471,12 +1265,10 @@ class ERP_Image_Topo(QMainWindow):
         self.event = event
         self.vmin = None
         self.vmax = None
-
         self.init_ui()
 
 
     def init_ui(self):
-
         self.setFixedWidth(380)
         self.setWindowModality(Qt.ApplicationModal)
         self.center()
@@ -1487,7 +1279,6 @@ class ERP_Image_Topo(QMainWindow):
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
 
-
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
         qr = self.frameGeometry()
@@ -1495,13 +1286,11 @@ class ERP_Image_Topo(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
     def set_font(self):
         '''set the font'''
         self.font = QFont()
         self.font.setFamily('Arial')
         self.font.setPointSize(12)
-
 
     def create_center_widget(self):
         '''create center widget'''
@@ -1509,15 +1298,12 @@ class ERP_Image_Topo(QMainWindow):
         self.center_widget.setFont(self.font)
         self.setCentralWidget(self.center_widget)
 
-
-
     def create_widget(self):
         self.event_label = QLabel('Event')
         self.event_label.setAlignment(Qt.AlignLeft)
         self.event_label.setFixedWidth(90)
         self.event_combo = QComboBox(self)
         self.event_combo.addItems(self.event)
-        # self.event_combo.setFixedWidth(90)
 
         self.value_label = QLabel('Value(μV)', self)
         self.value_label.setFixedWidth(90)
@@ -1551,7 +1337,6 @@ class ERP_Image_Topo(QMainWindow):
         self.erp_signal.emit(self.event_sel, [self.vmin, self.vmax])
         self.close()
 
-
     def create_layout(self):
 
         button_layout = QHBoxLayout()
@@ -1578,7 +1363,6 @@ class ERP_Image_Topo(QMainWindow):
 
         self.center_widget.setLayout(main_layout)
 
-
     def set_style(self):
         self.setStyleSheet('''
                         QPushButton{font: 10pt Times New Roman}
@@ -1586,7 +1370,6 @@ class ERP_Image_Topo(QMainWindow):
                         QListWidget:item{height:28px}
                         QGroupBox{background-color:rgb(242,242,242)}
         ''')
-
 
 
 class Change_Pic(QMainWindow):
@@ -1609,7 +1392,6 @@ class Change_Pic(QMainWindow):
         self.init_ui()
 
     def init_ui(self):
-
         self.setMinimumWidth(800)
         self.setMinimumHeight(600)
         self.center()
@@ -1639,7 +1421,6 @@ class Change_Pic(QMainWindow):
         self.setCentralWidget(self.center_widget)
 
     def create_widget(self):
-
         self.num_line_edit = QLineEdit()
         self.num_line_edit.setAlignment(Qt.AlignCenter)
         self.num_line_edit.setFixedWidth(120)
@@ -1713,7 +1494,6 @@ class Change_Pic(QMainWindow):
         self.change_canvas()
 
     def left_move(self):
-
         if self.num == 0:
             pass
         else:
@@ -1758,10 +1538,6 @@ class Change_Pic(QMainWindow):
             self.go_move()
         '''
 
-    def set_style(self):
-        pass
-
-
 
 class Power_Para_WIN(QMainWindow):
 
@@ -1772,9 +1548,7 @@ class Power_Para_WIN(QMainWindow):
         super(Power_Para_WIN, self).__init__()
         self.fmin = 0.
         self.fmax = 0.
-
         self.init_ui()
-
 
     def init_ui(self):
         self.setFixedSize(250, 140)
@@ -1789,7 +1563,6 @@ class Power_Para_WIN(QMainWindow):
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
 
-
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
         qr = self.frameGeometry()
@@ -1797,13 +1570,11 @@ class Power_Para_WIN(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
     def set_font(self):
         '''set the font'''
         self.font = QFont()
         self.font.setFamily('Arial')
         self.font.setPointSize(12)
-
 
     def create_center_widget(self):
         '''create center widget'''
@@ -1811,15 +1582,11 @@ class Power_Para_WIN(QMainWindow):
         self.setCentralWidget(self.center_widget)
         self.center_widget.setFont(self.font)
 
-
     def create_label(self):
-
         self.fmin_label = QLabel('fmin Hz')
         self.fmax_label = QLabel('fmax Hz')
 
-
     def create_qedit(self):
-
         self.fmin_qedit = QLineEdit()
         self.fmin_qedit.setAlignment(Qt.AlignCenter)
         self.fmin_qedit.setValidator(QDoubleValidator())
@@ -1828,9 +1595,7 @@ class Power_Para_WIN(QMainWindow):
         self.fmax_qedit.setAlignment(Qt.AlignCenter)
         self.fmax_qedit.setValidator(QDoubleValidator())
 
-
     def create_button(self):
-
         self.ok_button = QPushButton(self)
         self.ok_button.setText('OK')
         self.ok_button.clicked.connect(self.ok_func)
@@ -1838,9 +1603,7 @@ class Power_Para_WIN(QMainWindow):
         self.cancel_button.setText('Cancel')
         self.cancel_button.clicked.connect(self.close)
 
-
     def ok_func(self):
-
         if not (self.fmin_qedit.text() and self.fmax_qedit.text()):
             self.fmin = 0.
             self.fmax = 0.
@@ -1851,9 +1614,7 @@ class Power_Para_WIN(QMainWindow):
         self.freq_signal.emit(self.fmin, self.fmax)
         self.close()
 
-
     def create_layout(self):
-
         time_layout = QFormLayout()
         time_layout.addRow(self.fmin_label, self.fmin_qedit)
         time_layout.addRow(self.fmax_label, self.fmax_qedit)
@@ -1868,12 +1629,9 @@ class Power_Para_WIN(QMainWindow):
         main_layout.addLayout(button_layout)
         self.center_widget.setLayout(main_layout)
 
-
     def set_style(self):
-
         self.setStyleSheet('''QLabel{font: 20px Arial}
                               ''')
-
 
 
 class PSD_Para_Win(QMainWindow):
@@ -1886,12 +1644,9 @@ class PSD_Para_Win(QMainWindow):
         self.method = None
         self.nfft = None
         self.average = None
-
         self.init_ui()
 
-
     def init_ui(self):
-
         self.setFixedWidth(350)
         self.setWindowModality(Qt.ApplicationModal)
         self.center()
@@ -1905,7 +1660,6 @@ class PSD_Para_Win(QMainWindow):
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
 
-
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
         qr = self.frameGeometry()
@@ -1913,13 +1667,11 @@ class PSD_Para_Win(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
     def set_font(self):
         '''set the font'''
         self.font = QFont()
         self.font.setFamily('Arial')
         self.font.setPointSize(12)
-
 
     def create_center_widget(self):
         '''create center widget'''
@@ -1927,9 +1679,7 @@ class PSD_Para_Win(QMainWindow):
         self.center_widget.setFont(self.font)
         self.setCentralWidget(self.center_widget)
 
-
     def create_combobox(self):
-
         self.method_combo = QComboBox(self)
 
         self.method_combo.addItems(['Welch',
@@ -1944,9 +1694,7 @@ class PSD_Para_Win(QMainWindow):
         self.average_combo.addItems(['mean',
                                      'median'])
 
-
     def create_label(self):
-
         self.method_label = QLabel('Method', self)
         self.method_label.setFixedWidth(100)
         self.event_label = QLabel('Event', self)
@@ -1963,7 +1711,6 @@ class PSD_Para_Win(QMainWindow):
         self.line_label_0.setFixedWidth(20)
         self.line_label_1 = QLabel(' - ', self)
         self.line_label_1.setFixedWidth(20)
-
 
     def create_line_edit(self):
         self.nfft_edit = QLineEdit('256')
@@ -1991,9 +1738,7 @@ class PSD_Para_Win(QMainWindow):
         self.tmax_edit.setFixedWidth(93)
         self.tmax_edit.setValidator(QDoubleValidator())
 
-
     def create_button(self):
-
         self.ok_button = QPushButton(self)
         self.ok_button.setText('OK')
         self.ok_button.setFixedWidth(60)
@@ -2002,9 +1747,7 @@ class PSD_Para_Win(QMainWindow):
         self.cancel_button.setText('Cancel')
         self.cancel_button.clicked.connect(self.close)
 
-
     def create_layout(self):
-
         layout_0 = QHBoxLayout()
         layout_0.addWidget(self.method_label)
         layout_0.addWidget(self.method_combo)
@@ -2053,9 +1796,7 @@ class PSD_Para_Win(QMainWindow):
         main_layout.addLayout(layout_5)
         main_layout.addLayout(layout_7)
         main_layout.addLayout(button_layout)
-
         self.center_widget.setLayout(main_layout)
-
 
     def deactivate_fft(self):
         if self.method_combo.currentText() == 'Multitaper':
@@ -2064,7 +1805,6 @@ class PSD_Para_Win(QMainWindow):
         else:
             self.nfft_edit.setEnabled(True)
             self.average_combo.setEnabled(True)
-
 
     def ok_func(self):
         try:
@@ -2078,17 +1818,11 @@ class PSD_Para_Win(QMainWindow):
                 self.fmax = float(self.fmax_edit.text())
                 self.tmin = float(self.tmin_edit.text())
                 self.tmax = float(self.tmax_edit.text())
-                # print(self.method, type(self.method))
-                # print(self.event, type(self.event))
-                # print([self.fmin, self.fmax], type(self.fmin))
-                # print([self.tmin, self.tmax], type(self.tmin))
-                # print(self.nfft, self.average)
                 self.power_signal.emit(self.method, self.event, self.nfft,
                                    [self.fmin, self.fmax], (self.tmin, self.tmax), self.average)
             self.close()
         except Exception as error:
             show_error(error)
-
 
     def set_style(self):
         self.setStyleSheet('''
@@ -2097,7 +1831,6 @@ class PSD_Para_Win(QMainWindow):
                         QListWidget:item{height:28px}
                         QGroupBox{background-color:rgb(242,242,242)}
         ''')
-
 
 
 class CSD_Para_Win(QMainWindow):
@@ -2110,12 +1843,9 @@ class CSD_Para_Win(QMainWindow):
         self.method = None
         self.nfft = None
         self.average = None
-
         self.init_ui()
 
-
     def init_ui(self):
-
         self.setFixedWidth(350)
         self.setWindowModality(Qt.ApplicationModal)
         self.center()
@@ -2129,7 +1859,6 @@ class CSD_Para_Win(QMainWindow):
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
 
-
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
         qr = self.frameGeometry()
@@ -2137,13 +1866,11 @@ class CSD_Para_Win(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
     def set_font(self):
         '''set the font'''
         self.font = QFont()
         self.font.setFamily('Arial')
         self.font.setPointSize(12)
-
 
     def create_center_widget(self):
         '''create center widget'''
@@ -2151,9 +1878,7 @@ class CSD_Para_Win(QMainWindow):
         self.center_widget.setFont(self.font)
         self.setCentralWidget(self.center_widget)
 
-
     def create_combobox(self):
-
         self.method_combo = QComboBox(self)
 
         self.method_combo.addItems(['Welch',
@@ -2168,9 +1893,7 @@ class CSD_Para_Win(QMainWindow):
         self.average_combo.addItems(['mean',
                                      'median'])
 
-
     def create_label(self):
-
         self.method_label = QLabel('Method', self)
         self.method_label.setFixedWidth(100)
         self.event_label = QLabel('Event', self)
@@ -2187,7 +1910,6 @@ class CSD_Para_Win(QMainWindow):
         self.line_label_0.setFixedWidth(20)
         self.line_label_1 = QLabel(' - ', self)
         self.line_label_1.setFixedWidth(20)
-
 
     def create_line_edit(self):
         self.nfft_edit = QLineEdit('256')
@@ -2215,9 +1937,7 @@ class CSD_Para_Win(QMainWindow):
         self.tmax_edit.setFixedWidth(93)
         self.tmax_edit.setValidator(QDoubleValidator())
 
-
     def create_button(self):
-
         self.ok_button = QPushButton(self)
         self.ok_button.setText('OK')
         self.ok_button.setFixedWidth(60)
@@ -2226,9 +1946,7 @@ class CSD_Para_Win(QMainWindow):
         self.cancel_button.setText('Cancel')
         self.cancel_button.clicked.connect(self.close)
 
-
     def create_layout(self):
-
         layout_0 = QHBoxLayout()
         layout_0.addWidget(self.method_label)
         layout_0.addWidget(self.method_combo)
@@ -2277,9 +1995,7 @@ class CSD_Para_Win(QMainWindow):
         main_layout.addLayout(layout_5)
         main_layout.addLayout(layout_7)
         main_layout.addLayout(button_layout)
-
         self.center_widget.setLayout(main_layout)
-
 
     def deactivate_fft(self):
         if self.method_combo.currentText() == 'Multitaper':
@@ -2288,7 +2004,6 @@ class CSD_Para_Win(QMainWindow):
         else:
             self.nfft_edit.setEnabled(True)
             self.average_combo.setEnabled(True)
-
 
     def ok_func(self):
         try:
@@ -2302,17 +2017,11 @@ class CSD_Para_Win(QMainWindow):
                 self.fmax = float(self.fmax_edit.text())
                 self.tmin = float(self.tmin_edit.text())
                 self.tmax = float(self.tmax_edit.text())
-                # print(self.method, type(self.method))
-                # print(self.event, type(self.event))
-                # print([self.fmin, self.fmax], type(self.fmin))
-                # print([self.tmin, self.tmax], type(self.tmin))
-                # print(self.nfft, self.average)
                 self.power_signal.emit(self.method, self.event, self.nfft,
                                    [self.fmin, self.fmax], (self.tmin, self.tmax), self.average)
             self.close()
         except Exception as error:
             show_error(error)
-
 
     def set_style(self):
         self.setStyleSheet('''
@@ -2321,7 +2030,6 @@ class CSD_Para_Win(QMainWindow):
                         QListWidget:item{height:28px}
                         QGroupBox{background-color:rgb(242,242,242)}
         ''')
-
 
 
 class TFR_Win(QMainWindow):
@@ -2333,9 +2041,7 @@ class TFR_Win(QMainWindow):
         self.event = event
         self.use_fft = True
         self.show_itc = False
-
         self.init_ui()
-
 
     def init_ui(self):
         self.setFixedWidth(350)
@@ -2348,7 +2054,6 @@ class TFR_Win(QMainWindow):
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
 
-
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
         qr = self.frameGeometry()
@@ -2356,20 +2061,17 @@ class TFR_Win(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
     def set_font(self):
         '''set the font'''
         self.font = QFont()
         self.font.setFamily('Arial')
         self.font.setPointSize(12)
 
-
     def create_center_widget(self):
         '''create center widget'''
         self.center_widget = QWidget()
         self.center_widget.setFont(self.font)
         self.setCentralWidget(self.center_widget)
-
 
     def create_widget(self):
         self.method_combo = QComboBox(self)
@@ -2440,9 +2142,7 @@ class TFR_Win(QMainWindow):
         self.cancel_button.setText('Cancel')
         self.cancel_button.clicked.connect(self.close)
 
-
     def create_layout(self):
-
         layout_0 = QHBoxLayout()
         layout_0.addWidget(self.method_label)
         layout_0.addWidget(self.method_combo)
@@ -2495,13 +2195,11 @@ class TFR_Win(QMainWindow):
 
         self.center_widget.setLayout(main_layout)
 
-
     def deactivate_fft(self):
         if self.method_combo.currentText() == 'Stockwell transform':
             self.fft_check_box.setEnabled(False)
         else:
             self.fft_check_box.setEnabled(True)
-
 
     def change_fft(self):
         if self.fft_check_box.isChecked():
@@ -2509,14 +2207,11 @@ class TFR_Win(QMainWindow):
         else:
             self.use_fft = False
 
-
     def change_itc(self):
-
         if self.itc_check_box.isChecked():
             self.show_itc = True
         else:
             self.show_itc = False
-
 
     def ok_func(self):
         self.method_chosen = self.method_combo.currentText()
@@ -2528,15 +2223,9 @@ class TFR_Win(QMainWindow):
             self.fmax = float(self.fmax_edit.text())
             self.tmin = float(self.tmin_edit.text())
             self.tmax = float(self.tmax_edit.text())
-            # print(self.method_chosen, type(self.method_chosen))
-            # print(self.event_chosen, type(self.event_chosen))
-            # print([self.fmin, self.fmax], type(self.fmin))
-            # print([self.tmin, self.tmax], type(self.tmin))
-            # print(self.use_fft, self.show_itc)
             self.power_signal.emit(self.method_chosen, self.event_chosen, self.chan_num,
                                [self.fmin, self.fmax], (self.tmin, self.tmax), self.use_fft, self.show_itc)
         self.close()
-
 
     def set_style(self):
         self.setStyleSheet('''
@@ -2545,7 +2234,6 @@ class TFR_Win(QMainWindow):
                         QListWidget:item{height:28px}
                         QGroupBox{background-color:rgb(242,242,242)}
         ''')
-
 
 
 class Topo_TFR_Itc_Win(QMainWindow):
@@ -2557,12 +2245,10 @@ class Topo_TFR_Itc_Win(QMainWindow):
         self.event = event
         self.use_fft = True
         self.show_itc = False
-
         self.init_ui()
 
 
     def init_ui(self):
-
         self.setFixedWidth(350)
         self.setWindowModality(Qt.ApplicationModal)
         self.center()
@@ -2573,7 +2259,6 @@ class Topo_TFR_Itc_Win(QMainWindow):
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
 
-
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
         qr = self.frameGeometry()
@@ -2581,20 +2266,17 @@ class Topo_TFR_Itc_Win(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
     def set_font(self):
         '''set the font'''
         self.font = QFont()
         self.font.setFamily('Arial')
         self.font.setPointSize(12)
 
-
     def create_center_widget(self):
         '''create center widget'''
         self.center_widget = QWidget()
         self.center_widget.setFont(self.font)
         self.setCentralWidget(self.center_widget)
-
 
     def create_widget(self):
         self.method_combo = QComboBox(self)
@@ -2660,9 +2342,7 @@ class Topo_TFR_Itc_Win(QMainWindow):
         self.cancel_button.setText('Cancel')
         self.cancel_button.clicked.connect(self.close)
 
-
     def create_layout(self):
-
         layout_0 = QHBoxLayout()
         layout_0.addWidget(self.method_label)
         layout_0.addWidget(self.method_combo)
@@ -2706,9 +2386,7 @@ class Topo_TFR_Itc_Win(QMainWindow):
         main_layout.addLayout(layout_5)
         main_layout.addLayout(layout_6)
         main_layout.addLayout(button_layout)
-
         self.center_widget.setLayout(main_layout)
-
 
     def change_fft(self):
         if self.fft_check_box.isChecked():
@@ -2716,21 +2394,17 @@ class Topo_TFR_Itc_Win(QMainWindow):
         else:
             self.use_fft = False
 
-
     def change_itc(self):
-
         if self.itc_check_box.isChecked():
             self.show_itc = True
         else:
             self.show_itc = False
-
 
     def deactivate_fft(self):
         if self.method_combo.currentText() == 'Stockwell transform':
             self.fft_check_box.setEnabled(False)
         else:
             self.fft_check_box.setEnabled(True)
-
 
     def ok_func(self):
         self.method_chosen = self.method_combo.currentText()
@@ -2748,7 +2422,6 @@ class Topo_TFR_Itc_Win(QMainWindow):
                                (self.tmin, self.tmax), self.use_fft, self.show_itc)
         self.close()
 
-
     def set_style(self):
         self.setStyleSheet('''
                         QPushButton{font: 10pt Times New Roman}
@@ -2756,7 +2429,6 @@ class Topo_TFR_Itc_Win(QMainWindow):
                         QListWidget:item{height:28px}
                         QGroupBox{background-color:rgb(242,242,242)}
         ''')
-
 
 
 class Time_Freq_Win(QMainWindow):
@@ -2774,7 +2446,6 @@ class Time_Freq_Win(QMainWindow):
         self.group = len(get_chan_group(self.data))
         self.init_ui()
 
-
     def init_ui(self):
         self.setFixedSize(650, 320)
         self.center()
@@ -2786,7 +2457,6 @@ class Time_Freq_Win(QMainWindow):
         QApplication.setStyle(QStyleFactory.create('Fusion'))
         self.setWindowTitle('Time-Frequency Analysis')
 
-
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
         qr = self.frameGeometry()
@@ -2794,13 +2464,11 @@ class Time_Freq_Win(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
     def set_font(self):
         '''set the font'''
         self.font = QFont()
         self.font.setFamily('Arial')
         self.font.setPointSize(12)
-
 
     def create_center_widget(self):
         '''create center widget'''
@@ -2808,7 +2476,6 @@ class Time_Freq_Win(QMainWindow):
         self.center_widget.setFont(self.font)
         self.setCentralWidget(self.center_widget)
         self.center_widget.setProperty('group', 'center')
-
 
     def create_widget(self):
         self.data_box = QGroupBox('Data Information')
@@ -2896,8 +2563,6 @@ class Time_Freq_Win(QMainWindow):
         self.tfr_topo_btn.setFixedSize(180, 28)
         self.tfr_topo_btn.clicked.connect(self.tfr_topo)
 
-
-
     def create_layout(self):
         layout_1 = QHBoxLayout()
         layout_1.setContentsMargins(0, 0, 0, 0)
@@ -2940,7 +2605,6 @@ class Time_Freq_Win(QMainWindow):
         main_layout.addLayout(layout_6)
         self.center_widget.setLayout(main_layout)
 
-
     def set_style(self):
         self.setStyleSheet(''' 
             QLabel[group='label_00']{font:10pt Consolas; background-color: rgb(207, 207, 207);
@@ -2963,11 +2627,9 @@ class Time_Freq_Win(QMainWindow):
         self.tfr_btn.setStyleSheet("QPushButton{font-size: 8pt}")
         self.erpim_topo_btn.setStyleSheet("QPushButton{font-size: 8pt}")
 
-
     def show_pbar(self):
         self.pbar = My_Progress()
         self.pbar.show()
-
 
     def image_map(self):
         self.event = self.data.event_id
@@ -2975,7 +2637,6 @@ class Time_Freq_Win(QMainWindow):
         self.event_win = Evoke_Chan_WiN(event=event, chan = self.data.ch_names)
         self.event_win.erp_signal.connect(self.plot_image_map)
         self.event_win.show()
-
 
     def plot_image_map(self, event, ch_name):
         if ch_name == None:
@@ -2985,14 +2646,12 @@ class Time_Freq_Win(QMainWindow):
                 mne.viz.plot_epochs_image(self.data[event].pick_channels([ch_name[i]]),
                                           combine='mean', picks='seeg', title=ch_name[i])
 
-
     def erpim_topo(self):
         self.event = self.data.event_id
         event = list(self.event.keys())
         self.event_win = ERP_Image_Topo(event=event)
         self.event_win.erp_signal.connect(self.plot_erpim_topo)
         self.event_win.show()
-
 
     def plot_erpim_topo(self, event, value):
         try:
@@ -3005,8 +2664,6 @@ class Time_Freq_Win(QMainWindow):
             if error.args[0] == "ValueError: Cannot determine location of MEG/EOG/ECG channels " \
                                 "using digitization points.":
                 QMessageBox.warning(self, 'No location','Please load MNI coordinates')
-
-
 
     def erp_topo(self):
         self.event = self.data.event_id
@@ -3037,7 +2694,6 @@ class Time_Freq_Win(QMainWindow):
             if error.args[0] == "Cannot determine location of MEG/EOG/ECG channels using digitization points.":
                 QMessageBox.warning(self, 'Value Error', 'Please set montage first using MNI coornidates')
 
-
     def tfr(self):
 
         data = self.data
@@ -3063,7 +2719,6 @@ class Time_Freq_Win(QMainWindow):
            title='Time-Frequency Response', cmap='bwr')
         if itc is not None:
             itc.plot([chan_num], title='Inter-Trial coherence', vmin=0., vmax=1., cmap='Reds')
-
 
     def tfr_topo(self):
 
@@ -3091,7 +2746,6 @@ class Time_Freq_Win(QMainWindow):
                         mode='logratio', title='Average power')
         if itc is not None:
             itc.plot_topo(title='Inter-Trial coherence', vmin=0., vmax=1., cmap='Reds')
-
 
     def psd(self):
         self.psd_win = PSD_Para_Win(list(self.data.event_id.keys()))
@@ -3125,21 +2779,6 @@ class Time_Freq_Win(QMainWindow):
         except Exception as error:
             self.show_error(error)
 
-
-    def csd(self):
-        pass
-
-    def cal_csd(self, freq):
-        if None in freq:
-            pass
-        else:
-            pass
-
-    def plot_csd(self):
-        pass
-
-
-
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas, \
         NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
@@ -3148,8 +2787,6 @@ class My_Figure(FigureCanvas):
         self.fig = Figure()
         super(My_Figure, self).__init__(self.fig)
         self.ax = self.fig.add_subplot(111)
-
-
 
 class Pic_Change(QMainWindow):
 
@@ -3172,7 +2809,6 @@ class Pic_Change(QMainWindow):
         self.init_ui()
 
     def init_ui(self):
-
         self.setMinimumWidth(800)
         self.setMinimumHeight(600)
         self.center()
@@ -3202,7 +2838,6 @@ class Pic_Change(QMainWindow):
         self.setCentralWidget(self.center_widget)
 
     def create_widget(self):
-
         self.num_line_edit = QLineEdit()
         self.num_line_edit.setAlignment(Qt.AlignCenter)
         self.num_line_edit.setFixedWidth(120)
@@ -3332,9 +2967,6 @@ class Pic_Change(QMainWindow):
             self.go_move()
         '''
 
-    def set_style(self):
-        pass
-
 
 class Multitaper_Con_Win(QMainWindow):
 
@@ -3358,12 +2990,9 @@ class Multitaper_Con_Win(QMainWindow):
         self.dura = None
         self.step = None
         self.mode = 'Multitaper'
-
         self.init_ui()
 
-
     def init_ui(self):
-
         self.setFixedWidth(375)
         self.setWindowModality(Qt.ApplicationModal)
         self.center()
@@ -3374,8 +3003,6 @@ class Multitaper_Con_Win(QMainWindow):
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
 
-
-
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
         qr = self.frameGeometry()
@@ -3383,20 +3010,17 @@ class Multitaper_Con_Win(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
     def set_font(self):
         '''set the font'''
         self.font = QFont()
         self.font.setFamily('Arial')
         self.font.setPointSize(12)
 
-
     def create_center_widget(self):
         '''create center widget'''
         self.center_widget = QWidget()
         self.center_widget.setFont(self.font)
         self.setCentralWidget(self.center_widget)
-
 
     def create_widget(self):
         self.event_label = QLabel('Event', self)
@@ -3489,7 +3113,6 @@ class Multitaper_Con_Win(QMainWindow):
         self.cancel_button.setProperty('group', 'bottom')
         self.cancel_button.clicked.connect(self.close)
 
-
     def use_win(self):
         if self.win_cb.isChecked():
             self.win_dura.setEnabled(True)
@@ -3519,7 +3142,6 @@ class Multitaper_Con_Win(QMainWindow):
         self.chany_win.chan_signal.connect(self.get_chan_func)
         self.chany_win.show()
 
-
     def get_chan_func(self, chan):
         if self.get_chan == 'x':
             self.chanx_get = chan
@@ -3538,7 +3160,6 @@ class Multitaper_Con_Win(QMainWindow):
                 self.average_cb.setEnabled(True)
         except:
             pass
-
 
     def all_chan(self):
         if self.plot_all_cb.isChecked():
@@ -3561,13 +3182,11 @@ class Multitaper_Con_Win(QMainWindow):
             except:
                 pass
 
-
     def use_average(self):
         if self.average_cb.isChecked():
             self.average = True
         else:
             self.average = False
-
 
     def use_3d(self):
         if self.plot_3d_cb.isChecked():
@@ -3579,9 +3198,7 @@ class Multitaper_Con_Win(QMainWindow):
             self.plot_3d = False
             self.average_cb.setEnabled(False)
 
-
     def create_layout(self):
-
         layout_1 = QHBoxLayout()
         layout_1.addWidget(self.event_label)
         layout_1.addStretch(100)
@@ -3659,9 +3276,7 @@ class Multitaper_Con_Win(QMainWindow):
         main_layout.addLayout(layout_5)
         main_layout.addLayout(layout_6)
         main_layout.addLayout(button_layout)
-
         self.center_widget.setLayout(main_layout)
-
 
     def ok_func(self):
         self.event_chosen = self.event_combo.currentText()
@@ -3702,7 +3317,6 @@ class Multitaper_Con_Win(QMainWindow):
         self.spec_con_signal.emit(self.para, self.mode)
         self.close()
 
-
     def set_style(self):
         self.setStyleSheet('''
                         QPushButton[group='bottom']{font: 10pt Times New Roman}
@@ -3738,7 +3352,6 @@ class Morlet_Con_Win(QMainWindow):
         self.create_widget()
         self.create_layout()
         self.set_style()
-
 
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
@@ -3872,7 +3485,6 @@ class Morlet_Con_Win(QMainWindow):
         layout_8.addWidget(self.plot_all_cb)
         layout_8.addStretch(100)
 
-
         main_layout = QVBoxLayout()
         main_layout.addLayout(layout_0)
         main_layout.addLayout(layout_3)
@@ -3882,13 +3494,7 @@ class Morlet_Con_Win(QMainWindow):
         main_layout.addLayout(layout_6)
         main_layout.addLayout(layout_8)
         main_layout.addLayout(layout_7)
-
         self.center_widget.setLayout(main_layout)
-
-
-    def set_style(self):
-        pass
-
 
     def chanx(self):
         self.chanx_win = Select_Chan(self.chan, multi=True)
@@ -3902,7 +3508,6 @@ class Morlet_Con_Win(QMainWindow):
         self.chany_win.chan_signal.connect(self.get_chan_func)
         self.chany_win.show()
 
-
     def get_chan_func(self, chan):
         if self.get_chan == 'x':
             self.chanx_get = chan
@@ -3914,7 +3519,6 @@ class Morlet_Con_Win(QMainWindow):
         elif self.get_chan == 'y':
             self.chany_get = chan
 
-
     def all_chan(self):
         if self.plot_all_cb.isChecked():
             self.all_plot = True
@@ -3925,7 +3529,6 @@ class Morlet_Con_Win(QMainWindow):
             self.all_plot = False
             self.choose_chanx_btn.setEnabled(True)
             self.choose_chany_btn.setEnabled(True)
-
 
     def ok_func(self):
         self.event_chosen = self.event_cb.currentText ()
@@ -3979,7 +3582,6 @@ class Freq_Con_Method_Win(QMainWindow):
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
 
-
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
         qr = self.frameGeometry()
@@ -3987,20 +3589,17 @@ class Freq_Con_Method_Win(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
     def set_font(self):
         '''set the font'''
         self.font = QFont()
         self.font.setFamily('Arial')
         self.font.setPointSize(12)
 
-
     def create_center_widget(self):
         '''create center widget'''
         self.center_widget = QWidget()
         self.center_widget.setFont(self.font)
         self.setCentralWidget(self.center_widget)
-
 
     def create_widget(self):
         self.taper_btn = QPushButton(self)
@@ -4012,13 +3611,11 @@ class Freq_Con_Method_Win(QMainWindow):
         self.morlet_btn.clicked.connect(self.morlet_win)
         self.morlet_btn.setFixedWidth(120)
 
-
     def create_layout(self):
         layout_0 = QVBoxLayout()
         layout_0.addWidget(self.taper_btn)
         layout_0.addWidget(self.morlet_btn)
         self.center_widget.setLayout(layout_0)
-
 
     def taper_win(self):
         self.multi_taper_win = Multitaper_Con_Win(event=self.event, chan=self.chan,
@@ -4034,14 +3631,9 @@ class Freq_Con_Method_Win(QMainWindow):
         self.morlet_win.show()
         self.close()
 
-
     def get_para(self, para, mode):
         print('here here')
         self.con_signal.emit(para, mode)
-
-
-    def set_style(self):
-        pass
 
 
 class Con_Win(QMainWindow):
@@ -4067,7 +3659,6 @@ class Con_Win(QMainWindow):
         self.spec_con_method['psi'] = 'Phase Slope Index'
         self.init_ui()
 
-
     def init_ui(self):
         self.setWindowTitle('Connectivity Analysis')
         self.setFixedHeight(290)
@@ -4080,7 +3671,6 @@ class Con_Win(QMainWindow):
         self.set_style()
         QApplication.setStyle(QStyleFactory.create('Fusion'))
 
-
     def center(self):
         '''set the app window to the center of the displayer of the computer'''
         qr = self.frameGeometry()
@@ -4088,13 +3678,11 @@ class Con_Win(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-
     def set_font(self):
         '''set the font'''
         self.font = QFont()
         self.font.setFamily('Arial')
         self.font.setPointSize(12)
-
 
     def create_center_widget(self):
         '''create center widget'''
@@ -4102,7 +3690,6 @@ class Con_Win(QMainWindow):
         # self.center_widget.setFont(self.font)
         self.center_widget.setProperty('group', 'center')
         self.setCentralWidget(self.center_widget)
-
 
     def create_widget(self):
         self.data_box = QGroupBox('Data Information')
@@ -4209,9 +3796,7 @@ class Con_Win(QMainWindow):
         self.dswpli_btn.setFixedSize(210, 28)
         self.dswpli_btn.clicked.connect(self.use_debiased_wpli)
 
-
     def create_layout(self):
-
         layout_1 = QHBoxLayout()
         layout_1.setContentsMargins(0,0,0,0)
         layout_1.addWidget(self.samplingr_label)
@@ -4256,7 +3841,6 @@ class Con_Win(QMainWindow):
         layout_4.addWidget(self.con_measure_bx)
         self.center_widget.setLayout(layout_4)
 
-
     def set_style(self):
         self.setStyleSheet(''' 
             QLabel[group='label_00']{font:10pt Consolas; background-color: rgb(207, 207, 207);
@@ -4291,7 +3875,6 @@ class Con_Win(QMainWindow):
         self.pbar = My_Progress()
         self.pbar.show()
 
-
     # Frequency domain connectivity (Spectral)
     '''
         'coh' : Coherence given by::
@@ -4300,7 +3883,6 @@ class Con_Win(QMainWindow):
         C = ---------------------
             sqrt(E[Sxx] * E[Syy])
     '''
-
     def use_coherence(self):
         self.method = 'coh'
         event_id = list(self.data.event_id.keys())
@@ -4309,9 +3891,6 @@ class Con_Win(QMainWindow):
         self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
 
-    def use_canonical_coh(self):
-        pass
-
     '''
         'imcoh' : Imaginary coherence [1]_ given by::
 
@@ -4319,7 +3898,6 @@ class Con_Win(QMainWindow):
         C = ----------------------
             sqrt(E[Sxx] * E[Syy])
     '''
-
     def use_imaginary_coh(self):
         self.method = 'imcoh'
         event_id = list(self.data.event_id.keys())
@@ -4333,7 +3911,6 @@ class Con_Win(QMainWindow):
 
          PLV = |E[Sxy/|Sxy|]|
     '''
-
     def use_plv(self):
         self.method = 'plv'
         event_id = list(self.data.event_id.keys())
@@ -4342,7 +3919,6 @@ class Con_Win(QMainWindow):
         self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
 
-
     '''
         'ciplv' : corrected imaginary PLV (icPLV) [3]_ given by::
 
@@ -4350,7 +3926,6 @@ class Con_Win(QMainWindow):
         ciPLV = ------------------------------------
                  sqrt(1 - |E[real(Sxy/|Sxy|)]| ** 2)
     '''
-
     def use_ciplv(self):
         self.method = 'ciplv'
         event_id = list(self.data.event_id.keys())
@@ -4359,12 +3934,10 @@ class Con_Win(QMainWindow):
         self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
 
-
     '''
        'ppc' : Pairwise Phase Consistency (PPC), an unbiased estimator
         of squared PLV
     '''
-
     def use_ppc(self):
         self.method = 'ppc'
         event_id = list(self.data.event_id.keys())
@@ -4373,13 +3946,11 @@ class Con_Win(QMainWindow):
         self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
 
-
     '''
         'pli' : Phase Lag Index (PLI) [5]_ given by::
 
          PLI = |E[sign(Im(Sxy))]|
     '''
-
     def use_pli(self):
         self.method = 'pli'
         event_id = list(self.data.event_id.keys())
@@ -4387,7 +3958,6 @@ class Con_Win(QMainWindow):
                                            con_method=self.method, time=[self.data.tmin, self.data.tmax])
         self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
-
 
     # 'pli2_unbiased' : Unbiased estimator of squared PLI
     def use_unbiased_pli(self):
@@ -4398,7 +3968,6 @@ class Con_Win(QMainWindow):
         self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
 
-
     def use_wpli(self):
         self.method = 'wpli'
         event_id = list(self.data.event_id.keys())
@@ -4407,7 +3976,6 @@ class Con_Win(QMainWindow):
         self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
 
-
     def use_debiased_wpli(self):
         self.method = 'wpli2_debiased'
         event_id = list(self.data.event_id.keys())
@@ -4415,7 +3983,6 @@ class Con_Win(QMainWindow):
                                            con_method=self.method, time=[self.data.tmin, self.data.tmax])
         self.con_win.con_signal.connect(self.calculate_con)
         self.con_win.show()
-
 
     def calculate_con(self, para, mode):
         self.show_pbar()
@@ -4429,7 +3996,6 @@ class Con_Win(QMainWindow):
             self.calcu_con = Cal_Spec_Con(epoch, para=self.para, method=self.method, mode=mode)
             self.calcu_con.spec_con_signal.connect(self.plot_morlet_con)
             self.calcu_con.start()
-
 
     def plot_time(self, con_list):
         import matplotlib.pyplot as plt
@@ -4538,7 +4104,6 @@ class Con_Win(QMainWindow):
             cb.outline.set_linewidth (0)
             fig.show()
 
-
     def plot_notime(self, con_list):
         from matplotlib import pyplot as plt
         if self.para['average']:
@@ -4574,7 +4139,6 @@ class Con_Win(QMainWindow):
                 ax.set_ylabel('Connectivity')
                 fig.show()
 
-
     def plot_spec_con(self, con_list):
         '''
         :param con_list: list
@@ -4588,7 +4152,6 @@ class Con_Win(QMainWindow):
             self.plot_notime(con_list)
         else:
             self.plot_time(con_list)
-
 
     def plot_morlet_con(self, con_list):
         self.pbar.step = 100
@@ -4615,7 +4178,6 @@ class Con_Win(QMainWindow):
             ax.set_ylabel('Connectivity')
             fig.show()
 
-
     def dir_con(self):
         self.method = 'psi'
         event_id = list (self.data.event_id.keys ())
@@ -4624,7 +4186,6 @@ class Con_Win(QMainWindow):
         self.con_win.spec_con_signal.connect(self.cal_dir_con)
         self.con_win.show ()
 
-
     def cal_dir_con(self, para, mode):
         self.show_pbar()
         epoch = self.data[para['event']]
@@ -4632,7 +4193,6 @@ class Con_Win(QMainWindow):
         self.cal_con = Cal_Dir_Con(data=epoch, para=para)
         self.cal_con.spec_con_signal.connect(self.plot_dir_con)
         self.cal_con.start()
-
 
     def plot_dir_con(self, con_list):
         self.pbar.step = 100
@@ -4670,22 +4230,11 @@ class Con_Win(QMainWindow):
             times = con_list[2]
 
 
-
-
-
-
-
-
-
-
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     import mne
     data = mne.read_epochs('D:\SEEG_Cognition\data\color_epoch.fif')
-    # data = mne.read_epochs('D:\SEEG_Cognition\data\simulated_epochs.fif')
-    # data = mne.io.read_epochs_eeglab('D:\SEEG_Cognition\data\yangtingtingFear+甲.set')
     GUI = Con_Win(data=data, subject='曹海娟')
-    # GUI = Time_Freq_Win (data=data, subject='曹海娟')
     GUI.show()
     app.exec_()
 
