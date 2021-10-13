@@ -5,10 +5,8 @@
 @Time : 2020/12/8 22:09
 @Desc :
 '''
-import mne
 import numpy as np
 from mne import BaseEpochs, Evoked
-from mne.io import BaseRaw
 
 u_color = ("#FF0000", "#CD853F", "#1E90FF", "#FF4500", "#7FFF00",
            "#0000FF", "#8B4513", "#00FF00", "#4B0082", "#FF8C00",
