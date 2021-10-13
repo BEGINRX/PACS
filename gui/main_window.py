@@ -27,7 +27,6 @@ from PyQt5.QtWidgets import QMainWindow, QDesktopWidget, QAction, QMenu, \
 from PyQt5.QtCore import Qt, pyqtSignal, QUrl
 from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 from mne import Annotations, events_from_annotations, BaseEpochs, Epochs
-from mne.io import BaseRaw
 from gui.my_thread import Import_Thread, Load_Epoched_Data_Thread, Resample_Thread, Filter_Thread, Calculate_Power
 from gui.sub_window import Choose_Window, Event_Window, Select_Time, Select_Chan, Select_Event, Epoch_Time, \
                            Refer_Window, Baseline_Time, My_Progress, Time_Freq_Win, Con_Win
@@ -86,8 +85,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.brain_ui()
         self.create_layout()
         self.set_qt_style()
-        # QApplication.setStyle(QStyleFactory.create('Fusion'))
-
 
     def frame(self):
         '''set the app window to the full screen'''
@@ -101,14 +98,12 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.setGeometry(self.rect)  # 可避免遮挡任务栏
         self.showMaximized()
 
-
     def create_central_widget(self):
         '''create a central widget to house other sub groupboxes'''
         self.center_widget = QWidget()
         self.center_widget.setProperty('name', 'center')
         self.setCentralWidget(self.center_widget)
         self.statusBar().showMessage('Ready')
-
 
     def create_worker(self):
         '''create workers   '''
@@ -120,7 +115,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.resample_worker.resample.connect(self.get_seeg_data)
         self.filter_worker = Filter_Thread()
         self.filter_worker.filter_signal.connect(self.get_seeg_data)
-
 
     def create_action(self):
         '''create actions for menu bar'''
@@ -313,22 +307,17 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.email_action = QAction('E-mail us', self,
                                     triggered=self.send_email)
 
-
     def create_stack(self):
-
         self.subject_stack = QStackedWidget()
         self.subject_stack.setProperty('name', 'ptc')
         self.subject_stack.addWidget(self.empty_label_0)
 
-
     def create_combo_box(self):
-
         self.subject_cb = QComboBox()
         self.subject_cb.activated.connect(self.change_sub_name)
         self.subject_cb.setProperty('name', 'ptc')
         self.subject_cb.setFixedHeight(35)
         # self.subject_cb.setEditable(True)
-
 
     def create_label(self):
         '''reate labels'''
@@ -470,7 +459,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.protocol_label.setAlignment(Qt.AlignHCenter)
         self.protocol_label.setFixedHeight(30)
 
-
     def create_group_box(self):
         '''create group boxes for main window'''
         # subject seeg data infomation
@@ -489,7 +477,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.protocol_box = QGroupBox('')
         self.protocol_box.setProperty('name', 'sub')
         self.protocol_box.setFixedWidth(300)
-
 
     def create_menubar(self):
         '''create menu bars'''
@@ -546,7 +533,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.help_menu.addAction(self.licence_action)
         self.help_menu.addAction(self.email_action)
 
-
     def brain_ui(self):
         self.cdict = {'bgcolor': '#dcdccd', 'cargs': {'size':(1300, 600), 'dpi': 600,
                                                       'fullscreen': True, 'resizable': True}}
@@ -563,7 +549,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.y = 120
         self.z = 85
         self._brain_ui()
-
 
     def _brain_ui(self):
         self.widget = QWidget()
@@ -610,9 +595,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.atlas.rotate('left')
         self.atlas.camera.set_default_state()
 
-
     def _brain_widget(self):
-
         self._brain_group = QGroupBox('Display Brain')
         self._brain_group.setFixedWidth(300)
         self._brain_group.setCheckable(True)
@@ -726,7 +709,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self._brain_inlight.clicked.connect(self._fcn_brain_inlight)
 
     def _source_widget(self):
-        
         self._source_group = QGroupBox('Source')
         self._source_group.setCheckable(True)
         self._source_tab = QTabWidget(self._source_group)
@@ -1154,8 +1136,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         """Display the screenshot GUI."""
         self._ssGui.show()
 
-
-
     def create_layout(self):
         '''set the layout for the app'''
         # layout for the main window
@@ -1272,7 +1252,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         main_layout.addLayout(right_layout)
         self.center_widget.setLayout(main_layout)
 
-
     def set_qt_style(self):
         '''use QSS to beautify the interface'''
 
@@ -1312,7 +1291,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
                 QMenuBar{border: 3px solid rgb(207, 207, 207); font: 13pt}
         ''')
 
-
 #*****************************************slot*****************************************
 
 ############################################# File ######################################################
@@ -1324,7 +1302,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         traceback.print_exc()
         print('*********************************************************************')
         QMessageBox.warning(self, 'Error shows up!', error.args[0])
-
 
     # File menu function
     #
@@ -1368,7 +1345,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         except Exception as error:
             self.show_error(error)
 
-
     def reset_source(self, name):
         if self.sources is not None:
             try:
@@ -1396,9 +1372,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
             self._source_widget ()
             self._obj_type_lst.model().item (1).setEnabled(True)
 
-
     def change_sub_name(self, text):
-
         if len(self.tree_dict) == 0:
             pass
         else:
@@ -1413,12 +1387,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
             self.elec_df = self.subject[self.subject_name].coord
             self.reset_source(self.subject_name)
 
-
-
-
-
     def get_all_items(self):
-
         item = []
         child = []
         key = self.subject_cb.currentText()
@@ -1434,16 +1403,13 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         print('all child name:', child)
         return child, item
 
-
     # import sEEG data
     def show_pbar(self):
         self.pbar = My_Progress()
         self.pbar.show()
 
-
     def execute_import_data(self):
         '''execute import data worker'''
-
         subject_name = self.subject_cb.currentText()
         if not subject_name:
             QMessageBox.warning(self,'Error', 'Please create a subject first')
@@ -1461,7 +1427,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
             elif self.flag == 0 and self.data_path:
                 QMessageBox.warning(self, 'Data Format Error',
                                     'Please select the right file!')
-
 
     def execute_load_epoched_data(self):
         '''execute load epoched data'''
@@ -1483,7 +1448,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
                 self.show_error(error)
                 QMessageBox.warning(self, 'Data Format Error',
                                     'Please select the right file!')
-
 
     def get_seeg_data(self, seeg_data):
         '''get seeg data'''
@@ -1575,7 +1539,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
             else:
                 self.show_error(error)
 
-
     def set_current_data(self, key):
         '''set the curent seeg data'''
         self.key = key
@@ -1594,9 +1557,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
             [self.raw_action[action].setEnabled(False) for action in self.raw_action]
             [self.epoch_action[action].setEnabled(True) for action in self.epoch_action]
 
-
     def change_current_data(self, item, column):
-
         try:
             if item.checkState(column) == Qt.Checked:
                 subject_name = self.subject_cb.currentText()
@@ -1611,26 +1572,20 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         except Exception as error:
             self.show_error(error)
 
-
     # save sEEG data
-
     def save_edf(self):
-
         self.save_path, _ = QFileDialog.getSaveFileName(self, 'Save data to EDF')
         try:
             write_raw_edf(self.save_path, self.current_data.data)
         except Exception as error:
             self.show_error(error)
 
-
     def save_set(self):
-
         self.save_path, _ = QFileDialog.getSaveFileName(self, 'Save data to EDF')
         try:
             write_raw_set(self.save_path + '.set', self.current_data.data)
         except Exception as error:
             self.show_error(error)
-
 
     def save_fif(self):
         '''save as .fif data'''
@@ -1643,16 +1598,12 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
                 self.show_error(error)
         else:
             pass
-        print ('Finish saving SEEG data')
-
+        print('Finish saving SEEG data')
 
     def save_pd(self):
-
         pass
 
-
     def export_npy(self):
-
         save_path, _ = QFileDialog.getSaveFileName(self, 'Save data')
         try:
             np.save(save_path + '_data', self.current_data.data)
@@ -1660,9 +1611,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         except Exception as error:
             self.show_error(error)
 
-
     def export_mat(self):
-
         try:
             self.current_data.data.load_data()
             save_path, _ = QFileDialog.getSaveFileName(self, 'Save data')
@@ -1670,7 +1619,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
             sio.savemat(self.save_path + '_label.mat', {'label':self.current_data.events})
         except Exception as error:
             self.show_error(error)
-
 
     def clear_all(self):
         '''clear the whole workshop'''
@@ -1700,7 +1648,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         except Exception as error:
             self.show_error(error)
 
-
 ############################################# Raw ######################################################
     # Raw data function
     #
@@ -1710,7 +1657,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.ref_win = Refer_Window()
         self.ref_win.ref_signal.connect(self.execute_ref)
         self.ref_win.show()
-
 
     def execute_ref(self, ref_name):
         if ref_name == 'Common Average':
@@ -1726,14 +1672,12 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         elif ref_name == 'Laplacian':
             self.laplacian_reref()
 
-
     def car_reref(self):
         '''Reference sEEG data using Common Average Reference(CAR)'''
         data = self.current_data.data.copy()
         print(data)
         raw = car_ref(data, data_class=self.data_mode)
         self.get_seeg_data(raw)
-
 
     def gwr_reref(self):
         '''Reference sEEG data using Gray-white Matter Reference(GWR)'''
@@ -1746,7 +1690,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         except Exception as error:
             self.show_error(error)
 
-
     def esr_reref(self):
         '''Reference sEEG data using Electrode Shaft Reference(ESR)'''
         data = self.current_data.data.copy()
@@ -1755,7 +1698,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
             self.get_seeg_data(raw)
         except Exception as error:
             self.show_error(error)
-
 
     def bipolar_reref(self):
         '''Reference sEEG data using Bipolar Reference'''
@@ -1766,13 +1708,10 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         except Exception as error:
             self.show_error(error)
 
-
     def monopolar_reref(self):
-
         self.chan_win = Select_Chan(chan_name=self.current_data.data.ch_names)
         self.chan_win.chan_signal.connect(self.start_monopolar)
         self.chan_win.show()
-
 
     def start_monopolar(self, ref_chan):
         '''Reference sEEG data using Monopolar Reference'''
@@ -1783,7 +1722,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         except Exception as error:
             self.show_error(error)
 
-
     def laplacian_reref(self):
         '''Reference sEEG data using Laplacian Reference'''
         data = self.current_data.data.copy()
@@ -1793,23 +1731,18 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         except Exception as error:
             self.show_error(error)
 
-
     # select sub-time
     def select_time(self):
-
         time_end = round(self.current_data.data._last_time, 2)
         self.select_time_win = Select_Time(time_end)
         self.select_time_win.time_signal.connect(self.get_time)
         self.select_time_win.show()
 
-
     def get_time(self, time):
-
         self.time_new = time
         print('Time selected', self.time_new)
         crop_data = self.current_data.data.copy().crop(self.time_new[0], self.time_new[1])
         self.get_seeg_data(crop_data)
-
 
     def del_useless_chan(self, data):
         '''delete useless channels'''
@@ -1826,7 +1759,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
             self.get_seeg_data(del_useless_data)
         except Exception as error:
             self.show_error(error)
-
 
     def calculate_marker(self):
         '''calculate the markers for sEEG from Shenzhen University General Hosptial'''
@@ -1873,28 +1805,22 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
                 print('码可通过')
             return annot_data
 
-
     def get_mark_del_chan(self):
-
         try:
             annot_data = self.calculate_marker()
             self.del_useless_chan(annot_data)
         except Exception as error:
             self.show_error(error)
 
-
     # set event id_dict
     def get_event_name(self):
-
         para = list(set(self.current_data.events[:, 2]))
         print(para)
         self.event_window = Event_Window(para)
         self.event_window.line_edit_signal.connect(self.set_event)
         self.event_window.show()
 
-
     def set_event(self, event_name, event_id):
-
         try:
             for i in range(len(event_name)):
                 self.event_set[event_name[i]] = int(event_id[i])
@@ -1902,16 +1828,12 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         except Exception as error:
             self.show_error(error)
 
-
     def get_epoch_time_range(self):
-
         self.epoch_time = Epoch_Time()
         self.epoch_time.time_signal.connect(self.get_epoch_data)
         self.epoch_time.show()
 
-
     def get_epoch_data(self, tmin, tmax, base_tmin, base_tmax):
-
         try:
             if self.current_data.mode == 'raw':
                 if tmin < 0 and tmax >= 0:
@@ -1932,14 +1854,11 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
     #
     # apply baseline to correct the epochs
     def apply_base_win(self):
-
         self.base_time_win = Baseline_Time()
         self.base_time_win.time_signal.connect(self.apply_base)
         self.base_time_win.show()
 
-
     def apply_base(self, tmin, tmax):
-
         raw = self.current_data.data.copy()
         data_mode = self.current_data.mode
         if data_mode == 'epoch':
@@ -1950,16 +1869,12 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
             except Exception as error:
                 self.show_error(error)
 
-
-
     # select sub-event
     def select_event(self):
-
         event = list(set(self.current_data.events[:, 2]))
         self.select_event_win = Select_Event(event)
         self.select_event_win.event_signal.connect(self.get_event)
         self.select_event_win.show()
-
 
     def get_event(self, event_select):
         data = self.current_data.data
@@ -1972,13 +1887,11 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
             pass
         self.get_seeg_data(data_sel)
 
-
     def show_tf_win(self):
         data = self.current_data.data
         subject = self.subject_cb.currentText()
         self.tf_win = Time_Freq_Win(data, subject)
         self.tf_win.show()
-
 
     def show_con_win(self):
         data = self.current_data.data
@@ -1986,26 +1899,21 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.con_win = Con_Win(data, subject)
         self.con_win.show()
 
-
 ############################################ Shared ####################################################
 
     # the functions shared between Raw data and Epoch data
     #
-    # select sub-channel
+    # select sub-channe
     def select_chan(self):
-
         self.select_chan_win = Select_Chan(chan_name=self.current_data.data.ch_names)
         self.select_chan_win.chan_signal.connect(self.get_sel_chan)
         self.select_chan_win.show()
 
-
     def get_sel_chan(self, chan):
-
         self.chan_sel = chan
         self.current_data.data.load_data()
         sel_chan_data = self.current_data.data.copy().pick_channels(self.chan_sel)
         self.get_seeg_data(sel_chan_data)
-
 
     # rename the channels
     def rename_chan(self):
@@ -2021,10 +1929,8 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         except Exception as error:
             self.show_error(error)
 
-
     # resample the seeg data
     def execute_resample_data(self):
-
         try:
             if self.current_data.data is not None:
                 self.resample_worker.resampling_rate,_ = self.value, _ = QInputDialog.getInt(self, 'Resample Data', 'Resample Rate(Hz)', 0, 0)
@@ -2038,8 +1944,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
             self.show_error(error)
             print('*********************************************************************')
 
-
-    # filt sEEG data with fir filter
+    # filter sEEG data with fir filter
     def filter_data_fir(self):
         self.fir_filter_window = Choose_Window('fir')
         self.fir_filter_window.signal.connect(self.filter_subwindow_para)
@@ -2047,15 +1952,13 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         self.filter_worker.filter_mode = 'fir'
         self.fir_filter_window.show()
 
-
-    # filt sEEG data with iir filter
+    # filter sEEG data with iir filter
     def filter_data_iir(self):
         self.iir_filter_window = Choose_Window('iir')
         self.iir_filter_window.signal.connect(self.filter_subwindow_para)
         self.iir_filter_window.notch_signal.connect(self.filter_subwindow_para)
         self.filter_worker.filter_mode = 'iir'
         self.iir_filter_window.show()
-
 
     def filter_subwindow_para(self, low_freq, high_freq, notch_freq):
         '''
@@ -2093,10 +1996,8 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         except Exception as error:
             self.show_error(error)
 
-
     # plot raw data
     def plot_raw_data(self):
-
         try:
             if self.current_data.mode == 'raw':
                 print('画图了')
@@ -2110,7 +2011,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         except Exception as error:
             self.show_error(error)
 
-
     def drop_bad_chan(self):
         data = self.current_data.data.copy()
         if len(data.info['bads']):
@@ -2120,21 +2020,17 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         else:
             pass
 
-
     def drop_bad_epochs(self):
         data = self.current_data.data.copy()
         data.drop_bad()
         self.get_seeg_data(data)
 
-
     def plot_topo_psd(self):
-
         try:
             if self.current_data.mode:
                 self.current_data.data.plot_psd_topo(n_jobs=2)
         except Exception as error:
             self.show_error(error)
-
 
     def load_coordinate(self):
         '''Electrodes Visualization'''
@@ -2161,9 +2057,7 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
                 self._source_widget()
                 self._obj_type_lst.model().item(1).setEnabled(True)
 
-
     def set_seeg_montage(self):
-
         subject = 'fsaverage'
         subjects_dir = 'gui/mne_data/subjects'
         lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
@@ -2177,9 +2071,6 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
         except:
             QMessageBox.warning(self, 'Error shows up!', 'Please load MNI Coordinates first')
 
-
-
-
 ############################################# Help #####################################################
     # Help menu function
     #
@@ -2187,21 +2078,14 @@ class MainWindow(QMainWindow, BrainUserMethods, UiScreenshot):
     def show_setting(self):
         pass
 
-
     def show_website(self):
-
         QDesktopServices.openUrl(QUrl("http://bme.szu.edu.cn/20161/0325/54.html"))
 
-
     def show_licence(self):
-
         pass
-
 
     def send_email(self):
-
         pass
-
 
     def update_func(self, para):
         '''update label text'''
