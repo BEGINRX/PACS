@@ -1,6 +1,4 @@
 import numpy as np
-import traceback
-import mne
 import time
 import os
 
@@ -87,9 +85,8 @@ def preprocess(seeg, path, name, sfreq=1000, low=0.5, high=200,
     seeg.save(os.path.join(path, name + '.fif'))
 
     return seeg
-    
-    
-    
+
+
 def get_chan_group(raw=None, chans=None):
     '''
     This code could deal with multiple situations like the lenght of a group is 2
@@ -139,8 +136,6 @@ def get_chan_group(raw=None, chans=None):
                                                        int(ch[len(group):ch.index('-')])))
 
     return chan_group
-
-
 
 
 def car_ref(raw, data_class='raw'):
@@ -261,7 +256,6 @@ def bipolar_ref(ieeg):
     return bipolar_ieeg
 
 
-
 def esr_ref(raw, data_class='raw'):
     '''
     Reference SEEG data using Electrode Shaft Reference(ESR)
@@ -316,7 +310,7 @@ def monopolar_ref(raw,ref_chan , data_class='raw'):
     return new_raw
 
 
-def laplacian_ref(raw, data_class='raw', mode='auto'):
+def laplacian_ref(raw, data_class='raw'):
     '''
     Reference SEEG data using Laplacian Reference
     :param raw: instance of Raw
