@@ -8,10 +8,8 @@
 
 # To get GWR re-reference, we need to know the anatomical information
 # of each electrode, here are the functions we need.
-
-#
 import pandas as pd
-import numpy  as np
+import numpy as np
 
 def get_coord(filename, start_row = 1, end_row = 'auto'):
 
