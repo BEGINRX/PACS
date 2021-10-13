@@ -5,11 +5,8 @@
 @Time : 2021/1/1 21:15
 @Desc :
 '''
-import numpy as np
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
-from mne import BaseEpochs
-from mne.io import BaseRaw
 
 
 class SEEG(object):
@@ -21,8 +18,6 @@ class SEEG(object):
         self.mode = mode
         self.events = events
         self.data_para = dict()
-
-
 
     def get_para(self):
         if self.mode == 'raw':
@@ -50,12 +45,10 @@ class SEEG(object):
             self.data_para['data_size'] = str(round(0.5 *(self.data._size /((2 ** 10) ** 2)), 2))
 
 
-
 class Subject(object):
 
     def __init__(self, name=None, coord=None, group=None,
-                 b_obj=None, s_obj=None, c_obj=None):
-
+                 s_obj=None, c_obj=None):
         super(Subject, self).__init__()
         # key in seeg is the name of the data
         self.seeg = dict()
@@ -67,14 +60,11 @@ class Subject(object):
         self.c_obj = c_obj
 
 
-
-
-
 class Change_Figure(Figure):
 
     def __init__(self, data, title, *args, **kwargs):
-
         super(Change_Figure, self).__init__(*args, **kwargs)
+
         self.ax = self.add_subplot()
         self.data = data
         if isinstance(title, str):
@@ -116,8 +106,6 @@ class Change_Figure(Figure):
         self.data_plot = self.data[self.num, :, :]
         self.ax.matshow(self.data_plot)
         self.ax.set_title(self.title + str(self.num))
-
-
 
 
 """Screenshot window and related functions."""
