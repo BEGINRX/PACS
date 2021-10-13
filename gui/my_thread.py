@@ -8,18 +8,17 @@
 import traceback
 import numpy as np
 from mne import io
-from PyQt5.QtCore import QThread, pyqtSignal, QRunnable, QMutex
+from PyQt5.QtCore import QThread, pyqtSignal
 import mne
 from mne.time_frequency import tfr_morlet, psd_multitaper, psd_welch, \
-                            tfr_stockwell, tfr_multitaper, csd_fourier, \
-                            csd_multitaper, csd_morlet
+                            tfr_stockwell, tfr_multitaper
 from mne.connectivity import spectral_connectivity
 
 
 def show_error(error):
     print('*********************************************************************')
     print('Error is: ')
-    traceback.print_exc()
+    traceback.print_exc(error)
     print('*********************************************************************')
 
 class Import_Thread(QThread):
@@ -32,7 +31,6 @@ class Import_Thread(QThread):
         # 数据路径
         self.data_path = ''
         self.seeg_data = ''
-
 
     def import_data(self):
         '''import data selected'''
@@ -81,7 +79,6 @@ class Load_Epoched_Data_Thread(QThread):
             self.seeg_data = mne.read_epochs(self.data_path)
         self.seeg_data.set_channel_types ({ch_name: 'seeg' for ch_name in self.seeg_data.ch_names})
 
-
     def run(self):
         '''rewrite run'''
         try:
@@ -96,7 +93,6 @@ class Load_Epoched_Data_Thread(QThread):
             self.load.emit(self.seeg_data)
 
 
-
 class Resample_Thread(QThread):
 
     resample = pyqtSignal(object)
@@ -105,7 +101,6 @@ class Resample_Thread(QThread):
         super(Resample_Thread, self).__init__(parent)
         self.data = ''
         self.resampling_rate = ''
-
 
     def run(self):
         '''rewrite run'''
@@ -134,7 +129,6 @@ class Filter_Thread(QThread):
         self.low_freq = None
         self.high_freq = None
         self.notch_freq = None
-
 
     def run(self):
         '''重写run'''
@@ -230,8 +224,6 @@ class Calculate_Power(QThread):
         self.show_itc = show_itc
         self.itc = None
 
-
-
     def run(self):
         if self.method == 'Multitaper transform':
             freqs = np.logspace(*np.log10(self.freq), num=8)
@@ -261,7 +253,6 @@ class Calculate_Power(QThread):
         self.power_signal.emit(power, self.chan_num, self.time, self.itc)
 
 
-
 class Calculate_PSD(QThread):
 
     psd_signal = pyqtSignal(str, object, object, object)
@@ -276,7 +267,6 @@ class Calculate_PSD(QThread):
         self.time = time
         self.nfft = nfft
         self.average = average
-
 
     def run(self):
         if self.method == 'Multitaper':
@@ -322,7 +312,6 @@ class Cal_Spec_Con(QThread):
         else:
             self.indices = None
         print(self.indices)
-
 
     def run(self):
         self.data.load_data()
@@ -433,8 +422,6 @@ class Cal_Spec_Con(QThread):
             self.spec_con_signal.emit ([con, times, freqs])
 
 
-
-
 class Cal_Dir_Con(QThread):
 
     spec_con_signal = pyqtSignal(list)
@@ -451,8 +438,6 @@ class Cal_Dir_Con(QThread):
         self.data = data
         self.para = para
         self.sfreq = self.data.info['sfreq']
-
-
 
     def run(self):
         self.data.load_data()
@@ -496,9 +481,6 @@ class Cal_Dir_Con(QThread):
                                   time=m.time)
                 result[i] = [c, m]
             self.spec_con_signal.emit ([result, data, times])
-
-
-
 
 
 class Cal_Time_Con(QThread):
@@ -566,8 +548,3 @@ class Cal_Time_Con(QThread):
                 epochx, epochy = data, data
                 con = get_corr(data, data)
         self.con_signal.emit(con, epochx.ch_names, epochy.ch_names)
-
-
-
-
-
